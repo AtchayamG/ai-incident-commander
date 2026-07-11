@@ -1,0 +1,32 @@
+ROLE: backend repair
+OBJECTIVE: Repair and complete the checkpointed M1 backend persistence slice on branch agent/m1-backend. The current commit d3bf574 is failing and must not be integrated until every listed gate passes.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m1-backend
+ALLOWED FILES:
+- services/api/**
+- docs/adr/**
+- docs/testing/**
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- apps/web/**, packages/contracts/**, root status/docs, production actions, secrets, unrelated refactors, commits
+KNOWN FAILURES:
+- ruff reports 80 errors across Alembic, incidents.py, store protocol/SQL, and tests
+- mypy strict reports 14 errors including undefined StoreProtocol and untyped tests/generator
+- pytest cannot import incidents.py because StoreProtocol is undefined
+- prior SSE test can hang because the stream is long-lived
+REQUIREMENTS:
+- Fix all lint and strict typing failures without suppressing or weakening rules.
+- Make store typing consistently use StoreProtocol and export NotFoundError from one canonical module.
+- Ensure SQL model-to-Pydantic conversion works for enum-backed fields and JSON fields.
+- Ensure generated IDs remain collision-free across process restarts.
+- Webhook HMAC verification must be real in non-demo mode and safely bypassed only in explicit demo mode.
+- SSE must support bounded deterministic testing without changing production streaming semantics; add heartbeat/disconnect behavior and avoid hanging tests.
+- Fresh Alembic migration, restart persistence, webhook, SSE, all existing tests must pass.
+- Do not claim success unless exact commands exit 0.
+TESTS:
+- from services/api: `.venv/Scripts/python -m ruff check .`
+- `.venv/Scripts/python -m mypy`
+- `.venv/Scripts/python -m pytest -q`
+DELIVERABLE:
+- corrected implementation, tests, and AGENT_HANDOFF.md with exact counts/results
+STOP IF:
+- architecture conflict, missing secret, destructive action, or tests cannot be made bounded
