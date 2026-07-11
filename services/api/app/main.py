@@ -19,7 +19,7 @@ from app.providers.simulated import (
     SimulatedTelemetryProvider,
     SimulatedVerificationRunner,
 )
-from app.store.memory import InMemoryStore
+from app.store.sql import SqlAlchemyStore
 from app.workflow.pipeline import WorkflowPipeline
 
 
@@ -31,7 +31,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Live providers arrive in M4-M7; run with DEMO_MODE=true for M0"
         )
 
-    store = InMemoryStore()
+    store = SqlAlchemyStore(settings.database_url or "sqlite:///demo.db")
     pipeline = WorkflowPipeline(
         store=store,
         telemetry=SimulatedTelemetryProvider(),

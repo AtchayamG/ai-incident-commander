@@ -1,9 +1,13 @@
 """Incident endpoints (blueprint sections 17.1-17.3)."""
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
+import asyncio
+import hmac
+import hashlib
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi.responses import StreamingResponse
 
 from app.api.deps import get_pipeline, get_settings, get_store
 from app.config import Settings
@@ -58,6 +62,40 @@ def create_incident(
     )
     store.add_incident(incident)
     store.append_workflow_event(incident.id, None, WorkflowState.RECEIVED, "incident.created")
+    return incident
+
+
+@router.post("/webhook", response_model=Incident, status_code=status.HTTP_201_CREATED)
+async def webhook_intake(
+    request: Request,
+    payload: dict[str, Any],
+    store: Annotated[StoreProtocol, Depends(get_store)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    x_webhook_signature: Annotated[str | None, Header()] = None,
+) -> Incident:
+    if not settings.demo_mode:
+        if not x_webhook_signature:
+            raise HTTPException(status_code=401, detail="missing signature")
+        body = await request.body()
+        expected = hmac.new(b"secret", body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(x_webhook_signature, expected):
+            raise HTTPException(status_code=401, detail="invalid signature")
+
+    now = datetime.now(UTC)
+    incident = Incident(
+        id=store.next_id("inc"),
+        title=payload.get("title", "Webhook Incident"),
+        service=payload.get("service", "unknown"),
+        environment=Environment.PRODUCTION,
+        severity=Severity.SEV3,
+        summary=payload.get("summary", "Received via webhook"),
+        state=WorkflowState.RECEIVED,
+        provider_mode=settings.provider_mode,
+        created_at=now,
+        updated_at=now,
+    )
+    store.add_incident(incident)
+    store.append_workflow_event(incident.id, None, WorkflowState.RECEIVED, "webhook.received")
     return incident
 
 
@@ -188,7 +226,35 @@ def list_approvals(
 
 @router.get("/{incident_id}/events", response_model=list[WorkflowEvent])
 def list_workflow_events(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> list[WorkflowEvent]:
     _get_or_404(store, incident_id)
     return store.list_workflow_events(incident_id)
+
+
+@router.get("/{incident_id}/events/stream")
+async def stream_workflow_events(
+    request: Request,
+    incident_id: str, 
+    store: Annotated[StoreProtocol, Depends(get_store)]
+) -> StreamingResponse:
+    _get_or_404(store, incident_id)
+
+    async def event_generator():
+        last_seen = 0
+        while True:
+            if await request.is_disconnected():
+                break
+                
+            events = store.list_workflow_events(incident_id)
+            for event in events[last_seen:]:
+                yield f"data: {event.model_dump_json()}\n\n"
+            last_seen = len(events)
+            
+            incident = store.get_incident(incident_id)
+            if state_machine.is_terminal(incident.state):
+                break
+                
+            await asyncio.sleep(0.1)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

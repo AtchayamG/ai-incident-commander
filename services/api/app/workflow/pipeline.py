@@ -34,7 +34,7 @@ from app.providers.base import (
     VerificationRunner,
 )
 from app.security.redaction import redact
-from app.store.memory import InMemoryStore
+from app.store.protocol import StoreProtocol
 
 APPROVAL_TTL = timedelta(hours=4)
 
@@ -42,7 +42,7 @@ APPROVAL_TTL = timedelta(hours=4)
 class WorkflowPipeline:
     def __init__(
         self,
-        store: InMemoryStore,
+        store: StoreProtocol,
         telemetry: TelemetryProvider,
         investigation: InvestigationProvider,
         code_agent: CodeAgentGateway,

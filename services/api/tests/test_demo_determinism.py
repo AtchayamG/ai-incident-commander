@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import create_app
 
-SETTINGS = Settings(demo_mode=True, demo_admin_key="test-admin-key")
+SETTINGS = Settings(demo_mode=True, demo_admin_key="test", database_url="sqlite:///:memory:")
 
 
 def _run_golden_path() -> dict[str, Any]:

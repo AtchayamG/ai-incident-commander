@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.api.deps import get_pipeline, get_store
 from app.domain.contracts import ApprovalDecisionIn, ApprovalRequest
 from app.domain.enums import ApprovalDecision, ApprovalStatus
-from app.store.memory import InMemoryStore, NotFoundError
+from app.store.protocol import NotFoundError, StoreProtocol
 from app.workflow.pipeline import WorkflowPipeline
 
 router = APIRouter(prefix="/api/v1/approvals", tags=["approvals"])
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/v1/approvals", tags=["approvals"])
 def decide(
     approval_id: str,
     body: ApprovalDecisionIn,
-    store: Annotated[InMemoryStore, Depends(get_store)],
+    store: Annotated[StoreProtocol, Depends(get_store)],
     pipeline: Annotated[WorkflowPipeline, Depends(get_pipeline)],
 ) -> ApprovalRequest:
     try:

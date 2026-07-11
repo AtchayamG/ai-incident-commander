@@ -22,8 +22,8 @@ from app.domain.contracts import (
 from app.domain.enums import Environment, Severity, WorkflowState
 
 
-class NotFoundError(Exception):
-    pass
+from app.store.protocol import NotFoundError
+
 
 
 class InMemoryStore:

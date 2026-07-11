@@ -3,7 +3,7 @@
 from fastapi import Request
 
 from app.config import Settings
-from app.store.memory import InMemoryStore
+from app.store.protocol import StoreProtocol
 from app.workflow.pipeline import WorkflowPipeline
 
 
@@ -12,8 +12,8 @@ def get_settings(request: Request) -> Settings:
     return settings
 
 
-def get_store(request: Request) -> InMemoryStore:
-    store: InMemoryStore = request.app.state.store
+def get_store(request: Request) -> StoreProtocol:
+    store: StoreProtocol = request.app.state.store
     return store
 
 
