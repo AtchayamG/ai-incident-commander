@@ -1,0 +1,24 @@
+{
+  "active_milestone": "M0",
+  "status": "in_progress",
+  "gates": {
+    "frontend_lint": false,
+    "frontend_typecheck": false,
+    "backend_lint": false,
+    "backend_typecheck": false,
+    "unit_tests": false,
+    "integration_tests": false,
+    "contract_tests": false,
+    "e2e_tests": false,
+    "fresh_migrations": false,
+    "demo_reset": false,
+    "local_startup": false,
+    "secret_scan": false,
+    "approval_boundaries": false,
+    "failed_verification_blocks_pr": false,
+    "golden_demo": false,
+    "five_run_reliability": false
+  },
+  "last_updated": "2026-07-12T00:00:00+05:30"
+}
+
