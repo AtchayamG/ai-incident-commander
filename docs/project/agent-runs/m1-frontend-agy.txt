@@ -1,0 +1,24 @@
+ROLE: frontend
+OBJECTIVE: Complete the judge-friendly M1 frontend slice and repair the Windows production-build exit: manual incident intake, persisted dashboard states, incident detail/war-room shell, workflow timeline, evidence/hypothesis panels, approval visibility, responsive accessible styling, and focused tests using the existing API/shared contracts.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m1-frontend
+ALLOWED FILES:
+- apps/web/**
+- docs/adr/frontend-*.md
+- docs/testing/frontend-*.md
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- services/**, packages/contracts/**, root documentation/status files, production uploads, publishing, secrets, unrelated refactors
+REQUIREMENTS:
+- Value proposition and golden incident state must be understandable within 20 seconds.
+- Add accessible manual incident creation UI with clear validation and simulated/demo labels.
+- Add incident detail route with severity/service/state, chronological workflow, evidence provenance, hypotheses/confidence/unknowns, affected files/commits, remediation and approval boundaries, and placeholders only where later M4-M7 data is genuinely unavailable.
+- Handle loading, empty, API-down, and validation failures; keyboard navigation and non-color status cues.
+- Diagnose and fix the Next.js Windows `kill EPERM` production-build exit without weakening the build gate.
+- Use existing typed API client/contracts; do not change shared packages or backend.
+- Do not commit.
+TESTS:
+- pnpm frontend lint, strict typecheck, vitest, and production build with exit code 0 on this Windows worktree
+DELIVERABLE:
+- implementation, focused tests, and AGENT_HANDOFF.md
+STOP IF:
+- required API contract is absent, architecture conflict, ambiguous destructive action, or scope expansion

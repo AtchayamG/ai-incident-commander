@@ -1,0 +1,27 @@
+ROLE: backend
+OBJECTIVE: Complete the M1 backend slice: durable local persistence, incident intake, authenticated generic webhook hook, workflow-event streaming, migrations/seed/reset support, and focused tests, preserving the existing typed domain/state-machine architecture.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m1-backend
+ALLOWED FILES:
+- services/api/**
+- infra/**
+- scripts/**
+- tests/**
+- docs/adr/**
+- docs/testing/**
+FORBIDDEN:
+- apps/web/**, packages/contracts/**, root documentation/status files, production uploads, publishing, secrets, live external writes, unrelated refactors
+REQUIREMENTS:
+- Implement a durable SQLite demo/local adapter behind the existing store boundary; keep a replaceable SQLAlchemy 2 design and Alembic migrations. PostgreSQL compatibility may be configured but demo mode must run without services.
+- Persist incidents, workflow events, evidence, hypotheses, plans, patches, verifications, and approvals sufficiently for process-restart resume.
+- Add manual incident creation and generic JSON webhook intake with a signature-verification interface and safe demo behavior.
+- Add SSE event streaming for incident workflow events.
+- Make demo seed/reset idempotent and add a fresh-migration test.
+- Preserve redaction, approval, idempotency, and state-machine safety.
+- Do not commit. Do not modify frontend/shared TS contracts.
+TESTS:
+- backend ruff, strict mypy, pytest including migration, restart persistence, webhook, SSE, and reset coverage
+DELIVERABLE:
+- implementation, focused tests, and AGENT_HANDOFF.md
+STOP IF:
+- architecture conflict, missing secret, ambiguous destructive action, or scope expansion
+
