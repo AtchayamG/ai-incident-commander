@@ -2,13 +2,12 @@
   "name": "incident-commander-ai",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.34.4",
   "scripts": {
-    "dev": "pnpm -r run dev",
+    "dev": "pnpm --filter @incident-commander/web dev",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
-    "lint": "pnpm -r run lint"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.0"
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck"
   }
 }

@@ -1,0 +1,194 @@
+"""Incident endpoints (blueprint sections 17.1-17.3)."""
+
+from datetime import UTC, datetime
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+
+from app.api.deps import get_pipeline, get_settings, get_store
+from app.config import Settings
+from app.demo.seed import seed_demo
+from app.domain.contracts import (
+    ApprovalRequest,
+    EvidenceItem,
+    Hypothesis,
+    Incident,
+    IncidentCreate,
+    IncidentList,
+    PatchAttempt,
+    RemediationPlan,
+    ResetResult,
+    TimelineEvent,
+    VerificationRun,
+    WorkflowEvent,
+)
+from app.domain.enums import Environment, Severity, WorkflowState
+from app.store.memory import InMemoryStore, NotFoundError
+from app.workflow import state_machine
+from app.workflow.pipeline import WorkflowPipeline
+
+router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
+
+
+def _get_or_404(store: InMemoryStore, incident_id: str) -> Incident:
+    try:
+        return store.get_incident(incident_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("", response_model=Incident, status_code=status.HTTP_201_CREATED)
+def create_incident(
+    body: IncidentCreate,
+    store: Annotated[InMemoryStore, Depends(get_store)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> Incident:
+    now = datetime.now(UTC)
+    incident = Incident(
+        id=store.next_id("inc"),
+        title=body.title,
+        service=body.service,
+        environment=body.environment,
+        severity=body.severity,
+        summary=body.summary,
+        state=WorkflowState.RECEIVED,
+        provider_mode=settings.provider_mode,
+        created_at=now,
+        updated_at=now,
+    )
+    store.add_incident(incident)
+    store.append_workflow_event(incident.id, None, WorkflowState.RECEIVED, "incident.created")
+    return incident
+
+
+@router.get("", response_model=IncidentList)
+def list_incidents(
+    store: Annotated[InMemoryStore, Depends(get_store)],
+    status_filter: Annotated[WorkflowState | None, Query(alias="status")] = None,
+    severity: Severity | None = None,
+    service: str | None = None,
+    environment: Environment | None = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> IncidentList:
+    items = store.list_incidents(
+        status=status_filter,
+        severity=severity,
+        service=service,
+        environment=environment,
+        limit=limit,
+    )
+    return IncidentList(items=items, total=len(items))
+
+
+@router.get("/{incident_id}", response_model=Incident)
+def get_incident(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> Incident:
+    return _get_or_404(store, incident_id)
+
+
+@router.post("/{incident_id}/start", response_model=Incident)
+def start_incident(
+    incident_id: str,
+    store: Annotated[InMemoryStore, Depends(get_store)],
+    pipeline: Annotated[WorkflowPipeline, Depends(get_pipeline)],
+) -> Incident:
+    incident = _get_or_404(store, incident_id)
+    if incident.state != WorkflowState.RECEIVED:
+        raise HTTPException(
+            status_code=409,
+            detail=f"incident is in state {incident.state}; start requires RECEIVED",
+        )
+    return pipeline.start(incident)
+
+
+@router.post("/{incident_id}/cancel", response_model=Incident)
+def cancel_incident(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> Incident:
+    incident = _get_or_404(store, incident_id)
+    if state_machine.is_terminal(incident.state):
+        raise HTTPException(status_code=409, detail="incident is already terminal")
+    new_state = state_machine.advance(incident.state, WorkflowState.CANCELLED)
+    updated = store.set_incident_state(incident.id, new_state)
+    store.append_workflow_event(incident.id, incident.state, new_state, "incident.cancelled")
+    return updated
+
+
+@router.post("/reset-demo", response_model=ResetResult)
+def reset_demo(
+    store: Annotated[InMemoryStore, Depends(get_store)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    x_demo_admin_key: Annotated[str | None, Header()] = None,
+) -> ResetResult:
+    if not settings.demo_mode:
+        raise HTTPException(status_code=403, detail="reset-demo is demo mode only")
+    if x_demo_admin_key != settings.demo_admin_key:
+        raise HTTPException(status_code=401, detail="missing or invalid X-Demo-Admin-Key")
+    store.reset()
+    seeded = seed_demo(store)
+    return ResetResult(status="reset", seeded_incident_ids=seeded)
+
+
+@router.get("/{incident_id}/evidence", response_model=list[EvidenceItem])
+def list_evidence(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> list[EvidenceItem]:
+    _get_or_404(store, incident_id)
+    return store.list_evidence(incident_id)
+
+
+@router.get("/{incident_id}/timeline", response_model=list[TimelineEvent])
+def list_timeline(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> list[TimelineEvent]:
+    _get_or_404(store, incident_id)
+    return store.list_timeline(incident_id)
+
+
+@router.get("/{incident_id}/hypotheses", response_model=list[Hypothesis])
+def list_hypotheses(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> list[Hypothesis]:
+    _get_or_404(store, incident_id)
+    return store.list_hypotheses(incident_id)
+
+
+@router.get("/{incident_id}/remediation-plan", response_model=list[RemediationPlan])
+def list_plans(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> list[RemediationPlan]:
+    _get_or_404(store, incident_id)
+    return store.list_plans(incident_id)
+
+
+@router.get("/{incident_id}/patches", response_model=list[PatchAttempt])
+def list_patches(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> list[PatchAttempt]:
+    _get_or_404(store, incident_id)
+    return store.list_patches(incident_id)
+
+
+@router.get("/{incident_id}/verifications", response_model=list[VerificationRun])
+def list_verifications(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> list[VerificationRun]:
+    _get_or_404(store, incident_id)
+    return store.list_verifications(incident_id)
+
+
+@router.get("/{incident_id}/approvals", response_model=list[ApprovalRequest])
+def list_approvals(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> list[ApprovalRequest]:
+    _get_or_404(store, incident_id)
+    return store.list_approvals(incident_id)
+
+
+@router.get("/{incident_id}/events", response_model=list[WorkflowEvent])
+def list_workflow_events(
+    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+) -> list[WorkflowEvent]:
+    _get_or_404(store, incident_id)
+    return store.list_workflow_events(incident_id)

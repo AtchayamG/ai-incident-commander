@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  transpilePackages: ["@incident-commander/contracts"],
+};
 
 module.exports = nextConfig;

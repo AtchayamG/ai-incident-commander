@@ -1,25 +1,45 @@
-.PHONY: setup dev test lint build docker-up docker-down
+# Developer contract. Every target must stay runnable on a fresh clone.
+# Backend commands assume the venv created by `make setup` (services/api/.venv).
+
+PY := services/api/.venv/Scripts/python
+ifeq ($(OS),Windows_NT)
+PY := services/api/.venv/Scripts/python
+else
+PY := services/api/.venv/bin/python
+endif
+
+.PHONY: setup dev dev-api dev-web lint typecheck test docker-up docker-down
 
 setup:
 	pnpm install
-	cd services/api && pip install -r requirements.txt
-	cd services/api && pip install pytest flake8 mypy httpx
+	python -m venv services/api/.venv || py -3.12 -m venv services/api/.venv
+	$(PY) -m pip install --upgrade pip
+	$(PY) -m pip install -e "services/api[dev]"
+
+dev-api:
+	cd services/api && ./.venv/Scripts/python -m uvicorn app.main:app --reload --port 8000 || \
+		./.venv/bin/python -m uvicorn app.main:app --reload --port 8000
+
+dev-web:
+	pnpm --filter @incident-commander/web dev
 
 dev:
-	# Starts backend and frontend
-	cd services/api && uvicorn main:app --reload --port 8000 &
-	cd apps/web && pnpm dev &
-
-test:
-	cd services/api && pytest
-	cd apps/web && pnpm test
+	@echo "Run 'make dev-api' and 'make dev-web' in two terminals, or 'make docker-up'."
 
 lint:
-	cd services/api && flake8 . && mypy .
-	cd apps/web && pnpm lint
+	cd services/api && $(abspath $(PY)) -m ruff check .
+	pnpm -r run lint
+
+typecheck:
+	cd services/api && $(abspath $(PY)) -m mypy
+	pnpm -r run typecheck
+
+test:
+	cd services/api && $(abspath $(PY)) -m pytest
+	pnpm -r run test
 
 docker-up:
-	docker-compose up -d --build
+	docker compose up -d --build
 
 docker-down:
-	docker-compose down
+	docker compose down

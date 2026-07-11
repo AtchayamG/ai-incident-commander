@@ -1,14 +1,27 @@
-FROM node:20-alpine
+# Built from the repository root so the workspace contracts package is available:
+#   docker build -f apps/web/Dockerfile .
+FROM node:22-alpine AS build
 
-WORKDIR /app
+RUN corepack enable
 
-COPY package*.json ./
-RUN npm install
+WORKDIR /repo
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/contracts/package.json packages/contracts/
+COPY apps/web/package.json apps/web/
 
-COPY . .
+RUN pnpm install --frozen-lockfile
 
-RUN npm run build
+COPY packages/contracts packages/contracts
+COPY apps/web apps/web
+
+RUN pnpm --filter @incident-commander/web build
+
+FROM node:22-alpine
+
+RUN corepack enable
+WORKDIR /repo
+COPY --from=build /repo ./
 
 EXPOSE 3000
-
-CMD ["npm", "start"]
+WORKDIR /repo/apps/web
+CMD ["npx", "next", "start", "-p", "3000"]

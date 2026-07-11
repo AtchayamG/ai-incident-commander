@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build:
@@ -7,16 +5,46 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEMO_MODE=true
-    volumes:
-      - ./services/api:/app
+      DEMO_MODE: "true"
+      DEMO_ADMIN_KEY: ${DEMO_ADMIN_KEY:-demo-admin-key}
+      CORS_ORIGINS: http://localhost:3000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   web:
     build:
-      context: ./apps/web
+      context: .
+      dockerfile: apps/web/Dockerfile
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Not consumed by the M0 API (in-memory store); provisioned so the M1
+  # persistence milestone lands against the same local contract.
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: incident
+      POSTGRES_PASSWORD: incident-local
+      POSTGRES_DB: incident_commander
+    ports:
+      - "5432:5432"
     volumes:
-      - ./apps/web:/app
+      - pgdata:/var/lib/postgresql/data
+    profiles: ["persistence"]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    profiles: ["persistence"]
+
+volumes:
+  pgdata:
