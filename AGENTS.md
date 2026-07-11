@@ -11,3 +11,11 @@ Source of truth: `docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md`.
 - Use `make lint`, `make typecheck`, `make test`, and `make demo-assert` as gates once available.
 - Keep `taskstatus.md`, `handover.md`, `BUILD_STATUS.json`, and `CODEX_RESULT.md` accurate.
 
+## External-agent routing (persistent project policy)
+
+- Use the `orchestrate-external-coding-agents` skill for delegated project work in every session.
+- Route complex architecture/backend/reasoning work to Claude `Fable 5` first while usage remains.
+- When Fable usage is exhausted, route Claude work to `Opus 4.8`.
+- Route UI/UX and suitable frontend/integration tasks to agy.
+- Use Hermes for bounded implementation, tests, documentation, repair, or fallback when authenticated.
+- Keep one clean worktree per writable worker, avoid overlapping file ownership, and reproduce all worker verification before integration.

@@ -7,4 +7,4 @@
 - Known limitations: no application code yet
 - External credentials: OpenAI and GitHub optional for live mode; deterministic demo must run without them
 - Next action: create and verify M0 scaffold, contracts, local startup, and CI baseline
-
+- Persistent delegation policy: use `orchestrate-external-coding-agents`; Claude Fable 5 first, then Opus 4.8 after Fable exhaustion; agy for UI/UX/frontend integration; Hermes as authenticated fallback; Codex integrates and verifies.
