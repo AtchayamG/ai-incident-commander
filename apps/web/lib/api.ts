@@ -14,6 +14,11 @@ import type {
   Incident,
   IncidentCreate,
   IncidentList,
+  EvidenceItem,
+  TimelineEvent,
+  Hypothesis,
+  RemediationPlan,
+  PatchAttempt,
 } from "@incident-commander/contracts";
 
 export type ApiResult<T> =
@@ -94,6 +99,43 @@ export function startIncident(incidentId: string): Promise<ApiResult<Incident>> 
   });
 }
 
+export function cancelIncident(incidentId: string): Promise<ApiResult<Incident>> {
+  return request<Incident>(`api/v1/incidents/${encodeURIComponent(incidentId)}/cancel`, {
+    method: "POST",
+  });
+}
+
+export function resetDemo(adminKey: string): Promise<ApiResult<{ status: string; seeded_incident_ids: string[] }>> {
+  return request<{ status: string; seeded_incident_ids: string[] }>("api/v1/incidents/reset-demo", {
+    method: "POST",
+    headers: { "X-Demo-Admin-Key": adminKey },
+  });
+}
+
+export function getIncidentEvidence(incidentId: string): Promise<ApiResult<EvidenceItem[]>> {
+  return request<EvidenceItem[]>(`api/v1/incidents/${encodeURIComponent(incidentId)}/evidence`);
+}
+
+export function getIncidentTimeline(incidentId: string): Promise<ApiResult<TimelineEvent[]>> {
+  return request<TimelineEvent[]>(`api/v1/incidents/${encodeURIComponent(incidentId)}/timeline`);
+}
+
+export function getIncidentHypotheses(incidentId: string): Promise<ApiResult<Hypothesis[]>> {
+  return request<Hypothesis[]>(`api/v1/incidents/${encodeURIComponent(incidentId)}/hypotheses`);
+}
+
+export function getIncidentPlans(incidentId: string): Promise<ApiResult<RemediationPlan[]>> {
+  return request<RemediationPlan[]>(`api/v1/incidents/${encodeURIComponent(incidentId)}/remediation-plan`);
+}
+
+export function getIncidentPatches(incidentId: string): Promise<ApiResult<PatchAttempt[]>> {
+  return request<PatchAttempt[]>(`api/v1/incidents/${encodeURIComponent(incidentId)}/patches`);
+}
+
+export function getIncidentApprovals(incidentId: string): Promise<ApiResult<ApprovalRequest[]>> {
+  return request<ApprovalRequest[]>(`api/v1/incidents/${encodeURIComponent(incidentId)}/approvals`);
+}
+
 export function decideApproval(
   approvalId: string,
   body: ApprovalDecisionIn,
@@ -107,3 +149,4 @@ export function decideApproval(
     },
   );
 }
+

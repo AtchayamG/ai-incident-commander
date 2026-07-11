@@ -1,0 +1,649 @@
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import type {
+  Incident,
+  EvidenceItem,
+  TimelineEvent,
+  Hypothesis,
+  RemediationPlan,
+  PatchAttempt,
+  ApprovalRequest,
+  WorkflowState,
+  Severity,
+} from "@incident-commander/contracts";
+import {
+  getIncident,
+  getIncidentEvidence,
+  getIncidentTimeline,
+  getIncidentHypotheses,
+  getIncidentPlans,
+  getIncidentPatches,
+  getIncidentApprovals,
+  startIncident,
+  cancelIncident,
+  decideApproval,
+} from "@/lib/api";
+
+export default function IncidentDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const incidentId = typeof params["id"] === "string" ? params["id"] : "";
+
+  // UI States
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Entities
+  const [incident, setIncident] = useState<Incident | null>(null);
+  const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
+  const [plans, setPlans] = useState<RemediationPlan[]>([]);
+  const [patches, setPatches] = useState<PatchAttempt[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+
+  // Interactive UI States
+  const [expandedEvidence, setExpandedEvidence] = useState<Record<string, boolean>>({});
+  const [approvalReason, setApprovalReason] = useState("");
+  const [approvalSubmitError, setApprovalSubmitError] = useState<string | null>(null);
+  const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Fetch all incident-related resources
+  const loadIncidentData = useCallback(async (isSilent = false) => {
+    if (!incidentId) return;
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
+    
+    setErrorMsg(null);
+
+    const [
+      incidentRes,
+      evidenceRes,
+      timelineRes,
+      hypothesesRes,
+      plansRes,
+      patchesRes,
+      approvalsRes,
+    ] = await Promise.all([
+      getIncident(incidentId),
+      getIncidentEvidence(incidentId),
+      getIncidentTimeline(incidentId),
+      getIncidentHypotheses(incidentId),
+      getIncidentPlans(incidentId),
+      getIncidentPatches(incidentId),
+      getIncidentApprovals(incidentId),
+    ]);
+
+    if (!incidentRes.ok) {
+      setErrorMsg(`Failed to fetch incident details: ${incidentRes.error}`);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    setIncident(incidentRes.data);
+
+    if (evidenceRes.ok) setEvidence(evidenceRes.data);
+    if (timelineRes.ok) setTimeline(timelineRes.data);
+    if (hypothesesRes.ok) setHypotheses(hypothesesRes.data);
+    if (plansRes.ok) setPlans(plansRes.data);
+    if (patchesRes.ok) setPatches(patchesRes.data);
+    if (approvalsRes.ok) setApprovals(approvalsRes.data);
+
+    setLoading(false);
+    setRefreshing(false);
+  }, [incidentId]);
+
+  // Initial Load
+  useEffect(() => {
+    loadIncidentData();
+  }, [loadIncidentData]);
+
+  // Auto-refresh poll loop
+  useEffect(() => {
+    if (!autoRefresh || loading || !incident) return;
+    
+    // Check if incident is in terminal state
+    const terminalStates: WorkflowState[] = ["CLOSED", "CANCELLED", "NO_SAFE_REMEDIATION"];
+    if (terminalStates.includes(incident.state)) {
+      return; // Stop polling on terminal states
+    }
+
+    const interval = setInterval(() => {
+      loadIncidentData(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, loading, incident, loadIncidentData]);
+
+  // Actions
+  const handleStartIncident = async () => {
+    if (!incident) return;
+    setActionError(null);
+    const res = await startIncident(incident.id);
+    if (res.ok) {
+      loadIncidentData(true);
+    } else {
+      setActionError(`Failed to start pipeline: ${res.error}`);
+    }
+  };
+
+  const handleCancelIncident = async () => {
+    if (!incident) return;
+    if (!confirm("Are you sure you want to cancel this incident process?")) return;
+    setActionError(null);
+    const res = await cancelIncident(incident.id);
+    if (res.ok) {
+      loadIncidentData(true);
+    } else {
+      setActionError(`Failed to cancel incident: ${res.error}`);
+    }
+  };
+
+  const handleDecision = async (approvalId: string, decision: "approved" | "rejected") => {
+    if (!approvalReason.trim()) {
+      setApprovalSubmitError("A reason is required to decide on this request.");
+      return;
+    }
+
+    setApprovalSubmitError(null);
+    setIsSubmittingApproval(true);
+
+    const res = await decideApproval(approvalId, {
+      decision,
+      reason: approvalReason.trim(),
+    });
+
+    setIsSubmittingApproval(false);
+
+    if (res.ok) {
+      setApprovalReason("");
+      loadIncidentData(true);
+    } else {
+      setApprovalSubmitError(`Failed to submit decision: ${res.error}`);
+    }
+  };
+
+  const toggleEvidence = (id: string) => {
+    setExpandedEvidence(prev => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const getSeverityLabel = (sev: Severity) => {
+    switch (sev) {
+      case "SEV1": return "SEV1 - Critical";
+      case "SEV2": return "SEV2 - Major";
+      case "SEV3": return "SEV3 - Minor";
+      case "SEV4": return "SEV4 - Low";
+      default: return sev;
+    }
+  };
+
+  const getStatusBadgeClass = (state: WorkflowState) => {
+    const terminalStates: WorkflowState[] = ["CLOSED", "CANCELLED", "NO_SAFE_REMEDIATION"];
+    const needsInputStates: WorkflowState[] = ["NEEDS_INPUT", "PATCH_FAILED", "EXTERNAL_ACTION_FAILED"];
+    
+    if (terminalStates.includes(state)) {
+      return "badge-sev4"; // muted gray
+    }
+    if (needsInputStates.includes(state)) {
+      return "badge-sev2"; // warning yellow
+    }
+    if (state === "WAITING_PATCH_APPROVAL" || state === "WAITING_PR_APPROVAL") {
+      return "badge-sev1"; // critical red/amber
+    }
+    return "badge-sev3"; // blue info
+  };
+
+  const renderDiff = (diffText: string) => {
+    const lines = diffText.split("\n");
+    return (
+      <div className="diff-container" style={{ maxHeight: "350px", overflowY: "auto" }}>
+        {lines.map((line, idx) => {
+          let className = "diff-line";
+          if (line.startsWith("+")) className = "diff-line diff-line-added";
+          else if (line.startsWith("-")) className = "diff-line diff-line-removed";
+          return (
+            <span key={idx} className={className}>
+              {line}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="container" style={{ textAlign: "center", paddingTop: "5rem" }}>
+        <h1 style={{ marginBottom: "1rem" }} className="gradient-text">Incident War Room Loading...</h1>
+        <div style={{ width: "50px", height: "50px", border: "5px solid var(--border-color)", borderTopColor: "var(--primary)", borderRadius: "50%", margin: "0 auto", animation: "spin 1s linear infinite" }}></div>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (errorMsg || !incident) {
+    return (
+      <div className="container" style={{ padding: "3rem 1.5rem" }}>
+        <div role="alert" style={{ background: "var(--error-light)", border: "1px solid var(--error)", color: "var(--error)", borderRadius: "12px", padding: "2rem", textAlign: "center" }}>
+          <h2>⚠️ Error Loading War Room</h2>
+          <p style={{ margin: "1rem 0" }}>{errorMsg || "Incident not found in active database."}</p>
+          <div style={{ display: "flex", justifyContent: "center", gap: "1rem" }}>
+            <button className="btn btn-secondary" onClick={() => router.push("/")}>Back to Dashboard</button>
+            <button className="btn btn-primary" onClick={() => loadIncidentData()}>Retry</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <main className="container">
+      {/* Back button and status refresh bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "1rem" }}>
+        <button className="btn btn-secondary" onClick={() => router.push("/")}>
+          ⬅ Back to Incident Dashboard
+        </button>
+        
+        <div style={{ display: "flex", alignContent: "center", gap: "1rem" }}>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem", color: "var(--text-muted)", cursor: "pointer" }}>
+            <input 
+              type="checkbox" 
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              style={{ cursor: "pointer" }}
+            />
+            Auto-refresh (5s)
+          </label>
+          <button 
+            className="btn btn-secondary" 
+            style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem" }}
+            onClick={() => loadIncidentData(true)}
+            disabled={refreshing}
+          >
+            {refreshing ? "Refreshing..." : "🔄 Refresh Now"}
+          </button>
+        </div>
+      </div>
+
+      {/* Incident Header Info Card */}
+      <header className="card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid var(--primary)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.95rem", fontWeight: "bold", background: "var(--bg-main)", padding: "0.25rem 0.5rem", borderRadius: "4px", color: "var(--text-muted)" }}>
+                {incident.id}
+              </span>
+              <span className={`badge badge-${incident.severity.toLowerCase()}`}>
+                {getSeverityLabel(incident.severity)}
+              </span>
+              <span className={`badge badge-state ${getStatusBadgeClass(incident.state)}`}>
+                State: {incident.state.replace(/_/g, " ")}
+              </span>
+              {incident.provider_mode === "simulated" && (
+                <span className="badge badge-sev4" style={{ border: "1px solid rgba(255,255,255,0.15)" }}>
+                  🤖 SIMULATED DATA
+                </span>
+              )}
+            </div>
+            <h1 style={{ fontSize: "1.85rem", marginBottom: "0.5rem" }}>{incident.title}</h1>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>
+              Service: <strong style={{ color: "var(--text-main)", fontFamily: "var(--font-mono)" }}>{incident.service}</strong> | Environment: <strong>{incident.environment}</strong>
+            </p>
+          </div>
+
+          {/* Action buttons on Incident */}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            {incident.state === "RECEIVED" && (
+              <button className="btn btn-primary" onClick={handleStartIncident}>
+                🚀 Start Diagnosing Pipeline
+              </button>
+            )}
+            
+            {incident.state !== "CLOSED" && incident.state !== "CANCELLED" && incident.state !== "NO_SAFE_REMEDIATION" && (
+              <button className="btn btn-danger" onClick={handleCancelIncident}>
+                🚫 Cancel Incident Process
+              </button>
+            )}
+          </div>
+        </div>
+
+        {actionError && (
+          <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "0.75rem", borderRadius: "4px", marginTop: "1rem", fontSize: "0.9rem" }}>
+            {actionError}
+          </div>
+        )}
+
+        <div style={{ marginTop: "1rem", background: "rgba(0,0,0,0.15)", padding: "1rem", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+          <h3 style={{ fontSize: "0.95rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>Intake Description Summary:</h3>
+          <p style={{ fontSize: "0.95rem", whiteSpace: "pre-wrap" }}>{incident.summary}</p>
+        </div>
+      </header>
+
+      {/* Main Grid: Left Column Timeline & Evidence. Right Column: Hypotheses, Remediation, Approvals */}
+      <div className="grid-main-detail">
+        {/* Left Column: Investigation Evidence & Event Log */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          
+          {/* Timeline Event Log */}
+          <div className="card">
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "1.25rem" }}>🕒 Chronological Timeline</h2>
+            {timeline.length === 0 ? (
+              <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>No events logged in the timeline yet.</p>
+            ) : (
+              <div className="timeline">
+                {timeline.map((evt) => (
+                  <div key={evt.id} className="timeline-item" aria-label={`Timeline event: ${evt.description} at ${evt.at}`}>
+                    <div className="timeline-time">{new Date(evt.at).toLocaleString()}</div>
+                    <div style={{ fontWeight: "600", fontSize: "0.95rem", color: "#ffffff" }}>{evt.kind.replace(/\./g, " ").toUpperCase()}</div>
+                    <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>{evt.description}</p>
+                    {evt.evidence_id && (
+                      <a href={`#evidence-${evt.evidence_id}`} style={{ fontSize: "0.8rem", color: "var(--primary-hover)", textDecoration: "underline", display: "inline-block", marginTop: "0.25rem" }}>
+                        View Supporting Evidence
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Evidence Panel with Provenance */}
+          <div className="card">
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🔍 Telemetry & Evidence Provenance</h2>
+            {evidence.length === 0 ? (
+              <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)" }}>
+                <p>No telemetry or logs gathered yet.</p>
+                <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                  Telemetry collection starts automatically once the diagnosing pipeline begins.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {evidence.map((item) => (
+                  <div 
+                    key={item.id} 
+                    id={`evidence-${item.id}`} 
+                    style={{ border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(0,0,0,0.1)" }}
+                  >
+                    {/* Header bar */}
+                    <div 
+                      onClick={() => toggleEvidence(item.id)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleEvidence(item.id); } }}
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={expandedEvidence[item.id] || false}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <span className="badge badge-sev3" style={{ background: "rgba(59,130,246,0.15)", color: "var(--info)" }}>
+                          {item.kind}
+                        </span>
+                        <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                          source: <strong>{item.source}</strong>
+                        </span>
+                        {item.redaction_applied && (
+                          <span className="badge" style={{ background: "rgba(239,68,68,0.1)", color: "var(--error)", fontSize: "0.7rem", padding: "0.1rem 0.3rem" }}>
+                            🔒 Redacted
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                        {expandedEvidence[item.id] ? "Collapse ▲" : "Expand ▼"}
+                      </div>
+                    </div>
+
+                    {/* Summary row */}
+                    <div style={{ padding: "0 1rem 0.75rem 1rem", fontSize: "0.9rem" }}>
+                      <p style={{ fontWeight: "600" }}>{item.summary}</p>
+                    </div>
+
+                    {/* Collapsible raw content */}
+                    {expandedEvidence[item.id] && (
+                      <div style={{ borderTop: "1px solid var(--border-color)", padding: "1rem", background: "#050811", borderBottomLeftRadius: "8px", borderBottomRightRadius: "8px" }}>
+                        <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontFamily: "var(--font-mono)" }}>
+                          RAW EVIDENCE CONTENT:
+                        </h4>
+                        <pre style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", overflowX: "auto", whiteSpace: "pre-wrap", color: "#e2e8f0", background: "rgba(0,0,0,0.3)", padding: "0.75rem", borderRadius: "4px", border: "1px solid #101827" }}>
+                          {item.content}
+                        </pre>
+                        
+                        <div style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "var(--text-muted)", borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem" }}>
+                          <strong>Provenance Metadata:</strong>
+                          <pre style={{ marginTop: "0.25rem", color: "#a0aec0" }}>
+                            {JSON.stringify(item.provenance, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* Right Column: Hypotheses, Remediation Plans, Approval Form */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+          {/* Active Approvals Gate Card (Highest Priority Action Item) */}
+          {approvals.length > 0 && approvals.some(a => a.status === "pending") && (
+            <div className="card" style={{ border: "2px solid var(--warning)", background: "rgba(245, 158, 11, 0.05)" }}>
+              <h2 style={{ fontSize: "1.25rem", color: "var(--warning)", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                ⚠️ Action Required: Human Approval Gate
+              </h2>
+              {approvals.filter(a => a.status === "pending").map((approval) => (
+                <div key={approval.id} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <div style={{ background: "rgba(245, 158, 11, 0.1)", padding: "0.75rem", borderRadius: "6px", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                      <span><strong>Type:</strong> {approval.approval_type}</span>
+                      <span className="badge badge-sev2">Risk: {approval.risk_level.toUpperCase()}</span>
+                    </div>
+                    <div><strong>Request rationale:</strong> {approval.reason}</div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
+                      Requested at: {new Date(approval.requested_at).toLocaleTimeString()} (Expires: {new Date(approval.expires_at).toLocaleTimeString()})
+                    </div>
+                  </div>
+
+                  {approvalSubmitError && (
+                    <div role="alert" style={{ color: "var(--error)", fontSize: "0.85rem", background: "var(--error-light)", padding: "0.5rem", borderRadius: "4px" }}>
+                      {approvalSubmitError}
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label htmlFor="reason-input" className="form-label">Provide justification for approval or rejection:</label>
+                    <input 
+                      id="reason-input"
+                      type="text" 
+                      className="form-input" 
+                      placeholder="e.g. Bounded path looks correct, approving apply."
+                      value={approvalReason}
+                      onChange={(e) => setApprovalReason(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", gap: "0.75rem" }}>
+                    <button 
+                      className="btn btn-primary" 
+                      style={{ background: "var(--success)" }}
+                      onClick={() => handleDecision(approval.id, "approved")}
+                      disabled={isSubmittingApproval}
+                    >
+                      ✓ Approve & Execute Patch
+                    </button>
+                    <button 
+                      className="btn btn-danger"
+                      onClick={() => handleDecision(approval.id, "rejected")}
+                      disabled={isSubmittingApproval}
+                    >
+                      ✕ Reject Patch
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Resolved/Decided approvals history */}
+          {approvals.length > 0 && approvals.some(a => a.status !== "pending") && (
+            <div className="card">
+              <h2 style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>Approval Decision Record</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {approvals.filter(a => a.status !== "pending").map((approval) => (
+                  <div key={approval.id} style={{ padding: "0.75rem", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "6px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                      <span style={{ fontSize: "0.85rem", fontWeight: "700" }}>{approval.approval_type}</span>
+                      <span className={`badge ${approval.status === "approved" ? "badge-sev3" : "badge-sev1"}`} style={{ background: approval.status === "approved" ? "var(--success-light)" : "var(--error-light)", color: approval.status === "approved" ? "var(--success)" : "var(--error)" }}>
+                        {approval.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                      <strong>Rationale:</strong> {approval.decision_reason || "No explanation provided."}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                      Decided at: {approval.decided_at ? new Date(approval.decided_at).toLocaleTimeString() : "N/A"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hypotheses Panel */}
+          <div className="card">
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>💡 Generated Hypotheses & Confidence</h2>
+            {hypotheses.length === 0 ? (
+              <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)" }}>
+                <p>No hypotheses formulated yet.</p>
+                <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                  AI agent will post hypotheses once evidence logs have been normalized and analyzed.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {hypotheses.map((hyp) => (
+                  <div key={hyp.id} style={{ border: "1px solid var(--border-color)", padding: "1rem", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                    <p style={{ fontWeight: "600", fontSize: "0.95rem", marginBottom: "0.5rem" }}>{hyp.statement}</p>
+                    
+                    {/* Confidence Meter */}
+                    <div style={{ marginBottom: "0.75rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
+                        <span>Confidence Level:</span>
+                        <strong style={{ color: hyp.confidence > 0.7 ? "var(--success)" : "var(--warning)" }}>
+                          {Math.round(hyp.confidence * 100)}%
+                        </strong>
+                      </div>
+                      <div style={{ height: "6px", width: "100%", background: "var(--bg-main)", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${hyp.confidence * 100}%`, background: hyp.confidence > 0.7 ? "var(--success)" : "var(--warning)", borderRadius: "3px" }}></div>
+                      </div>
+                    </div>
+
+                    {/* Supporting Evidence references */}
+                    {hyp.supporting_evidence_ids.length > 0 && (
+                      <div style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>
+                        <span style={{ color: "var(--text-muted)" }}>Supporting Evidence: </span>
+                        {hyp.supporting_evidence_ids.map(eid => (
+                          <a key={eid} href={`#evidence-${eid}`} style={{ marginRight: "0.5rem", color: "var(--primary-hover)", textDecoration: "underline" }}>
+                            {eid}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Unknowns variables list */}
+                    {hyp.unknowns.length > 0 && (
+                      <div style={{ borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem", marginTop: "0.5rem", fontSize: "0.8rem" }}>
+                        <span style={{ color: "var(--warning)", fontWeight: "600" }}>Unknown Variables:</span>
+                        <ul style={{ paddingLeft: "1rem", listStyleType: "square", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                          {hyp.unknowns.map((unk, idx) => <li key={idx}>{unk}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Remediation Plans & Code Patches */}
+          <div className="card">
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🛠️ Remediation plans & patches</h2>
+            {plans.length === 0 ? (
+              <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem" }}>
+                <p>⚙️ Formulation phase: telemetry and logs are being analyzed by the AI agent to formulate hypotheses. Remediation plan will appear once hypotheses are ready.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {plans.map((plan) => {
+                  const matchingPatch = patches.find(p => p.plan_id === plan.id);
+                  return (
+                    <div key={plan.id} style={{ border: "1px solid var(--border-color)", padding: "1rem", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                        <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)" }}>Remediation Proposal</h3>
+                        <span className={`badge ${plan.risk_level === "low" ? "badge-sev3" : plan.risk_level === "medium" ? "badge-sev2" : "badge-sev1"}`}>
+                          Risk: {plan.risk_level.toUpperCase()}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: "0.95rem", fontWeight: "600", marginBottom: "0.5rem" }}>{plan.summary}</p>
+                      
+                      <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>
+                        <strong>Bounds:</strong> max files changed: {plan.max_files_changed} | max lines changed: {plan.max_lines_changed}
+                      </div>
+
+                      {/* Display steps if any */}
+                      {plan.steps.length > 0 && (
+                        <div style={{ margin: "0.5rem 0", background: "rgba(0,0,0,0.1)", padding: "0.75rem", borderRadius: "4px" }}>
+                          <span style={{ fontSize: "0.85rem", fontWeight: "700" }}>Implementation Steps:</span>
+                          <ol style={{ paddingLeft: "1.25rem", fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                            {plan.steps.map((step, sIdx) => <li key={sIdx}>{step}</li>)}
+                          </ol>
+                        </div>
+                      )}
+
+                      {/* Patch Attempt File Diff section */}
+                      {matchingPatch ? (
+                        <div style={{ marginTop: "1rem" }}>
+                          <h4 style={{ fontSize: "0.85rem", fontWeight: "700", marginBottom: "0.5rem", color: "var(--success)" }}>
+                            Generated Diff Patch (Attempt #{matchingPatch.attempt})
+                          </h4>
+                          <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
+                            Files Changed: {matchingPatch.files_changed} | Lines Changed: {matchingPatch.lines_changed}
+                          </div>
+                          {matchingPatch.diff ? (
+                            renderDiff(matchingPatch.diff)
+                          ) : (
+                            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontStyle: "italic" }}>No diff text available for this patch attempt.</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: "1rem", border: "1px dashed var(--border-color)", padding: "0.75rem", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                          Drafting patch attempt... Patch will generate once the agent enters the WAITING PATCH APPROVAL phase.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </main>
+  );
+}

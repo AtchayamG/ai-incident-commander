@@ -1,6 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildUrl, getHealthReady, listIncidents } from "./api";
+import {
+  buildUrl,
+  getHealthReady,
+  listIncidents,
+  cancelIncident,
+  resetDemo,
+  getIncidentEvidence,
+  getIncidentTimeline,
+  getIncidentHypotheses,
+  getIncidentPlans,
+  getIncidentPatches,
+  getIncidentApprovals,
+} from "./api";
 
 describe("buildUrl", () => {
   it("joins base and path", () => {
@@ -75,4 +87,82 @@ describe("request handling", () => {
       expect(result.error).toContain("ECONNREFUSED");
     }
   });
+
+  it("cancelIncident calls correct endpoint", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "inc-1" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await cancelIncident("inc-1");
+    expect(result.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalled();
+    const [url, init] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc-1/cancel");
+    expect(init?.method).toBe("POST");
+  });
+
+  it("resetDemo calls endpoint with admin key header", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ status: "reset" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await resetDemo("key-123");
+    expect(result.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalled();
+    const [url, init] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/reset-demo");
+    expect(init?.method).toBe("POST");
+    expect((init?.headers as Record<string, string>)?.["X-Demo-Admin-Key"]).toBe("key-123");
+  });
+
+  it("getIncidentEvidence fetches sub-resource", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getIncidentEvidence("inc-1");
+    expect(result.ok).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc-1/evidence");
+  });
+
+  it("getIncidentTimeline fetches sub-resource", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getIncidentTimeline("inc-1");
+    expect(result.ok).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc-1/timeline");
+  });
+
+  it("getIncidentHypotheses fetches sub-resource", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getIncidentHypotheses("inc-1");
+    expect(result.ok).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc-1/hypotheses");
+  });
+
+  it("getIncidentPlans fetches sub-resource", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getIncidentPlans("inc-1");
+    expect(result.ok).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc-1/remediation-plan");
+  });
+
+  it("getIncidentPatches fetches sub-resource", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getIncidentPatches("inc-1");
+    expect(result.ok).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc-1/patches");
+  });
+
+  it("getIncidentApprovals fetches sub-resource", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getIncidentApprovals("inc-1");
+    expect(result.ok).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc-1/approvals");
+  });
 });
+
