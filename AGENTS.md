@@ -9,7 +9,7 @@ Source of truth: `docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md`.
 - Run untrusted repository commands only through the sandbox allowlist.
 - Never merge, deploy, push protected branches, or perform production actions.
 - Use `make lint`, `make typecheck`, `make test`, and `make demo-assert` as gates once available.
-- Keep `taskstatus.md`, `handover.md`, `BUILD_STATUS.json`, and `CODEX_RESULT.md` accurate.
+- Keep `docs/project/taskstatus.md`, `docs/project/handover.md`, `docs/project/BUILD_STATUS.json`, and `docs/project/CODEX_RESULT.md` accurate.
 
 ## External-agent routing (persistent project policy)
 

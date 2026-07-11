@@ -1,0 +1,37 @@
+ROLE: architecture/backend
+OBJECTIVE: Implement a complete, testable M0 repository foundation for Incident Commander AI, following the blueprint and existing execution index. Establish the monorepo, strict contracts, backend/frontend skeletons, deterministic demo configuration, Docker/local developer contract, baseline CI, ADRs 001-007, and focused tests. Keep dependencies minimal and prioritize the earliest P0 golden path.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m0-claude
+ALLOWED FILES:
+- apps/**
+- packages/**
+- services/**
+- infra/**
+- scripts/**
+- tests/**
+- docs/adr/**
+- docs/architecture/**
+- .github/**
+- .env.example
+- .gitignore
+- Makefile
+- docker-compose.yml
+- pyproject.toml
+- package.json
+- pnpm-workspace.yaml
+- README.md
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- production uploads, publishing, secrets, production database mutation, unrelated blueprint/status-file edits
+REQUIREMENTS:
+- Python 3.12 FastAPI/Pydantic v2 backend foundation and Next.js/strict TypeScript frontend foundation
+- explicit typed workflow and API contracts designed for later M1-M7 implementation
+- demo mode must require no external credentials
+- local startup/test/lint/typecheck targets and baseline CI
+- security defaults, redaction boundary, approval concepts, and simulated-provider interfaces represented
+- do not claim gates pass unless executed
+TESTS:
+- run the focused backend and frontend install/lint/typecheck/test commands that are feasible in the worktree; record exact results
+DELIVERABLE:
+- implementation, focused tests, and AGENT_HANDOFF.md
+STOP IF:
+- architecture conflict, missing secret, ambiguous destructive action, or scope expansion

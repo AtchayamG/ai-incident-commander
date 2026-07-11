@@ -1,12 +1,12 @@
 {
-  "active_milestone": "M0",
+  "active_milestone": "M1",
   "status": "in_progress",
   "gates": {
-    "frontend_lint": false,
-    "frontend_typecheck": false,
-    "backend_lint": false,
-    "backend_typecheck": false,
-    "unit_tests": false,
+    "frontend_lint": true,
+    "frontend_typecheck": true,
+    "backend_lint": true,
+    "backend_typecheck": true,
+    "unit_tests": true,
     "integration_tests": false,
     "contract_tests": false,
     "e2e_tests": false,
@@ -21,4 +21,3 @@
   },
   "last_updated": "2026-07-12T00:00:00+05:30"
 }
-
