@@ -19,3 +19,10 @@ Source of truth: `docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md`.
 - Route UI/UX and suitable frontend/integration tasks to agy.
 - Use Hermes for bounded implementation, tests, documentation, repair, or fallback when authenticated.
 - Keep one clean worktree per writable worker, avoid overlapping file ownership, and reproduce all worker verification before integration.
+
+## Repository structure
+
+- Keep the project root clean and purpose-driven.
+- Store documentation and durable project state under `docs/` with clear subfolders (`docs/project/`, `docs/adr/`, `docs/architecture/`, `docs/submission/`, `docs/testing/`).
+- Root Markdown is limited to tooling/convention entrypoints: `AGENTS.md` and `README.md`.
+- Do not create duplicate documentation trees or miscellaneous files at the root.
