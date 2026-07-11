@@ -1,0 +1,14 @@
+{
+  "name": "incident-commander-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
