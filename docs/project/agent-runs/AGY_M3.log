@@ -1,0 +1,160 @@
+﻿I will list the directory contents of the workspace to locate the project structure and examine the existing files.
+I will list the contents of the `apps` and `packages` directories to locate the frontend app and any shared contracts or packages.
+I will list the packages directory.
+I will list the contents of the `packages/contracts` directory to check the shared contracts or types defined there.
+I will list files in `packages/contracts/src` to see the structure of the contracts.
+I will read `packages/contracts/src/index.ts` to understand the TypeScript interfaces/types and see what structure is in place for incident investigations.
+I will perform a grep search for "investigation" to find references to this endpoint and see where it is integrated or mocked.
+I will list the contents of `apps/web` directory.
+I will list the contents of `apps/web/app` to see the pages/routes.
+I will list the contents of `apps/web/app/incidents` to find incident-specific routes.
+I will list the contents of `apps/web/app/incidents/[id]`.
+I will list the contents of `apps/web/lib` to see if there are API client modules or shared helper code.
+I will view the API client implementation in `apps/web/lib/api.ts`.
+I will list the files in `apps/web/e2e` to find E2E test cases or mocks for incident investigations.
+I will view the content of `apps/web/e2e/golden-evidence.spec.ts` to see what is tested and mocked for the incident flow.
+I will view the first 300 lines of `apps/web/app/incidents/[id]/page.tsx` to see how the Incident Room page loads and displays data.
+I will view the first 300 lines of `apps/web/app/incidents/[id]/page.tsx` using the correct filesystem path.
+I will view the next 500 lines of `apps/web/app/incidents/[id]/page.tsx` to understand the current layout and UI elements.
+I will search for the word `investigation` inside the `services/api` directory to see the backend schema/types and endpoint definition.
+I will list the contents of the `services/api` directory.
+I will list the contents of the `services/api/app` directory to locate the routers and domain definitions.
+I will list `services/api/app/domain` to locate contract or model definitions.
+I will view the content of `services/api/app/domain/investigation.py` to see the exact structure of the investigation report backend contracts.
+I will view the `package.json` file in `packages/contracts` to see what scripts exist for running tests and builds.
+I will read `packages/contracts/src/state-machine.test.ts` to see what is tested.
+I will modify `packages/contracts/src/index.ts` using `replace_file_content` to add the TypeScript types/interfaces for the M3 Investigation Report and related sub-structures, achieving strict parity with the backend contracts.
+I will fix the TypeScript type for `remediation_enabled` in `packages/contracts/src/index.ts` from `bool` to `boolean`.
+I will view the workspace root `package.json` to understand the root-level scripts and workspaces.
+I will run typecheck on the contracts package to ensure our changes are valid TypeScript.
+I will wait for the typecheck command to complete and check the output.
+I will check the typecheck logs from the run.
+I will run `pnpm install` to set up all dependencies.
+I will re-run the typecheck command on `@incident-commander/contracts` now that dependencies are installed.
+I will check the status of the contracts typecheck command.
+I will run vitest for `@incident-commander/contracts` to verify the state machine tests.
+I will check the status of the contracts tests command.
+I will read the contracts test logs to check the result.
+I will update `apps/web/lib/api.ts` to import `InvestigationReport` and expose `getIncidentInvestigation` to fetch the investigation report.
+I will view the last 20 lines of `apps/web/lib/api.ts`.
+I will add the `getIncidentInvestigation` function to the end of `apps/web/lib/api.ts`.
+I will list the contents of `services/api/app/api` to find router definitions.
+I will list the contents of `services/api/app/api/routes` to find the endpoints.
+I will view the content of `services/api/app/api/routes/incidents.py` to check the endpoints.
+I will list the contents of the `services/api/app/store` directory.
+I will list the contents of `services/api/app/demo` to find mock seed definitions.
+I will view the content of `services/api/app/demo/seed.py` to see what gets seeded in the demo store.
+I will list the files in `services/api/app/workflow` to find where the investigation report is populated when running the pipeline.
+I will view the pipeline implementation in `services/api/app/workflow/pipeline.py` to see what states it goes through and how the investigation is triggered.
+I will view the content of `services/api/app/workflow/investigation_manager.py` to see the logic for generating the M3 report.
+I will list the contents of the `services/api/tests` directory to check for tests that define or use the investigation report structures.
+I will view `services/api/tests/test_investigation.py` to see references to investigation reports and their data structures.
+I will view the rest of the `services/api/tests/test_investigation.py` file to see the details of the hypotheses and code mappings.
+I will list the files in `services/api/app/providers` to locate the simulated investigation provider file.
+I will view the content of `services/api/app/providers/simulated_investigation.py` to see the structure of the simulated investigation report.
+I will view the rest of the `services/api/app/providers/simulated_investigation.py` file to see the details of the three hypotheses and code mappings synthesized by the mock gateway.
+I will view `apps/web/app/global.css` to see the CSS custom properties and styles available in the project.
+I will view the contents of the main dashboard page at `apps/web/app/page.tsx` to understand the home page and its structure.
+I will update the imports in `apps/web/app/incidents/[id]/page.tsx` to include `InvestigationReport` and the `getIncidentInvestigation` function.
+I will add the React state variables for the investigation report (`investigation`, `investigationError`, `investigationStatus`, and `investigationLoading`) to `apps/web/app/incidents/[id]/page.tsx`.
+I will modify `loadIncidentData` in `apps/web/app/incidents/[id]/page.tsx` to call the `/investigation` endpoint, handle its response, and update state variables for loading, errors, and HTTP status.
+I will view the right column UI sections of `apps/web/app/incidents/[id]/page.tsx` to identify the block we need to replace.
+I will view the final lines of the file.
+I will view lines 720 to 790 of `apps/web/app/incidents/[id]/page.tsx` to match the exact content for replacement.
+I will view lines 615 to 630 of `apps/web/app/incidents/[id]/page.tsx` to check the Active Approvals Gate condition.
+I will view lines 630 to 650 of `apps/web/app/incidents/[id]/page.tsx` to find the exact location of the Approvals Gate.
+I will update the Active Approvals Gate condition in `apps/web/app/incidents/[id]/page.tsx` to ensure it only activates when remediation is enabled (or investigation report is not yet loaded/M1-M2 flow compatibility is kept).
+I will view the code from lines 725 to 805 of `apps/web/app/incidents/[id]/page.tsx` to double-check the line numbers and exact content of the Hypotheses and Remediation sections before replacement.
+I will replace the old Hypotheses and the start of the Remediation Plans panels with the M3 investigation report implementation in `apps/web/app/incidents/[id]/page.tsx`.
+I will run a lint check on the frontend web application to make sure our code compiles and has no linting errors.
+I will check the status of the lint task.
+I will read the web app lint logs to see if there are any errors.
+I will view the lines around the ESLint error in `apps/web/app/incidents/[id]/page.tsx`.
+I will fix the React unescaped double quotes issue in the rejected claims statement representation.
+I will re-run the web app lint check to verify that all ESLint errors are resolved.
+I will check the status of the web lint task.
+I will read the new lint logs to confirm it passed.
+I will run vitest for the web application to check if frontend unit tests are working.
+I will check the status of the web unit tests.
+I will view the `apps/web/lib/api.test.ts` file to see the existing API client tests and check if we should add coverage for the new `/investigation` endpoint.
+I will add a unit test for `getIncidentInvestigation` to `apps/web/lib/api.test.ts` and import it.
+I will view the last 15 lines of `apps/web/lib/api.test.ts`.
+I will append the unit test for `getIncidentInvestigation` at the end of `apps/web/lib/api.test.ts`.
+I will re-run the frontend unit tests to ensure that the new test passes as well.
+I will check the status of the web unit tests task.
+I will view `apps/web/package.json` to inspect the test scripts, especially Playwright.
+I will view the `Makefile` in the root of the workspace to see the build and test targets.
+I will view the `apps/web/playwright.config.ts` configuration to see if it automatically starts the web and/or API servers during E2E test runs.
+I will list the contents of the `services/api` directory to see if the Python virtual environment (`.venv`) is already created.
+I will run `make setup` to configure the Python virtual environment and install all dependencies (backend and frontend).
+I will manually create the Python virtual environment under `services/api/.venv`.
+I will install the Python backend dependencies in the virtual environment.
+I will wait for the pip installation to finish.
+I will read the pip installation log.
+I will schedule a short timer to check back once the dependencies have finished installing.
+I will wait for the dependency installation or timer to fire.
+I will run the backend unit tests using pytest in the virtual environment to ensure that the backend is fully functional and stable.
+I will run pytest inside `services/api` using the correct relative virtual environment python path.
+I will check the status of backend pytest.
+I will run the existing E2E tests using Playwright to check that the current scenario passes.
+I will check the status of the E2E test run.
+I will schedule a timer to check on the E2E test progress.
+I will wait for the E2E tests to finish.
+I will view the end of `apps/web/e2e/golden-evidence.spec.ts` to locate where we can append the M3-specific E2E assertions.
+I will modify `apps/web/e2e/golden-evidence.spec.ts` using `replace_file_content` to include E2E assertions for the M3 Investigation Report (ranks, top unsafe-access hypothesis, affected files/commit, contradiction/unknown/falsification sections, citation links, and remediation gate status).
+I will run the E2E tests again to verify the new Playwright assertions for the M3 Investigation Report.
+I will schedule a timer to check E2E tests progress.
+I will wait for the E2E tests to run.
+I will check the current status of the E2E tests command.
+I will read the E2E test logs to verify the result of the new assertions.
+I will view the lines in `apps/web/e2e/golden-evidence.spec.ts` around the failed assertion to see the exact code.
+I will update the Playwright test assertion at line 166 to expect `"without a discount"` (matching the seeded data) instead of `"no-discount"`.
+I will run the Playwright E2E tests again to verify the corrected assertions.
+I will schedule a timer to check E2E tests progress.
+I will wait for the E2E tests to complete.
+I will run the production build command on all workspaces using `pnpm build` to ensure the project builds correctly for production.
+I will schedule a timer to check on the build command.
+I will wait for the build to complete.
+I will view the `AGENT_HANDOFF.md` file to check the current handoff notes.
+I will create the `AGENT_HANDOFF.md` file using `write_to_file` to document the completed implementation, E2E test expansions, and all successful test verification results.
+I will write the `AGENT_HANDOFF.md` file in the root of the worktree without the `ArtifactMetadata` block since it is a workspace deliverable rather than a temporary system artifact.
+I have successfully completed the M3 judge-facing investigation experience and browser gate. Below is a summary of the work done:
+
+### 1. Typescript Parity (`packages/contracts`)
+* Added strict TypeScript matching for the backend models under [index.ts](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m3-frontend/packages/contracts/src/index.ts), including `InvestigationReport`, `RankedHypothesis`, `CodeMapping`, `SpecialistFinding`, `FalsificationTest`, `AffectedFile`, `EvidenceCitation`, `IncidentSummary`, and `RejectedClaim`.
+
+### 2. Client API Integrations (`apps/web`)
+* Exposed the `getIncidentInvestigation` function under [api.ts](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m3-frontend/apps/web/lib/api.ts) to fetch the investigation report from `/api/v1/incidents/{id}/investigation`.
+* Added corresponding unit test coverage in [api.test.ts](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m3-frontend/apps/web/lib/api.test.ts).
+
+### 3. Investigation UI Room Component (`apps/web`)
+* Updated the details page component at [page.tsx](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m3-frontend/apps/web/app/incidents/%5Bid%5D/page.tsx) to fetch the investigation report in parallel with other sub-resources.
+* Implemented visible Loading, 404 (not started yet), and Error states for the investigation.
+* Designed the completed investigation view to render:
+  * **Status & Remediation Gate Banners**: showing when status is `COMPLETE` and enabling/disabling downstream remediation.
+  * **Incident Summary**: narrative details with click-to-focus citation links.
+  * **Code Mapping**: listing affected files (`src/checkout.ts`, `src/checkout.test.ts`), suspect commit `c7f2e9a`, and the missing no-discount test gap with their citations.
+  * **Ranked Hypotheses**: exactly three hypotheses displaying rank, confidence, concise rationale, supporting/contradicting citations, unknowns, and falsification check steps.
+  * **Citation Scroll & Focus Links**: clicking any citation link in the report targets, expands, scrolls, and highlights the corresponding provenance card in the left telemetry column.
+  * **Audit Log**: listing rejected claims showing citation checking.
+  * **Safe Insufficient Evidence State**: renders a prominent warning panel displaying requested evidence and actions, and disables all remediation plans/approvals.
+
+### 4. Extended Playwright Tests (`apps/web`)
+* Extended the Playwright E2E flow in [golden-evidence.spec.ts](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m3-frontend/apps/web/e2e/golden-evidence.spec.ts) to assert the complete investigation report:
+  * Counts exactly three ranked hypotheses.
+  * Checks statement details (unsafe discount code property access, commit `c7f2e9a`) on the top hypothesis.
+  * Verifies file paths, suspect commit, and missing coverage gap in the code mapping.
+  * Checks contradiction, unknown, and falsification step visibility.
+  * Tests that citation links successfully open and focus the corresponding telemetry card.
+  * Asserts remediation is enabled for `COMPLETE` status.
+
+### 5. Verification Results
+All tests and builds pass successfully:
+* **Contracts unit tests**: passed (6 tests)
+* **Contracts typecheck**: passed
+* **Frontend unit tests**: passed (16 tests)
+* **Frontend ESLint & Typecheck**: passed
+* **Playwright Chromium E2E scenarios**: passed (2 tests)
+* **Production Build**: succeeded cleanly.
+
+The details of the implementation and test results have been documented in the [AGENT_HANDOFF.md](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m3-frontend/AGENT_HANDOFF.md) file.

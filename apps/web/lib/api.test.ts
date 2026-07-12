@@ -12,6 +12,7 @@ import {
   getIncidentPlans,
   getIncidentPatches,
   getIncidentApprovals,
+  getIncidentInvestigation,
 } from "./api";
 
 describe("buildUrl", () => {
@@ -163,6 +164,15 @@ describe("request handling", () => {
     expect(result.ok).toBe(true);
     const [url] = fetchMock.mock.calls[0] as any;
     expect(url).toContain("api/v1/incidents/inc-1/approvals");
+  });
+
+  it("getIncidentInvestigation fetches investigation report", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "inv-1" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getIncidentInvestigation("inc-1");
+    expect(result.ok).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc-1/investigation");
   });
 });
 

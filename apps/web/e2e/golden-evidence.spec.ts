@@ -143,5 +143,48 @@ test.describe('Incident Commander - Golden Evidence and Timeline E2E Scenario', 
     }
     await expect(stackCard.locator('[data-testid="evidence-redacted-label"]')).toBeVisible();
     await expect(stackCard.locator('[data-testid="evidence-redaction-rules"]')).toBeVisible();
+
+    // 14. Assert M3 Investigation Report & Browser Gate
+    const investigationPanel = page.locator('[data-testid="investigation-report-panel"]');
+    await expect(investigationPanel).toBeVisible();
+
+    // Assert three ranked hypotheses are rendered
+    await expect(investigationPanel.locator('[data-testid^="hypothesis-rank-"]')).toHaveCount(3);
+
+    // Assert top hypothesis rank, statement, and confidence
+    const topHypothesis = investigationPanel.locator('[data-testid="hypothesis-rank-1"]');
+    await expect(topHypothesis).toBeVisible();
+    await expect(topHypothesis.locator('[data-testid="hypothesis-statement"]')).toContainText('session.discount.code');
+    await expect(topHypothesis.locator('[data-testid="hypothesis-statement"]')).toContainText('c7f2e9a');
+
+    // Assert affected files & commit
+    const codeMapping = investigationPanel.locator('[data-testid="code-mapping-section"]');
+    await expect(codeMapping).toBeVisible();
+    await expect(codeMapping.locator('[data-testid="code-mapping-file"]').nth(0)).toContainText('src/checkout.ts');
+    await expect(codeMapping.locator('[data-testid="code-mapping-file"]').nth(1)).toContainText('src/checkout.test.ts');
+    await expect(codeMapping.locator('[data-testid="code-mapping-commit"]')).toContainText('c7f2e9a');
+    await expect(codeMapping.locator('[data-testid="code-mapping-gap"]')).toContainText('without a discount');
+
+    // Assert contradiction, unknown, and falsification sections inside the top hypothesis card
+    await expect(topHypothesis.locator('[data-testid="hypothesis-contradictions"]')).toBeVisible();
+    await expect(topHypothesis.locator('[data-testid="hypothesis-unknowns"]')).toBeVisible();
+    await expect(topHypothesis.locator('[data-testid="hypothesis-falsification"]')).toBeVisible();
+
+    // Assert citation links are present and scroll/focus properly
+    const citationLink = topHypothesis.locator('[data-testid^="citation-link-"]').first();
+    await expect(citationLink).toBeVisible();
+    
+    const targetEvidenceId = await citationLink.getAttribute('data-testid').then(id => id?.replace('citation-link-', ''));
+    expect(targetEvidenceId).toBeTruthy();
+
+    await citationLink.click();
+    
+    // The target evidence card should expand and be visible
+    const targetEvidenceCard = page.locator(`#evidence-${targetEvidenceId}`);
+    await expect(targetEvidenceCard).toBeVisible();
+    await expect(targetEvidenceCard.locator('[data-testid="evidence-content"]')).toBeVisible();
+
+    // Assert remediation is enabled for COMPLETE status
+    await expect(investigationPanel.locator('[data-testid="remediation-status"]')).toContainText('Enabled (COMPLETE)');
   });
 });

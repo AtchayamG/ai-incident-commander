@@ -19,6 +19,7 @@ import type {
   Hypothesis,
   RemediationPlan,
   PatchAttempt,
+  InvestigationReport,
 } from "@incident-commander/contracts";
 
 export type ApiResult<T> =
@@ -149,4 +150,9 @@ export function decideApproval(
     },
   );
 }
+
+export function getIncidentInvestigation(incidentId: string): Promise<ApiResult<InvestigationReport>> {
+  return request<InvestigationReport>(`api/v1/incidents/${encodeURIComponent(incidentId)}/investigation`);
+}
+
 

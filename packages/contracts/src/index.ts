@@ -242,3 +242,81 @@ export interface HealthDependencies {
   status: string;
   dependencies: DependencyStatus[];
 }
+
+export type InvestigationStatus = "complete" | "insufficient_evidence";
+
+export type SpecialistKind = "telemetry" | "change_correlation" | "code_mapping" | "runbook";
+
+export interface EvidenceCitation {
+  evidence_id: string;
+  note: string;
+}
+
+export interface SpecialistFinding {
+  specialist: SpecialistKind;
+  statement: string;
+  citations: EvidenceCitation[];
+}
+
+export interface RejectedClaim {
+  origin: string;
+  statement: string;
+  reason: string;
+}
+
+export interface FalsificationTest {
+  description: string;
+  steps: string[];
+  expected_if_true: string;
+  expected_if_false: string;
+}
+
+export interface AffectedFile {
+  path: string;
+  role: string;
+  citations: EvidenceCitation[];
+}
+
+export interface CodeMapping {
+  affected_files: AffectedFile[];
+  suspect_commit: string;
+  commit_citations: EvidenceCitation[];
+  coverage_gap: string;
+  coverage_gap_citations: EvidenceCitation[];
+}
+
+export interface RankedHypothesis {
+  rank: number;
+  hypothesis_id?: string | null;
+  statement: string;
+  confidence: number;
+  supporting: EvidenceCitation[];
+  contradicting: EvidenceCitation[];
+  unknowns: string[];
+  falsification_tests: FalsificationTest[];
+  affected_files: string[];
+  suspect_commit?: string | null;
+  rationale: string;
+}
+
+export interface IncidentSummary {
+  what_happened: string;
+  impact: string;
+  citations: EvidenceCitation[];
+}
+
+export interface InvestigationReport {
+  id: string;
+  incident_id: string;
+  status: InvestigationStatus;
+  gateway: string;
+  remediation_enabled: boolean; // Wait, in typescript, it is boolean, not bool!
+  summary: IncidentSummary | null;
+  findings: SpecialistFinding[];
+  hypotheses: RankedHypothesis[];
+  code_mapping: CodeMapping | null;
+  unknowns: string[];
+  rejected_claims: RejectedClaim[];
+  created_at: string;
+}
+

@@ -12,6 +12,7 @@ import type {
   ApprovalRequest,
   WorkflowState,
   Severity,
+  InvestigationReport,
 } from "@incident-commander/contracts";
 import {
   getIncident,
@@ -24,6 +25,7 @@ import {
   startIncident,
   cancelIncident,
   decideApproval,
+  getIncidentInvestigation,
 } from "@/lib/api";
 
 export default function IncidentDetailPage() {
@@ -45,6 +47,10 @@ export default function IncidentDetailPage() {
   const [plans, setPlans] = useState<RemediationPlan[]>([]);
   const [patches, setPatches] = useState<PatchAttempt[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [investigation, setInvestigation] = useState<InvestigationReport | null>(null);
+  const [investigationError, setInvestigationError] = useState<string | null>(null);
+  const [investigationStatus, setInvestigationStatus] = useState<number | null>(null);
+  const [investigationLoading, setInvestigationLoading] = useState<boolean>(true);
 
   // Interactive UI States
   const [expandedEvidence, setExpandedEvidence] = useState<Record<string, boolean>>({});
@@ -95,8 +101,12 @@ export default function IncidentDetailPage() {
   // Fetch all incident-related resources
   const loadIncidentData = useCallback(async (isSilent = false) => {
     if (!incidentId) return;
-    if (!isSilent) setLoading(true);
-    else setRefreshing(true);
+    if (!isSilent) {
+      setLoading(true);
+      setInvestigationLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     
     setErrorMsg(null);
 
@@ -108,6 +118,7 @@ export default function IncidentDetailPage() {
       plansRes,
       patchesRes,
       approvalsRes,
+      investigationRes,
     ] = await Promise.all([
       getIncident(incidentId),
       getIncidentEvidence(incidentId),
@@ -116,11 +127,13 @@ export default function IncidentDetailPage() {
       getIncidentPlans(incidentId),
       getIncidentPatches(incidentId),
       getIncidentApprovals(incidentId),
+      getIncidentInvestigation(incidentId),
     ]);
 
     if (!incidentRes.ok) {
       setErrorMsg(`Failed to fetch incident details: ${incidentRes.error}`);
       setLoading(false);
+      setInvestigationLoading(false);
       setRefreshing(false);
       return;
     }
@@ -146,7 +159,18 @@ export default function IncidentDetailPage() {
     if (patchesRes.ok) setPatches(patchesRes.data);
     if (approvalsRes.ok) setApprovals(approvalsRes.data);
 
+    if (investigationRes.ok) {
+      setInvestigation(investigationRes.data);
+      setInvestigationError(null);
+      setInvestigationStatus(200);
+    } else {
+      setInvestigation(null);
+      setInvestigationStatus(investigationRes.status);
+      setInvestigationError(investigationRes.error || "Failed to fetch investigation");
+    }
+
     setLoading(false);
+    setInvestigationLoading(false);
     setRefreshing(false);
   }, [incidentId]);
 
@@ -618,7 +642,7 @@ export default function IncidentDetailPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
           {/* Active Approvals Gate Card (Highest Priority Action Item) */}
-          {approvals.length > 0 && approvals.some(a => a.status === "pending") && (
+          {(investigation?.remediation_enabled ?? true) && approvals.length > 0 && approvals.some(a => a.status === "pending") && (
             <div className="card" style={{ border: "2px solid var(--warning)", background: "rgba(245, 158, 11, 0.05)" }}>
               <h2 style={{ fontSize: "1.25rem", color: "var(--warning)", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 ⚠️ Action Required: Human Approval Gate
@@ -701,66 +725,381 @@ export default function IncidentDetailPage() {
             </div>
           )}
 
-          {/* Hypotheses Panel */}
-          <div className="card">
-            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>💡 Generated Hypotheses & Confidence</h2>
-            {hypotheses.length === 0 ? (
+          {/* M3 Investigation Report Panel */}
+          {investigationLoading ? (
+            <div className="card" data-testid="investigation-loading">
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>💡 Investigation & Root Cause</h2>
+              <div style={{ padding: "2rem", textAlign: "center" }}>
+                <div className="spin-indicator" style={{ display: "inline-block", width: "30px", height: "30px", border: "3px solid var(--border-color)", borderTopColor: "var(--primary)", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
+                <p style={{ marginTop: "1rem", color: "var(--text-muted)" }}>Loading investigation report...</p>
+              </div>
+            </div>
+          ) : investigationStatus === 404 ? (
+            <div className="card" data-testid="investigation-not-found">
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>💡 Investigation & Root Cause</h2>
               <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)" }}>
-                <p>No hypotheses formulated yet.</p>
+                <p>No active investigation report.</p>
                 <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
-                  AI agent will post hypotheses once evidence logs have been normalized and analyzed.
+                  Start the diagnosing pipeline to formulate hypotheses and map the root cause.
                 </p>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                {hypotheses.map((hyp) => (
-                  <div key={hyp.id} style={{ border: "1px solid var(--border-color)", padding: "1rem", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
-                    <p style={{ fontWeight: "600", fontSize: "0.95rem", marginBottom: "0.5rem" }}>{hyp.statement}</p>
-                    
-                    {/* Confidence Meter */}
-                    <div style={{ marginBottom: "0.75rem" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
-                        <span>Confidence Level:</span>
-                        <strong style={{ color: hyp.confidence > 0.7 ? "var(--success)" : "var(--warning)" }}>
-                          {Math.round(hyp.confidence * 100)}%
-                        </strong>
-                      </div>
-                      <div style={{ height: "6px", width: "100%", background: "var(--bg-main)", borderRadius: "3px", overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${hyp.confidence * 100}%`, background: hyp.confidence > 0.7 ? "var(--success)" : "var(--warning)", borderRadius: "3px" }}></div>
-                      </div>
-                    </div>
+            </div>
+          ) : investigationError ? (
+            <div className="card" data-testid="investigation-error">
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>💡 Investigation & Root Cause</h2>
+              <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "1rem", borderRadius: "8px" }}>
+                <p><strong>⚠️ Error loading investigation report:</strong> {investigationError}</p>
+              </div>
+            </div>
+          ) : investigation ? (
+            <div data-testid="investigation-report-panel" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              {/* Status and Remediation Enable Gate Banner */}
+              <div className="card" style={{ borderLeft: `4px solid ${investigation.status === "complete" ? "var(--success)" : "var(--warning)"}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <h2 style={{ fontSize: "1.25rem" }}>💡 Root Cause Investigation</h2>
+                  <span className={`badge ${investigation.status === "complete" ? "badge-sev3" : "badge-sev2"}`} style={{ background: investigation.status === "complete" ? "var(--success-light)" : "var(--warning-light)", color: investigation.status === "complete" ? "var(--success)" : "var(--warning)" }}>
+                    Status: {investigation.status.toUpperCase().replace(/_/g, " ")}
+                  </span>
+                </div>
+                <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
+                  Gateway: <code>{investigation.gateway}</code> | Created: {new Date(investigation.created_at).toLocaleString()}
+                </p>
+                <div data-testid="remediation-status" style={{ marginTop: "0.75rem", padding: "0.5rem 0.75rem", background: "rgba(0,0,0,0.2)", borderRadius: "4px", fontSize: "0.9rem" }}>
+                  <strong>Remediation Gate:</strong>{" "}
+                  <span style={{ color: investigation.remediation_enabled ? "var(--success)" : "var(--error)", fontWeight: "bold" }}>
+                    {investigation.remediation_enabled ? "Enabled (COMPLETE)" : "Disabled (INSUFFICIENT EVIDENCE)"}
+                  </span>
+                </div>
+              </div>
 
-                    {/* Supporting Evidence references */}
-                    {hyp.supporting_evidence_ids.length > 0 && (
-                      <div style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>
-                        <span style={{ color: "var(--text-muted)" }}>Supporting Evidence: </span>
-                        {hyp.supporting_evidence_ids.map(eid => (
-                          <a key={eid} href={`#evidence-${eid}`} style={{ marginRight: "0.5rem", color: "var(--primary-hover)", textDecoration: "underline" }}>
-                            {eid}
-                          </a>
+              {/* Insufficient Evidence State Banner and Requested Actions */}
+              {investigation.status === "insufficient_evidence" && (
+                <div className="card" style={{ border: "2px solid var(--warning)", background: "rgba(245, 158, 11, 0.05)" }}>
+                  <h3 style={{ color: "var(--warning)", marginBottom: "0.5rem", fontSize: "1.1rem" }}>⚠️ Safe Insufficient-Evidence State</h3>
+                  <p style={{ fontSize: "0.9rem", color: "var(--text-main)", marginBottom: "0.75rem" }}>
+                    Remediation has been disabled. The automated agent requires additional telemetry or documentation input to ground the root cause hypotheses.
+                  </p>
+                  <div>
+                    <strong style={{ fontSize: "0.85rem", color: "var(--warning)" }}>Requested Evidence / Actions to Resolve Unknowns:</strong>
+                    {investigation.unknowns && investigation.unknowns.length > 0 ? (
+                      <ul style={{ margin: "0.25rem 0 0 0", paddingLeft: "1.25rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                        {investigation.unknowns.map((unk, idx) => (
+                          <li key={idx} data-testid="requested-evidence-item">{unk}</li>
                         ))}
-                      </div>
-                    )}
-
-                    {/* Unknowns variables list */}
-                    {hyp.unknowns.length > 0 && (
-                      <div style={{ borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem", marginTop: "0.5rem", fontSize: "0.8rem" }}>
-                        <span style={{ color: "var(--warning)", fontWeight: "600" }}>Unknown Variables:</span>
-                        <ul style={{ paddingLeft: "1rem", listStyleType: "square", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-                          {hyp.unknowns.map((unk, idx) => <li key={idx}>{unk}</li>)}
-                        </ul>
-                      </div>
+                      </ul>
+                    ) : (
+                      <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontStyle: "italic" }}>No specific unknowns listed. Verify telemetry sources and restart the diagnosing pipeline.</p>
                     )}
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* Incident Summary Section */}
+              {investigation.summary && (
+                <div className="card">
+                  <h3 style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>📝 Executive Summary</h3>
+                  <div style={{ fontSize: "0.95rem", lineHeight: "1.6" }}>
+                    <p>
+                      <strong>What Happened:</strong> {investigation.summary.what_happened}
+                      {investigation.summary.citations.map((cit, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => scrollToEvidence(cit.evidence_id)}
+                          className="citation-link"
+                          data-testid={`citation-link-${cit.evidence_id}`}
+                          style={{
+                            background: "var(--primary-light)",
+                            border: "1px solid rgba(139, 92, 246, 0.3)",
+                            borderRadius: "4px",
+                            padding: "1px 5px",
+                            fontSize: "0.75rem",
+                            color: "var(--primary-hover)",
+                            cursor: "pointer",
+                            marginLeft: "4px"
+                          }}
+                          title={cit.note}
+                        >
+                          🔍 {cit.evidence_id}
+                        </button>
+                      ))}
+                    </p>
+                    <p style={{ marginTop: "0.5rem" }}>
+                      <strong>Impact:</strong> {investigation.summary.impact}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Code Mapping Section */}
+              {investigation.code_mapping && (
+                <div className="card" data-testid="code-mapping-section">
+                  <h3 style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>🛠️ Root Cause Code Mapping</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <div>
+                      <strong>Suspect Commit:</strong>{" "}
+                      <code data-testid="code-mapping-commit" style={{ color: "var(--primary-hover)" }}>{investigation.code_mapping.suspect_commit}</code>
+                      {investigation.code_mapping.commit_citations.map((cit, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => scrollToEvidence(cit.evidence_id)}
+                          className="citation-link"
+                          data-testid={`citation-link-${cit.evidence_id}`}
+                          style={{
+                            background: "var(--primary-light)",
+                            border: "1px solid rgba(139, 92, 246, 0.3)",
+                            borderRadius: "4px",
+                            padding: "1px 5px",
+                            fontSize: "0.75rem",
+                            color: "var(--primary-hover)",
+                            cursor: "pointer",
+                            marginLeft: "4px"
+                          }}
+                          title={cit.note}
+                        >
+                          🔍 {cit.evidence_id}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div>
+                      <strong>Coverage Gap:</strong>{" "}
+                      <span data-testid="code-mapping-gap" style={{ fontSize: "0.9rem" }}>{investigation.code_mapping.coverage_gap}</span>
+                      {investigation.code_mapping.coverage_gap_citations.map((cit, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => scrollToEvidence(cit.evidence_id)}
+                          className="citation-link"
+                          data-testid={`citation-link-${cit.evidence_id}`}
+                          style={{
+                            background: "var(--primary-light)",
+                            border: "1px solid rgba(139, 92, 246, 0.3)",
+                            borderRadius: "4px",
+                            padding: "1px 5px",
+                            fontSize: "0.75rem",
+                            color: "var(--primary-hover)",
+                            cursor: "pointer",
+                            marginLeft: "4px"
+                          }}
+                          title={cit.note}
+                        >
+                          🔍 {cit.evidence_id}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "0.75rem" }}>
+                      <strong>Affected Files:</strong>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
+                        {investigation.code_mapping.affected_files.map((file, idx) => (
+                          <div key={idx} data-testid="code-mapping-file" style={{ padding: "0.5rem", background: "rgba(0,0,0,0.15)", border: "1px solid var(--border-color)", borderRadius: "6px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", color: "#ffffff" }}>{file.path}</span>
+                              <div>
+                                {file.citations.map((cit, cIdx) => (
+                                  <button
+                                    key={cIdx}
+                                    onClick={() => scrollToEvidence(cit.evidence_id)}
+                                    className="citation-link"
+                                    data-testid={`citation-link-${cit.evidence_id}`}
+                                    style={{
+                                      background: "var(--primary-light)",
+                                      border: "1px solid rgba(139, 92, 246, 0.3)",
+                                      borderRadius: "4px",
+                                      padding: "1px 5px",
+                                      fontSize: "0.75rem",
+                                      color: "var(--primary-hover)",
+                                      cursor: "pointer",
+                                      marginLeft: "4px"
+                                    }}
+                                    title={cit.note}
+                                  >
+                                    🔍 {cit.evidence_id}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                              Role: {file.role}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Ranked Hypotheses list */}
+              {investigation.hypotheses && (
+                <div className="card">
+                  <h3 style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>💡 Root Cause Hypotheses</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    {investigation.hypotheses.map((hyp) => (
+                      <div
+                        key={hyp.rank}
+                        data-testid={`hypothesis-rank-${hyp.rank}`}
+                        style={{
+                          border: "1px solid var(--border-color)",
+                          padding: "1rem",
+                          borderRadius: "8px",
+                          background: "rgba(255,255,255,0.01)"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                          <span style={{ fontSize: "0.85rem", fontWeight: "700", textTransform: "uppercase", color: hyp.rank === 1 ? "var(--warning)" : "var(--text-muted)" }}>
+                            Rank {hyp.rank} - {hyp.rank === 1 ? "Top Hypothesis" : "Alternative"}
+                          </span>
+                          <span style={{ fontSize: "0.85rem", color: hyp.confidence > 0.7 ? "var(--success)" : "var(--warning)", fontWeight: "600" }}>
+                            Confidence: {Math.round(hyp.confidence * 100)}%
+                          </span>
+                        </div>
+
+                        <p data-testid="hypothesis-statement" style={{ fontWeight: "600", fontSize: "0.95rem", marginBottom: "0.5rem" }}>{hyp.statement}</p>
+
+                        {/* Rationale - concise narrative */}
+                        <div style={{ background: "rgba(0,0,0,0.15)", padding: "0.5rem 0.75rem", borderRadius: "4px", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
+                          <strong>Concise Rationale:</strong> {hyp.rationale}
+                        </div>
+
+                        {/* Citations - Supporting / Contradicting */}
+                        <div data-testid="hypothesis-supporting" style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>
+                          <span style={{ fontWeight: "600", color: "var(--success)" }}>Supporting:</span>
+                          {hyp.supporting.length > 0 ? (
+                            <ul style={{ margin: "0.25rem 0 0 0", paddingLeft: "1.25rem", color: "var(--text-muted)" }}>
+                              {hyp.supporting.map((cit, idx) => (
+                                <li key={idx}>
+                                  {cit.note}
+                                  <button
+                                    onClick={() => scrollToEvidence(cit.evidence_id)}
+                                    className="citation-link"
+                                    data-testid={`citation-link-${cit.evidence_id}`}
+                                    style={{
+                                      background: "var(--primary-light)",
+                                      border: "1px solid rgba(139, 92, 246, 0.3)",
+                                      borderRadius: "4px",
+                                      padding: "1px 5px",
+                                      fontSize: "0.7rem",
+                                      color: "var(--primary-hover)",
+                                      cursor: "pointer",
+                                      marginLeft: "4px"
+                                    }}
+                                  >
+                                    🔍 {cit.evidence_id}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span style={{ color: "var(--text-muted)", marginLeft: "0.5rem" }}>None</span>
+                          )}
+                        </div>
+
+                        <div data-testid="hypothesis-contradictions" style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>
+                          <span style={{ fontWeight: "600", color: "var(--error)" }}>Contradictions:</span>
+                          {hyp.contradicting.length > 0 ? (
+                            <ul style={{ margin: "0.25rem 0 0 0", paddingLeft: "1.25rem", color: "var(--text-muted)" }}>
+                              {hyp.contradicting.map((cit, idx) => (
+                                <li key={idx}>
+                                  {cit.note}
+                                  <button
+                                    onClick={() => scrollToEvidence(cit.evidence_id)}
+                                    className="citation-link"
+                                    data-testid={`citation-link-${cit.evidence_id}`}
+                                    style={{
+                                      background: "var(--primary-light)",
+                                      border: "1px solid rgba(139, 92, 246, 0.3)",
+                                      borderRadius: "4px",
+                                      padding: "1px 5px",
+                                      fontSize: "0.7rem",
+                                      color: "var(--primary-hover)",
+                                      cursor: "pointer",
+                                      marginLeft: "4px"
+                                    }}
+                                  >
+                                    🔍 {cit.evidence_id}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span style={{ color: "var(--text-muted)", marginLeft: "0.5rem" }}>None</span>
+                          )}
+                        </div>
+
+                        {/* Unknowns */}
+                        <div data-testid="hypothesis-unknowns" style={{ borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem", marginTop: "0.5rem", fontSize: "0.85rem" }}>
+                          <span style={{ color: "var(--warning)", fontWeight: "600" }}>Explicit Unknowns:</span>
+                          <ul style={{ paddingLeft: "1.25rem", listStyleType: "square", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                            {hyp.unknowns.map((unk, idx) => (
+                              <li key={idx}>{unk}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Falsification tests */}
+                        {hyp.falsification_tests && hyp.falsification_tests.length > 0 && (
+                          <div data-testid="hypothesis-falsification" style={{ borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
+                            <span style={{ fontWeight: "600", fontSize: "0.85rem", color: "var(--primary-hover)" }}>Bounded Falsification Steps:</span>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
+                              {hyp.falsification_tests.map((test, idx) => (
+                                <div key={idx} style={{ padding: "0.5rem", background: "rgba(0,0,0,0.2)", borderRadius: "4px" }}>
+                                  <p style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--text-main)" }}>{test.description}</p>
+                                  <ol style={{ fontSize: "0.8rem", paddingLeft: "1.25rem", margin: "0.25rem 0", color: "var(--text-muted)" }}>
+                                    {test.steps.map((step, sIdx) => <li key={sIdx}>{step}</li>)}
+                                  </ol>
+                                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.75rem", marginTop: "0.25rem" }}>
+                                    <span style={{ color: "var(--success)" }}><strong>If true:</strong> {test.expected_if_true}</span>
+                                    <span style={{ color: "var(--error)" }}><strong>If false:</strong> {test.expected_if_false}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Audit Log of Rejected Claims (Security / Citation check) */}
+              {investigation.rejected_claims && investigation.rejected_claims.length > 0 && (
+                <details className="card" style={{ cursor: "pointer", background: "rgba(0,0,0,0.1)" }}>
+                  <summary style={{ fontSize: "0.95rem", fontWeight: "600", color: "var(--error)" }}>
+                    🔒 Rejected Claims Audit Log ({investigation.rejected_claims.length})
+                  </summary>
+                  <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    {investigation.rejected_claims.map((claim, idx) => (
+                      <div key={idx} style={{ padding: "0.5rem", border: "1px solid var(--error-light)", borderRadius: "4px", background: "var(--error-light)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "bold" }}>
+                          <span>Origin: {claim.origin}</span>
+                          <span style={{ color: "var(--error)" }}>REJECTED</span>
+                        </div>
+                        <p style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}><strong>Statement:</strong> &ldquo;{claim.statement}&rdquo;</p>
+                        <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem" }}><strong>Reason:</strong> {claim.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </div>
+          ) : (
+            <div className="card">
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>💡 Investigation & Root Cause</h2>
+              <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)" }}>
+                <p>Waiting for investigation data...</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Remediation Plans & Code Patches */}
           <div className="card">
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🛠️ Remediation plans & patches</h2>
-            {plans.length === 0 ? (
+            {investigation?.status === "insufficient_evidence" ? (
+              <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--error)", fontSize: "0.9rem", background: "var(--error-light)" }}>
+                <p><strong>Remediation Disabled:</strong> The investigation failed to find sufficient evidence to generate a safe remediation plan.</p>
+              </div>
+            ) : plans.length === 0 ? (
               <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem" }}>
                 <p>⚙️ Formulation phase: telemetry and logs are being analyzed by the AI agent to formulate hypotheses. Remediation plan will appear once hypotheses are ready.</p>
               </div>
