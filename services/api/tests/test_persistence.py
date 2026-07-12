@@ -50,6 +50,23 @@ def test_fresh_migration() -> None:
             assert report.status_code == 200
             assert report.json()["status"] == "complete"
             assert report.json()["remediation_enabled"] is True
+
+            # The M4 remediation_plan_artifacts and approval_bindings tables
+            # were created by the migration; the bounded plan reads back and
+            # the binding-checked approval decision drives the workflow.
+            artifact = client.get(
+                "/api/v1/incidents/inc-demo-0001/remediation-plan/artifact"
+            )
+            assert artifact.status_code == 200
+            assert artifact.json()["artifact_hash"].startswith("sha256:")
+            approval = client.get("/api/v1/incidents/inc-demo-0001/approvals").json()[0]
+            decided = client.post(
+                f"/api/v1/approvals/{approval['id']}/decision",
+                json={"decision": "approved", "reason": "migration smoke"},
+            )
+            assert decided.status_code == 200
+            final = client.get("/api/v1/incidents/inc-demo-0001").json()
+            assert final["state"] == "REVIEW_READY"
     finally:
         with contextlib.suppress(OSError):
             os.unlink(path)

@@ -21,6 +21,7 @@ from app.domain.contracts import (
 )
 from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
+from app.domain.remediation import ApprovalBinding, RemediationPlanArtifact
 from app.store.protocol import NotFoundError
 
 
@@ -33,9 +34,11 @@ class InMemoryStore:
         self._hypotheses: dict[str, list[Hypothesis]] = {}
         self._investigation_reports: dict[str, list[InvestigationReport]] = {}
         self._plans: dict[str, list[RemediationPlan]] = {}
+        self._plan_artifacts: dict[str, list[RemediationPlanArtifact]] = {}
         self._patches: dict[str, list[PatchAttempt]] = {}
         self._verifications: dict[str, list[VerificationRun]] = {}
         self._approvals: dict[str, ApprovalRequest] = {}
+        self._approval_bindings: dict[str, ApprovalBinding] = {}
         self._workflow_events: dict[str, list[WorkflowEvent]] = {}
         self._counter = 0
 
@@ -47,9 +50,11 @@ class InMemoryStore:
             self._hypotheses.clear()
             self._investigation_reports.clear()
             self._plans.clear()
+            self._plan_artifacts.clear()
             self._patches.clear()
             self._verifications.clear()
             self._approvals.clear()
+            self._approval_bindings.clear()
             self._workflow_events.clear()
             self._counter = 0
 
@@ -181,6 +186,20 @@ class InMemoryStore:
         with self._lock:
             return list(self._plans.get(incident_id, []))
 
+    def add_plan_artifact(self, artifact: RemediationPlanArtifact) -> RemediationPlanArtifact:
+        with self._lock:
+            self._plan_artifacts.setdefault(artifact.incident_id, []).append(artifact)
+            return artifact
+
+    def get_latest_plan_artifact(self, incident_id: str) -> RemediationPlanArtifact | None:
+        with self._lock:
+            artifacts = self._plan_artifacts.get(incident_id, [])
+            return artifacts[-1] if artifacts else None
+
+    def list_plan_artifacts(self, incident_id: str) -> list[RemediationPlanArtifact]:
+        with self._lock:
+            return list(self._plan_artifacts.get(incident_id, []))
+
     def add_patch(self, patch: PatchAttempt) -> PatchAttempt:
         with self._lock:
             self._patches.setdefault(patch.incident_id, []).append(patch)
@@ -223,3 +242,12 @@ class InMemoryStore:
     def list_approvals(self, incident_id: str) -> list[ApprovalRequest]:
         with self._lock:
             return [a for a in self._approvals.values() if a.incident_id == incident_id]
+
+    def add_approval_binding(self, binding: ApprovalBinding) -> ApprovalBinding:
+        with self._lock:
+            self._approval_bindings[binding.approval_id] = binding
+            return binding
+
+    def get_approval_binding(self, approval_id: str) -> ApprovalBinding | None:
+        with self._lock:
+            return self._approval_bindings.get(approval_id)

@@ -29,9 +29,11 @@ from app.providers.simulated_investigation import (
     FixtureRunbookSpecialist,
     FixtureTelemetrySpecialist,
 )
+from app.providers.simulated_remediation import FixtureRemediationPlanner
 from app.store.sql import SqlAlchemyStore
 from app.workflow.investigation_manager import InvestigationManager
 from app.workflow.pipeline import WorkflowPipeline
+from app.workflow.remediation_planner import RemediationPlanningManager
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -56,6 +58,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ),
         gateway=FixtureInvestigationGateway(model_id=settings.investigation_model),
     )
+    # The planning manager is the single explicit M4 stage: it grounds planner
+    # drafts in the investigation's code mapping and applies the deterministic
+    # remediation policy before any plan or approval exists.
+    remediation_planner = RemediationPlanningManager(
+        planner=FixtureRemediationPlanner(model_id=settings.investigation_model),
+    )
     pipeline = WorkflowPipeline(
         store=store,
         telemetry=SimulatedTelemetryProvider(),
@@ -64,6 +72,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         runbook=SimulatedRunbookProvider(),
         investigation=SimulatedInvestigationProvider(),
         investigation_manager=investigation_manager,
+        remediation_planner=remediation_planner,
         code_agent=SimulatedCodeAgentGateway(),
         verifier=SimulatedVerificationRunner(),
         provider_mode=settings.provider_mode,
@@ -83,7 +92,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origins=settings.cors_origins,
         allow_credentials=False,
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type", "X-Demo-Admin-Key"],
+        allow_headers=["Content-Type", "X-Demo-Admin-Key", "X-Approver-Role"],
     )
 
     app.include_router(health.router)

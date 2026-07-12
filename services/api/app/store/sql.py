@@ -16,7 +16,9 @@ from app.domain.contracts import (
 )
 from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
+from app.domain.remediation import ApprovalBinding, RemediationPlanArtifact
 from app.store.models import (
+    ApprovalBindingModel,
     ApprovalRequestModel,
     Base,
     EvidenceItemModel,
@@ -24,6 +26,7 @@ from app.store.models import (
     IncidentModel,
     InvestigationReportModel,
     PatchAttemptModel,
+    RemediationPlanArtifactModel,
     RemediationPlanModel,
     TimelineEventModel,
     VerificationRunModel,
@@ -285,6 +288,52 @@ class SqlAlchemyStore(StoreProtocol):
             models = session.scalars(stmt).all()
             return [RemediationPlan.model_validate(m, from_attributes=True) for m in models]
 
+    def add_plan_artifact(self, artifact: RemediationPlanArtifact) -> RemediationPlanArtifact:
+        with self.SessionLocal() as session:
+            model = RemediationPlanArtifactModel(
+                id=artifact.id,
+                incident_id=artifact.incident_id,
+                version=artifact.version,
+                artifact_hash=artifact.artifact_hash,
+                risk_level=artifact.risk_level.value,
+                document=artifact.model_dump(mode="json"),
+                created_at=artifact.created_at,
+            )
+            session.add(model)
+            session.commit()
+            return artifact
+
+    def get_latest_plan_artifact(self, incident_id: str) -> RemediationPlanArtifact | None:
+        with self.SessionLocal() as session:
+            stmt = (
+                select(RemediationPlanArtifactModel)
+                .where(RemediationPlanArtifactModel.incident_id == incident_id)
+                .order_by(
+                    RemediationPlanArtifactModel.created_at.desc(),
+                    RemediationPlanArtifactModel.version.desc(),
+                    RemediationPlanArtifactModel.id.desc(),
+                )
+                .limit(1)
+            )
+            model = session.scalars(stmt).first()
+            if model is None:
+                return None
+            return RemediationPlanArtifact.model_validate(model.document)
+
+    def list_plan_artifacts(self, incident_id: str) -> list[RemediationPlanArtifact]:
+        with self.SessionLocal() as session:
+            stmt = (
+                select(RemediationPlanArtifactModel)
+                .where(RemediationPlanArtifactModel.incident_id == incident_id)
+                .order_by(
+                    RemediationPlanArtifactModel.created_at.asc(),
+                    RemediationPlanArtifactModel.version.asc(),
+                    RemediationPlanArtifactModel.id.asc(),
+                )
+            )
+            models = session.scalars(stmt).all()
+            return [RemediationPlanArtifact.model_validate(m.document) for m in models]
+
     def add_patch(self, patch: PatchAttempt) -> PatchAttempt:
         with self.SessionLocal() as session:
             model = PatchAttemptModel(
@@ -377,3 +426,28 @@ class SqlAlchemyStore(StoreProtocol):
             )
             models = session.scalars(stmt).all()
             return [ApprovalRequest.model_validate(m, from_attributes=True) for m in models]
+
+    def add_approval_binding(self, binding: ApprovalBinding) -> ApprovalBinding:
+        with self.SessionLocal() as session:
+            model = ApprovalBindingModel(
+                approval_id=binding.approval_id,
+                incident_id=binding.incident_id,
+                plan_id=binding.plan_id,
+                plan_version=binding.plan_version,
+                plan_hash=binding.plan_hash,
+                action=binding.action.value,
+                risk_level=binding.risk_level.value,
+                approver_role=binding.approver_role,
+                expires_at=binding.expires_at,
+                created_at=binding.created_at,
+            )
+            session.add(model)
+            session.commit()
+            return binding
+
+    def get_approval_binding(self, approval_id: str) -> ApprovalBinding | None:
+        with self.SessionLocal() as session:
+            model = session.get(ApprovalBindingModel, approval_id)
+            if model is None:
+                return None
+            return ApprovalBinding.model_validate(model, from_attributes=True)

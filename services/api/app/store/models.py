@@ -80,6 +80,25 @@ class RemediationPlanModel(Base):
     max_lines_changed: Mapped[int] = mapped_column(Integer)
 
 
+class RemediationPlanArtifactModel(Base):
+    """Bounded M4 remediation plan artifact.
+
+    The full typed plan is stored as a JSON ``document``; the scalar columns
+    exist for querying and to make the approval-binding fields (version,
+    artifact_hash, risk_level) inspectable without deserializing.
+    """
+
+    __tablename__ = "remediation_plan_artifacts"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    artifact_hash: Mapped[str] = mapped_column(String(100))
+    risk_level: Mapped[str] = mapped_column(String(50))
+    document: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class PatchAttemptModel(Base):
     __tablename__ = "patch_attempts"
 
@@ -116,6 +135,25 @@ class ApprovalRequestModel(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     decision_reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+
+
+class ApprovalBindingModel(Base):
+    """Pins one approval request to one exact plan artifact (M4)."""
+
+    __tablename__ = "approval_bindings"
+
+    approval_id: Mapped[str] = mapped_column(
+        ForeignKey("approval_requests.id"), primary_key=True
+    )
+    incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), index=True)
+    plan_id: Mapped[str] = mapped_column(ForeignKey("remediation_plan_artifacts.id"))
+    plan_version: Mapped[int] = mapped_column(Integer)
+    plan_hash: Mapped[str] = mapped_column(String(100))
+    action: Mapped[str] = mapped_column(String(50))
+    risk_level: Mapped[str] = mapped_column(String(50))
+    approver_role: Mapped[str] = mapped_column(String(100))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class InvestigationReportModel(Base):

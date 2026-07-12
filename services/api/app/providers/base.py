@@ -11,7 +11,13 @@ from typing import Any, Protocol, runtime_checkable
 
 from app.domain.contracts import EvidenceItem, Incident, RemediationPlan
 from app.domain.enums import EvidenceKind
-from app.domain.investigation import InvestigationDraft, SpecialistFinding, SpecialistKind
+from app.domain.investigation import (
+    InvestigationDraft,
+    InvestigationReport,
+    SpecialistFinding,
+    SpecialistKind,
+)
+from app.domain.remediation import RemediationPlanDraft
 
 
 @dataclass(frozen=True)
@@ -173,6 +179,25 @@ class InvestigationGateway(Protocol):
         evidence: list[EvidenceItem],
         findings: list[SpecialistFinding],
     ) -> InvestigationDraft: ...
+
+
+@runtime_checkable
+class RemediationPlannerGateway(Protocol):
+    """Replaceable model gateway that drafts the smallest safe change plan
+    from a COMPLETE investigation report (blueprint section 12.1E).
+
+    Output is a typed draft only; the deterministic planning manager grounds
+    it against the report's code mapping and applies the remediation policy
+    before anything is persisted or approvable. Demo mode binds the fixture
+    planner and needs no credentials.
+    """
+
+    @property
+    def model_id(self) -> str: ...
+
+    def propose(
+        self, incident: Incident, report: InvestigationReport
+    ) -> RemediationPlanDraft: ...
 
 
 @runtime_checkable

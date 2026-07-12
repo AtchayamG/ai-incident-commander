@@ -25,13 +25,17 @@ from app.domain.enums import (
     ApprovalStatus,
     ApprovalType,
     ProviderMode,
-    RiskLevel,
     WorkflowState,
 )
 from app.domain.investigation import (
     InvestigationReport,
     InvestigationStatus,
     RankedHypothesis,
+)
+from app.domain.remediation import (
+    ApprovalBinding,
+    PlanningOutcome,
+    RemediationPlanArtifact,
 )
 from app.providers.base import (
     CodeAgentGateway,
@@ -47,8 +51,14 @@ from app.providers.base import (
 from app.security.redaction import redact
 from app.store.protocol import StoreProtocol
 from app.workflow.investigation_manager import InvestigationManager
+from app.workflow.remediation_planner import RemediationPlanningManager
 
 APPROVAL_TTL = timedelta(hours=4)
+
+# The role an APPLY_PATCH approval is bound to. Demo mode has a single human
+# operator acting in this role; a decision supplying a different role via
+# X-Approver-Role is refused.
+PATCH_APPROVER_ROLE = "incident_commander"
 
 
 class WorkflowPipeline:
@@ -61,6 +71,7 @@ class WorkflowPipeline:
         runbook: RunbookProvider,
         investigation: InvestigationProvider,
         investigation_manager: InvestigationManager,
+        remediation_planner: RemediationPlanningManager,
         code_agent: CodeAgentGateway,
         verifier: VerificationRunner,
         provider_mode: ProviderMode,
@@ -72,8 +83,10 @@ class WorkflowPipeline:
             repository,
             runbook,
         )
+        # Legacy M0 proposal provider; the M4 planning manager owns plans now.
         self._investigation = investigation
         self._investigation_manager = investigation_manager
+        self._remediation_planner = remediation_planner
         self._code_agent = code_agent
         self._verifier = verifier
         self._provider_mode = provider_mode
@@ -112,10 +125,17 @@ class WorkflowPipeline:
         incident = self._transition(
             incident, WorkflowState.PLANNING_REMEDIATION, "planning.start"
         )
-        plan = self._plan(incident, top_hypothesis)
+        artifact = self._plan_bounded(incident, report)
+        if artifact is None:
+            # Explicit refusal: the draft violated policy (prohibited path,
+            # budget breach, disallowed command, high risk, ...). Terminal
+            # NO_SAFE_REMEDIATION; no plan row, no approval, nothing to apply.
+            return self._transition(
+                incident, WorkflowState.NO_SAFE_REMEDIATION, "planning.refused"
+            )
         incident = self._transition(incident, WorkflowState.PLAN_READY, "plan.ready")
 
-        self._request_patch_approval(incident, plan)
+        self._request_patch_approval(incident, artifact)
         return self._transition(
             incident, WorkflowState.WAITING_PATCH_APPROVAL, "approval.requested"
         )
@@ -225,38 +245,114 @@ class WorkflowPipeline:
         top = persisted[0] if persisted else None
         return top, report
 
-    def _plan(self, incident: Incident, hypothesis: Hypothesis) -> RemediationPlan:
-        proposal = self._investigation.propose_plan(incident, hypothesis.statement)
-        plan = RemediationPlan(
-            id=self._store.next_id("plan"),
-            incident_id=incident.id,
-            hypothesis_id=hypothesis.id,
-            summary=proposal.summary,
-            steps=proposal.steps,
-            risk_level=RiskLevel.MEDIUM,
-            max_files_changed=proposal.max_files_changed,
-            max_lines_changed=proposal.max_lines_changed,
+    def _plan_bounded(
+        self, incident: Incident, report: InvestigationReport
+    ) -> RemediationPlanArtifact | None:
+        """Run the M4 planning manager. On PLANNED, persist the bounded
+        artifact plus the legacy RemediationPlan row (unchanged API shape) and
+        return the artifact. On refusal, record the reasons on the timeline
+        for audit and return None — no plan or approval is created."""
+        previous = self._store.get_latest_plan_artifact(incident.id)
+        decision = self._remediation_planner.plan(
+            incident,
+            report,
+            plan_id=self._store.next_id("rplan"),
+            now=datetime.now(UTC),
+            version=(previous.version + 1) if previous else 1,
         )
-        return self._store.add_plan(plan)
+        if decision.outcome is not PlanningOutcome.PLANNED or decision.plan is None:
+            self._store.add_timeline_event(
+                TimelineEvent(
+                    id=self._store.next_id("tl"),
+                    incident_id=incident.id,
+                    at=datetime.now(UTC),
+                    kind="planning_refusal",
+                    description=(
+                        f"Remediation planning refused ({decision.outcome}): "
+                        + "; ".join(decision.reasons)
+                    )[:1000],
+                )
+            )
+            return None
+
+        artifact = self._store.add_plan_artifact(decision.plan)
+        self._store.add_plan(
+            RemediationPlan(
+                id=self._store.next_id("plan"),
+                incident_id=incident.id,
+                hypothesis_id=artifact.hypothesis_id,
+                summary=artifact.summary,
+                steps=list(artifact.steps),
+                risk_level=artifact.risk_level,
+                max_files_changed=artifact.max_files_changed,
+                max_lines_changed=artifact.max_lines_changed,
+            )
+        )
+        return artifact
 
     def _request_patch_approval(
-        self, incident: Incident, plan: RemediationPlan
+        self, incident: Incident, artifact: RemediationPlanArtifact
     ) -> ApprovalRequest:
+        """Create the pending APPLY_PATCH approval bound to one exact plan
+        artifact (id, version, content hash) with an expiry and approver role.
+        Only called after a valid bounded plan exists."""
         now = datetime.now(UTC)
-        approval = ApprovalRequest(
-            id=self._store.next_id("apr"),
-            incident_id=incident.id,
-            approval_type=ApprovalType.APPLY_PATCH,
-            risk_level=plan.risk_level,
-            status=ApprovalStatus.PENDING,
-            reason=plan.summary,
-            artifact_version=1,
-            requested_at=now,
-            expires_at=now + APPROVAL_TTL,
+        approval = self._store.add_approval(
+            ApprovalRequest(
+                id=self._store.next_id("apr"),
+                incident_id=incident.id,
+                approval_type=ApprovalType.APPLY_PATCH,
+                risk_level=artifact.risk_level,
+                status=ApprovalStatus.PENDING,
+                reason=artifact.summary,
+                artifact_version=artifact.version,
+                requested_at=now,
+                expires_at=now + APPROVAL_TTL,
+            )
         )
-        return self._store.add_approval(approval)
+        self._store.add_approval_binding(
+            ApprovalBinding(
+                approval_id=approval.id,
+                incident_id=incident.id,
+                plan_id=artifact.id,
+                plan_version=artifact.version,
+                plan_hash=artifact.artifact_hash,
+                action=ApprovalType.APPLY_PATCH,
+                risk_level=artifact.risk_level,
+                approver_role=PATCH_APPROVER_ROLE,
+                expires_at=approval.expires_at,
+                created_at=now,
+            )
+        )
+        return approval
+
+    def _assert_patch_authorized(self, incident: Incident) -> None:
+        """Defense in depth for the M4 gate: no patch artifact is created (and
+        in M5, no workspace is mutated) unless an APPROVED APPLY_PATCH approval
+        exists whose binding still matches the incident's latest plan artifact."""
+        artifact = self._store.get_latest_plan_artifact(incident.id)
+        if artifact is None:
+            raise ApprovalRequiredError("no bounded remediation plan exists for this incident")
+        for approval in self._store.list_approvals(incident.id):
+            if (
+                approval.approval_type is not ApprovalType.APPLY_PATCH
+                or approval.status is not ApprovalStatus.APPROVED
+            ):
+                continue
+            binding = self._store.get_approval_binding(approval.id)
+            if (
+                binding is not None
+                and binding.plan_id == artifact.id
+                and binding.plan_version == artifact.version
+                and binding.plan_hash == artifact.artifact_hash
+            ):
+                return
+        raise ApprovalRequiredError(
+            "no approved APPLY_PATCH approval is bound to the current plan artifact"
+        )
 
     def _create_patch(self, incident: Incident) -> PatchAttempt:
+        self._assert_patch_authorized(incident)
         plans = self._store.list_plans(incident.id)
         plan = plans[-1]
         proposal = self._code_agent.propose_patch(incident, plan)
@@ -296,3 +392,7 @@ class WorkflowPipeline:
 
 class ChangeBudgetExceededError(Exception):
     pass
+
+
+class ApprovalRequiredError(Exception):
+    """Raised when a patch is attempted without a valid, bound approval."""

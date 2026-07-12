@@ -44,10 +44,12 @@ from app.providers.simulated_investigation import (
     FixtureRunbookSpecialist,
     FixtureTelemetrySpecialist,
 )
+from app.providers.simulated_remediation import FixtureRemediationPlanner
 from app.security.redaction import redact
 from app.store.memory import InMemoryStore
 from app.workflow.investigation_manager import InvestigationManager
 from app.workflow.pipeline import WorkflowPipeline
+from app.workflow.remediation_planner import RemediationPlanningManager
 
 NOW = datetime(2026, 7, 13, 11, 0, tzinfo=UTC)
 
@@ -372,6 +374,7 @@ def test_pipeline_insufficient_evidence_stops_before_remediation() -> None:
         runbook=SimulatedRunbookProvider(),
         investigation=SimulatedInvestigationProvider(),
         investigation_manager=manager,
+        remediation_planner=RemediationPlanningManager(planner=FixtureRemediationPlanner()),
         code_agent=SimulatedCodeAgentGateway(),
         verifier=SimulatedVerificationRunner(),
         provider_mode=ProviderMode.SIMULATED,

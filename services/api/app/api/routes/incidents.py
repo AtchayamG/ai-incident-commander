@@ -29,6 +29,7 @@ from app.domain.contracts import (
 )
 from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
+from app.domain.remediation import RemediationPlanArtifact
 from app.store.protocol import NotFoundError, StoreProtocol
 from app.workflow import state_machine
 from app.workflow.pipeline import WorkflowPipeline
@@ -219,6 +220,25 @@ def list_plans(
 ) -> list[RemediationPlan]:
     _get_or_404(store, incident_id)
     return store.list_plans(incident_id)
+
+
+@router.get("/{incident_id}/remediation-plan/artifact", response_model=RemediationPlanArtifact)
+def get_plan_artifact(
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
+) -> RemediationPlanArtifact:
+    """Return the latest bounded M4 remediation plan artifact.
+
+    404 until planning has produced a valid bounded plan. The artifact carries
+    the expected files, steps, verification commands, budgets, risk, rollback,
+    and the content hash approvals bind to. Read-only; M5 owns execution.
+    """
+    _get_or_404(store, incident_id)
+    artifact = store.get_latest_plan_artifact(incident_id)
+    if artifact is None:
+        raise HTTPException(
+            status_code=404, detail="no bounded remediation plan for this incident yet"
+        )
+    return artifact
 
 
 @router.get("/{incident_id}/patches", response_model=list[PatchAttempt])
