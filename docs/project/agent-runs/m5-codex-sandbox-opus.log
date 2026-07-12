@@ -1,0 +1,30 @@
+﻿M5 complete. Caveman summary:
+
+## Done
+
+Checkpoint (`538019e`) inspected — implementation already correct + complete. Retained as-is, no rewrite. Added only missing reachable proof + verified everything.
+
+**Changed this session:**
+- `tests/test_sandbox_executor.py` — added `test_timeout_budget_is_enforced_before_the_gateway_runs` (only reachable budget proof checkpoint lacked; gateway never runs, execution fails w/ timeout reason, workspace still destroyed).
+- `docs/project/agent-runs/M5_CODEX_SANDBOX_FINAL_HANDOFF.md` — new.
+
+**Verified (from `services/api`):**
+- `uv run ruff check .` → clean
+- `uv run mypy --strict app` → 39 files, no issues
+- `uv run pytest` → **120 passed**
+- sandbox subset → **31 passed**
+- Alembic upgrade/downgrade on fresh sqlite → `patch_execution_artifacts` cols+indexes match `PatchExecutionArtifactModel` exactly; downgrade clean.
+
+## Checklist coverage
+- Missing/rejected/stale/reused approval refuse pre-workspace — proven.
+- Source immutability, path/file/line/attempt/**timeout** budgets, cleanup on every failure path — proven.
+- Network denied: `RemediationPlanArtifact` rejects `network_allowed=True` at construction + CLI sets `network_access=false`. Executor's `plan.network_allowed` guard = redundant belt (unreachable through type) — left as fail-closed, noted in handoff.
+- Env secrets absent (allowlist), live `CodexCliGateway` fails closed, fixture adapter always `simulated` — proven.
+- Migration ↔ memory ↔ SQL stores agree.
+
+## Scope / limits
+- Working tree: only 2 allowed files touched. No `apps/web`/`contracts`, no commits, no live Codex run (STOP-IF respected), no external writes.
+- Runtime artifacts (demo.db, .venv, caches) already gitignored — not tracked.
+- Verification runner still simulated — M6, intentionally not built.
+
+No commit made (task forbids). Ready for integrator.

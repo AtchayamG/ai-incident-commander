@@ -384,6 +384,44 @@ def test_attempt_budget_is_enforced_and_cleanup_happens_on_crash() -> None:
     assert artifact.unified_diff == ""
 
 
+def test_timeout_budget_is_enforced_before_the_gateway_runs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the plan's timeout budget is already exhausted, no gateway turn
+    runs, the execution fails with a timeout reason, and the workspace is
+    still destroyed."""
+    store = InMemoryStore()
+    incident = _golden_setup(store)
+
+    def turn(workspace: SandboxWorkspace, task: PatchTaskContext) -> None:
+        raise AssertionError("gateway must not run once the timeout is exhausted")
+
+    gateway = _RecordingGateway(turn)
+
+    class _FakeClock:
+        """First read anchors the start; the next read is past the budget."""
+
+        def __init__(self) -> None:
+            self._reads = 0
+
+        def monotonic(self) -> float:
+            self._reads += 1
+            return 0.0 if self._reads == 1 else 10_000.0
+
+    import app.sandbox.executor as executor_module
+
+    monkeypatch.setattr(executor_module, "time", _FakeClock())
+
+    artifact = _executor(store, gateway=gateway).execute(incident)
+
+    assert artifact.status is PatchExecutionStatus.FAILED
+    assert gateway.calls == 0
+    assert artifact.attempts_used == 0
+    assert any("timeout budget of 300s exhausted" in r for r in artifact.failure_reasons)
+    assert artifact.workspace_destroyed is True
+    assert artifact.source_fixture_intact is True
+
+
 # --- Immutable base manifest fails closed -------------------------------------------
 
 
