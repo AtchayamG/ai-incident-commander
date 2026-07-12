@@ -1,0 +1,31 @@
+ROLE: frontend
+OBJECTIVE: Complete the judge-facing M2 evidence and timeline experience using the integrated M2 API contracts and deterministic golden incident.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m2-frontend
+ALLOWED FILES:
+- apps/web/**
+- packages/contracts/**
+- package.json
+- pnpm-lock.yaml
+- docs/adr/frontend-*.md
+- docs/testing/frontend-*.md
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- services/api/**, root status docs, production actions, secrets, unrelated refactors, commits
+REQUIREMENTS:
+- Update shared TypeScript EvidenceItem parity for provider, source identifier, captured timestamp, content hash, display reference, redaction rules/status, and provenance.
+- In the incident room, render the complete golden evidence bundle with clear simulated labels, provider/source, captured time, display reference, hash, redaction state, and expandable sanitized content.
+- Render the incident timeline in stable chronological order with evidence links that scroll/focus the cited evidence card.
+- Add a clear control to start a RECEIVED demo incident and visibly progress it through evidence/timeline readiness without hiding approval boundaries.
+- Improve loading/empty/error states so an evidence API failure is visible and cannot silently pass.
+- Preserve accessibility, responsive layout, and the current build worker configuration.
+- Extend Playwright with a golden-evidence scenario: reset demo, start investigation, assert required alert/deployment/commit/stack/runbook evidence, timeline chronology, provenance, simulated/redacted labels, and no 500 responses.
+- Keep runtime artifacts ignored and all Markdown under `docs/` except root AGENTS/README.
+TESTS:
+- shared contract lint/type/tests
+- frontend lint/type/vitest
+- Playwright Chromium M1 and M2 scenarios
+- production build
+DELIVERABLE:
+- implementation, focused tests, and AGENT_HANDOFF.md with exact results
+STOP IF:
+- backend contract is insufficient, architecture conflict, destructive action, or scope expansion
