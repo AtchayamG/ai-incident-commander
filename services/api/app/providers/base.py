@@ -9,8 +9,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
-from app.domain.contracts import Incident, RemediationPlan
+from app.domain.contracts import EvidenceItem, Incident, RemediationPlan
 from app.domain.enums import EvidenceKind
+from app.domain.investigation import InvestigationDraft, SpecialistFinding, SpecialistKind
 
 
 @dataclass(frozen=True)
@@ -130,6 +131,48 @@ class InvestigationProvider(Protocol):
     ) -> HypothesisProposal: ...
 
     def propose_plan(self, incident: Incident, hypothesis: str) -> PlanProposal: ...
+
+
+@runtime_checkable
+class InvestigationSpecialist(Protocol):
+    """Bounded read-only analyst for one investigation angle (telemetry,
+    change correlation, code mapping, runbook).
+
+    Specialists see only persisted, redacted evidence for the incident and
+    return typed findings whose every claim cites evidence IDs. They never
+    mutate state; the investigation manager validates and persists output.
+    """
+
+    @property
+    def kind(self) -> SpecialistKind: ...
+
+    def analyze(
+        self, incident: Incident, evidence: list[EvidenceItem]
+    ) -> list[SpecialistFinding]: ...
+
+
+@runtime_checkable
+class InvestigationGateway(Protocol):
+    """Replaceable model gateway that synthesizes the typed investigation
+    draft (ranked hypotheses, code mapping, unknowns) from specialist
+    findings.
+
+    Live adapters wrap a hosted model with structured outputs; the model ID
+    comes from the environment (``INVESTIGATION_MODEL``). Demo mode binds the
+    deterministic fixture gateway and needs no credentials. Drafts are
+    schema-validated and citation-checked by the manager and must never
+    contain chain-of-thought.
+    """
+
+    @property
+    def model_id(self) -> str: ...
+
+    def synthesize(
+        self,
+        incident: Incident,
+        evidence: list[EvidenceItem],
+        findings: list[SpecialistFinding],
+    ) -> InvestigationDraft: ...
 
 
 @runtime_checkable
