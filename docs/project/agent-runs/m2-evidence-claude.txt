@@ -1,0 +1,30 @@
+ROLE: backend
+OBJECTIVE: Complete M2 evidence collection and chronological timeline for the deterministic checkout-api golden incident, with strict provenance, redaction, Git/deployment correlation, persistence, and focused tests.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m2-evidence
+ALLOWED FILES:
+- services/api/**
+- fixtures/**
+- scripts/**
+- docs/adr/**
+- docs/testing/**
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- apps/web/**, packages/contracts/**, root status/docs, production actions, credentials, unrelated refactors, commits
+REQUIREMENTS:
+- Implement the complete blueprint section 32 evidence bundle: alert rates, deployment/version, incident start, stack trace to checkout.ts, correlated commit, no-discount samples, test coverage gap, and runbook guidance.
+- Define replaceable fixture telemetry, deployment/commit history, local repository, and runbook provider interfaces; label all fixture evidence simulated.
+- Every EvidenceItem must have provider/source identifier, capture timestamp, content hash, display reference, and redaction status; persist all fields.
+- Generate an ordered TimelineEvent list from evidence with stable deterministic ordering and evidence links.
+- Create a tiny deterministic fixture repository for checkout-api containing the unsafe regression and relevant history/artifacts without embedding a nested `.git` directory in the main repository.
+- Redact planted secrets before persistence and test that raw secrets never survive.
+- Reset/seed and repeated workflow runs must remain idempotent and deterministic.
+- Update Alembic migration/model mapping if contract fields require persistence changes.
+- Preserve existing M1 API/browser behavior and all approval boundaries.
+TESTS:
+- backend ruff, strict mypy, full pytest
+- focused provider/provenance/redaction/timeline determinism tests
+- fresh migration test
+DELIVERABLE:
+- implementation, focused tests, deterministic fixtures, and AGENT_HANDOFF.md with exact results
+STOP IF:
+- architecture conflict, missing secret, destructive action, or scope expansion
