@@ -62,6 +62,10 @@ export default function IncidentDetailPage() {
   // Errors for sub-resources
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const [timelineError, setTimelineError] = useState<string | null>(null);
+  const [hypothesesError, setHypothesesError] = useState<string | null>(null);
+  const [plansError, setPlansError] = useState<string | null>(null);
+  const [patchesError, setPatchesError] = useState<string | null>(null);
+  const [approvalsError, setApprovalsError] = useState<string | null>(null);
 
   // Pipeline execution progress state
   const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
@@ -88,12 +92,13 @@ export default function IncidentDetailPage() {
     setTimeout(() => {
       const el = document.getElementById(`evidence-${evidenceId}`);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
         el.focus();
         el.classList.add("evidence-highlighted");
         setTimeout(() => {
           el.classList.remove("evidence-highlighted");
-        }, 2000);
+        }, reduceMotion ? 1 : 2000);
       }
     }, 100);
   };
@@ -154,10 +159,33 @@ export default function IncidentDetailPage() {
       setTimelineError(`Failed to fetch timeline: ${timelineRes.error || "Unknown error"}`);
     }
 
-    if (hypothesesRes.ok) setHypotheses(hypothesesRes.data);
-    if (plansRes.ok) setPlans(plansRes.data);
-    if (patchesRes.ok) setPatches(patchesRes.data);
-    if (approvalsRes.ok) setApprovals(approvalsRes.data);
+    if (hypothesesRes.ok) {
+      setHypotheses(hypothesesRes.data);
+      setHypothesesError(null);
+    } else {
+      setHypothesesError(`Failed to fetch hypotheses: ${hypothesesRes.error || "Unknown error"}`);
+    }
+
+    if (plansRes.ok) {
+      setPlans(plansRes.data);
+      setPlansError(null);
+    } else {
+      setPlansError(`Failed to fetch remediation plans: ${plansRes.error || "Unknown error"}`);
+    }
+
+    if (patchesRes.ok) {
+      setPatches(patchesRes.data);
+      setPatchesError(null);
+    } else {
+      setPatchesError(`Failed to fetch patch attempts: ${patchesRes.error || "Unknown error"}`);
+    }
+
+    if (approvalsRes.ok) {
+      setApprovals(approvalsRes.data);
+      setApprovalsError(null);
+    } else {
+      setApprovalsError(`Failed to fetch approvals: ${approvalsRes.error || "Unknown error"}`);
+    }
 
     if (investigationRes.ok) {
       setInvestigation(investigationRes.data);
@@ -328,7 +356,7 @@ export default function IncidentDetailPage() {
   if (errorMsg || !incident) {
     return (
       <div className="container" style={{ padding: "3rem 1.5rem" }}>
-        <div role="alert" style={{ background: "var(--error-light)", border: "1px solid var(--error)", color: "var(--error)", borderRadius: "12px", padding: "2rem", textAlign: "center" }}>
+        <div role="alert" style={{ background: "#1e131d", border: "1px solid rgba(239, 68, 68, 0.4)", color: "#fca5a5", borderRadius: "12px", padding: "2rem", textAlign: "center" }}>
           <h2>⚠️ Error Loading War Room</h2>
           <p style={{ margin: "1rem 0" }}>{errorMsg || "Incident not found in active database."}</p>
           <div style={{ display: "flex", justifyContent: "center", gap: "1rem" }}>
@@ -412,7 +440,7 @@ export default function IncidentDetailPage() {
         </div>
 
         {actionError && (
-          <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "0.75rem", borderRadius: "4px", marginTop: "1rem", fontSize: "0.9rem" }}>
+          <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "0.75rem", borderRadius: "4px", marginTop: "1rem", fontSize: "0.9rem" }}>
             {actionError}
           </div>
         )}
@@ -470,7 +498,7 @@ export default function IncidentDetailPage() {
       </header>
 
       {/* Main Grid: Left Column Timeline & Evidence. Right Column: Hypotheses, Remediation, Approvals */}
-      <div className="grid-main-detail">
+      <div className="grid grid-main-detail">
         {/* Left Column: Investigation Evidence & Event Log */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           
@@ -479,7 +507,7 @@ export default function IncidentDetailPage() {
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1.25rem" }}>🕒 Chronological Timeline</h2>
             
             {timelineError && (
-              <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+              <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
                 <strong>⚠️ Timeline Fetch Error:</strong> {timelineError}
               </div>
             )}
@@ -497,21 +525,21 @@ export default function IncidentDetailPage() {
                       <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>{evt.description}</p>
                       {evt.evidence_id && (
                         <button
-                          onClick={() => scrollToEvidence(evt.evidence_id!)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            padding: 0,
-                            fontSize: "0.8rem",
-                            color: "var(--primary-hover)",
-                            textDecoration: "underline",
-                            display: "inline-block",
-                            marginTop: "0.25rem",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            textAlign: "left"
-                          }}
-                          data-testid={`timeline-link-${evt.evidence_id}`}
+                           onClick={() => scrollToEvidence(evt.evidence_id!)}
+                           style={{
+                             background: "none",
+                             border: "none",
+                             padding: 0,
+                             fontSize: "0.8rem",
+                             color: "var(--primary-hover)",
+                             textDecoration: "underline",
+                             display: "inline-block",
+                             marginTop: "0.25rem",
+                             cursor: "pointer",
+                             fontFamily: "inherit",
+                             textAlign: "left"
+                           }}
+                           data-testid={`timeline-link-${evt.evidence_id}`}
                         >
                           View Supporting Evidence
                         </button>
@@ -527,7 +555,7 @@ export default function IncidentDetailPage() {
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🔍 Telemetry & Evidence Provenance</h2>
             
             {evidenceError && (
-              <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+              <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
                 <strong>⚠️ Evidence Fetch Error:</strong> {evidenceError}
               </div>
             )}
@@ -640,6 +668,16 @@ export default function IncidentDetailPage() {
 
         {/* Right Column: Hypotheses, Remediation Plans, Approval Form */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          {approvalsError && (
+            <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px" }}>
+              <strong>⚠️ Approvals Fetch Error:</strong> {approvalsError}
+            </div>
+          )}
+          {hypothesesError && (
+            <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px" }}>
+              <strong>⚠️ Hypotheses Fetch Error:</strong> {hypothesesError}
+            </div>
+          )}
 
           {/* Active Approvals Gate Card (Highest Priority Action Item) */}
           {(investigation?.remediation_enabled ?? true) && approvals.length > 0 && approvals.some(a => a.status === "pending") && (
@@ -661,7 +699,7 @@ export default function IncidentDetailPage() {
                   </div>
 
                   {approvalSubmitError && (
-                    <div role="alert" style={{ color: "var(--error)", fontSize: "0.85rem", background: "var(--error-light)", padding: "0.5rem", borderRadius: "4px" }}>
+                    <div role="alert" style={{ color: "#fca5a5", fontSize: "0.85rem", background: "#1e131d", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "0.5rem", borderRadius: "4px" }}>
                       {approvalSubmitError}
                     </div>
                   )}
@@ -681,7 +719,7 @@ export default function IncidentDetailPage() {
                   <div style={{ display: "flex", gap: "0.75rem" }}>
                     <button 
                       className="btn btn-primary" 
-                      style={{ background: "var(--success)" }}
+                      style={{ background: "#065f46", color: "#ffffff" }}
                       onClick={() => handleDecision(approval.id, "approved")}
                       disabled={isSubmittingApproval}
                     >
@@ -747,7 +785,7 @@ export default function IncidentDetailPage() {
           ) : investigationError ? (
             <div className="card" data-testid="investigation-error">
               <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>💡 Investigation & Root Cause</h2>
-              <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "1rem", borderRadius: "8px" }}>
+              <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px" }}>
                 <p><strong>⚠️ Error loading investigation report:</strong> {investigationError}</p>
               </div>
             </div>
@@ -1095,6 +1133,16 @@ export default function IncidentDetailPage() {
           {/* Remediation Plans & Code Patches */}
           <div className="card">
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🛠️ Remediation plans & patches</h2>
+            {plansError && (
+              <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+                <strong>⚠️ Remediation Plans Fetch Error:</strong> {plansError}
+              </div>
+            )}
+            {patchesError && (
+              <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+                <strong>⚠️ Patches Fetch Error:</strong> {patchesError}
+              </div>
+            )}
             {investigation?.status === "insufficient_evidence" ? (
               <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--error)", fontSize: "0.9rem", background: "var(--error-light)" }}>
                 <p><strong>Remediation Disabled:</strong> The investigation failed to find sufficient evidence to generate a safe remediation plan.</p>

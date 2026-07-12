@@ -14,17 +14,17 @@
   --primary-hover: #a78bfa;
   --primary-light: rgba(139, 92, 246, 0.15);
   
-  --success: #10b981;
-  --success-light: rgba(16, 185, 129, 0.15);
+  --success: #34d399;
+  --success-light: rgba(52, 211, 153, 0.15);
   
-  --warning: #f59e0b;
-  --warning-light: rgba(245, 158, 11, 0.15);
+  --warning: #fbbf24;
+  --warning-light: rgba(251, 191, 36, 0.15);
   
-  --error: #ef4444;
-  --error-light: rgba(239, 68, 68, 0.15);
+  --error: #f87171;
+  --error-light: rgba(248, 113, 113, 0.15);
   
-  --info: #3b82f6;
-  --info-light: rgba(59, 130, 246, 0.15);
+  --info: #60a5fa;
+  --info-light: rgba(96, 165, 250, 0.15);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -65,7 +65,7 @@ a:hover {
 
 /* Keyboard Accessibility */
 *:focus-visible {
-  outline: 2px solid var(--primary-hover);
+  outline: 2.5px solid var(--primary-hover);
   outline-offset: 4px;
 }
 
@@ -245,12 +245,12 @@ a:hover {
 }
 
 .btn-danger {
-  background: var(--error);
+  background: #b91c1c; /* High contrast red */
   color: #ffffff;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #dc2626;
+  background: #991b1b;
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
 }
 
@@ -259,7 +259,7 @@ a:hover {
   cursor: not-allowed;
 }
 
-/* Status Badges */
+/* Status Badges with accessibility compliance for dark mode theme */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -270,10 +270,10 @@ a:hover {
   text-transform: uppercase;
 }
 
-.badge-sev1 { background-color: var(--error-light); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.3); }
-.badge-sev2 { background-color: var(--warning-light); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
-.badge-sev3 { background-color: var(--info-light); color: var(--info); border: 1px solid rgba(59, 130, 246, 0.3); }
-.badge-sev4 { background-color: var(--border-color); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1); }
+.badge-sev1 { background-color: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+.badge-sev2 { background-color: rgba(245, 158, 11, 0.15); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4); }
+.badge-sev3 { background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); }
+.badge-sev4 { background-color: #24324f; color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.15); }
 
 .badge-state {
   border: 1px solid currentColor;
@@ -356,3 +356,32 @@ a:hover {
   background-color: rgba(139, 92, 246, 0.05) !important;
   outline: none;
 }
+
+/* Support prefers-reduced-motion media query for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: scroll !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+  
+  .spin-indicator,
+  .spin {
+    animation: none !important;
+  }
+
+  .evidence-card,
+  .card,
+  .btn {
+    transition: none !important;
+  }
+  
+  .btn:active {
+    transform: none !important;
+  }
+}
+

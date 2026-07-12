@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type {
   Incident,
@@ -73,6 +73,70 @@ export default function DashboardPage() {
   // Demo Admin Key
   const [adminKey, setAdminKey] = useState("demo-admin-key");
   const [isResetting, setIsResetting] = useState(false);
+
+  // Ref for focus trapping
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus trapping and restoration effect for the Intake Modal
+  useEffect(() => {
+    if (showModal) {
+      const previouslyFocused = document.activeElement as HTMLElement;
+      
+      const focusTimeout = setTimeout(() => {
+        const titleInput = modalRef.current?.querySelector("#form-title") as HTMLElement;
+        if (titleInput) {
+          titleInput.focus();
+        }
+      }, 50);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setShowModal(false);
+          previouslyFocused?.focus();
+          return;
+        }
+
+        if (e.key === "Tab" && modalRef.current) {
+          const focusable = modalRef.current.querySelectorAll(
+            'button, input, select, textarea, [tabindex="0"]'
+          );
+          const activeList = Array.from(focusable).filter(
+            el => !el.hasAttribute("disabled") && (el as HTMLElement).tabIndex !== -1
+          ) as HTMLElement[];
+
+          if (activeList.length === 0) return;
+
+          const firstEl = activeList[0];
+          const lastEl = activeList[activeList.length - 1];
+
+          if (!firstEl || !lastEl) return;
+
+          if (e.shiftKey) {
+            if (document.activeElement === firstEl) {
+              lastEl.focus();
+              e.preventDefault();
+            }
+          } else {
+            if (document.activeElement === lastEl) {
+              firstEl.focus();
+              e.preventDefault();
+            }
+          }
+        }
+      };
+
+      document.addEventListener("keydown", handleKeyDown);
+      return () => {
+        clearTimeout(focusTimeout);
+        document.removeEventListener("keydown", handleKeyDown);
+        if (previouslyFocused) {
+          setTimeout(() => {
+            previouslyFocused.focus();
+          }, 50);
+        }
+      };
+    }
+  }, [showModal]);
 
   // Load Filters from LocalStorage on Mount
   useEffect(() => {
@@ -339,7 +403,7 @@ export default function DashboardPage() {
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>Active & Past Incidents</h2>
 
             {apiDown ? (
-              <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", borderRadius: "6px", padding: "1.5rem", textAlign: "center" }}>
+              <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", borderRadius: "6px", padding: "1.5rem", textAlign: "center" }}>
                 <h3 style={{ marginBottom: "0.5rem" }}>⚠️ Backend API Connection Offline</h3>
                 <p style={{ fontSize: "0.95rem", marginBottom: "1rem" }}>
                   Unable to establish connection to the Incident Commander backend service at <code>{process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}</code>.
@@ -358,7 +422,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : errorMsg ? (
-              <div role="alert" style={{ color: "var(--error)", background: "var(--error-light)", padding: "1rem", borderRadius: "6px", border: "1px solid var(--error)" }}>
+              <div role="alert" style={{ color: "#fca5a5", background: "#1e131d", padding: "1rem", borderRadius: "6px", border: "1px solid rgba(239, 68, 68, 0.4)" }}>
                 {errorMsg}
               </div>
             ) : incidents.length === 0 ? (
@@ -490,6 +554,7 @@ export default function DashboardPage() {
       {/* Manual Intake Modal */}
       {showModal && (
         <div 
+          ref={modalRef}
           className="modal-overlay" 
           role="dialog" 
           aria-labelledby="modal-title" 
@@ -514,7 +579,7 @@ export default function DashboardPage() {
 
             <form onSubmit={handleCreateIncident}>
               {formErrors.submit && (
-                <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "0.75rem", borderRadius: "4px", marginBottom: "1rem" }}>
+                <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "0.75rem", borderRadius: "4px", marginBottom: "1rem" }}>
                   {formErrors.submit}
                 </div>
               )}

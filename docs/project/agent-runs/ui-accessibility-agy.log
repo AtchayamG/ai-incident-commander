@@ -1,0 +1,155 @@
+﻿I will start by checking the current permission grants to see what resources we can access.
+I will ask for permission to read and write files in the project worktree `D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-ui-accessibility`.
+I will list the contents of the root workspace directory to understand the project structure.
+I will list the contents of the `apps` directory to see what applications exist.
+I will list the contents of the `apps/web` directory.
+I will view the root `package.json` to see the available workspace scripts.
+I will view the `apps/web/package.json` to see the scripts and dependencies of the web application.
+I will list the contents of the `docs` directory to see if there are existing testing or accessibility documents.
+I will list the contents of `docs/testing` to check for accessibility testing documentation.
+I will run the existing TypeScript check (`typecheck`) and code linting (`lint`) to verify the starting state.
+I will wait for the typecheck command to complete.
+I will list all currently running background tasks.
+I will check the status of the typecheck task.
+I will run `pnpm install` to install all dependencies for the workspace.
+I will wait for `pnpm install` to finish installing the dependencies.
+I will run `pnpm typecheck` again now that the packages are installed.
+I will wait for the typecheck command to finish.
+I will run `pnpm lint` to check for any lint issues in the codebase.
+I will wait for the lint command to complete.
+I will run `pnpm test` to verify the vitest unit and component tests.
+I will wait for the test command to complete.
+I will view `apps/web/playwright.config.ts` to understand how the end-to-end tests are structured and what ports or servers they expect.
+I will run the end-to-end Playwright tests to verify the existing tests are passing.
+I will wait for the Playwright tests to finish.
+I will list the contents of the `services/api` directory to see if there is a Python virtual environment we need to prepare.
+I will view the `uv` skill documentation to see how to set up or verify Python environments using `uv`.
+I will run `uv --version` to check if `uv` is available on the system.
+I will wait for the uv version check command.
+I will view `services/api/pyproject.toml` to see the Python dependencies needed to build the virtual environment for running the end-to-end backend tests.
+I will create a Python virtual environment in `services/api` using `uv venv`.
+I will wait for the virtual environment creation to complete.
+I will install the Python dependencies into the virtual environment using `uv pip install -e .`.
+I will wait for the dependencies to finish installing.
+I will now re-run `pnpm test:e2e` to see if the end-to-end tests run and pass.
+I will wait for the Playwright tests to complete.
+I will list the contents of the `apps/web/app` directory to see the page structure and locate the dashboard and incident-room page code.
+I will list the contents of `apps/web/app/incidents/` to see the pages under it.
+I will list the contents of `apps/web/app/incidents/[id]/` directory.
+I will view the dashboard page (`apps/web/app/page.tsx`) to inspect its structure and elements.
+I will view the rest of the dashboard page (`apps/web/app/page.tsx`) to inspect the table row interactivity, active modal structure, and other sections.
+I will view the first part of the incident room page (`apps/web/app/incidents/[id]/page.tsx`).
+I will view the middle section of the incident room page (`apps/web/app/incidents/[id]/page.tsx`).
+I will view the final section of the incident room page (`apps/web/app/incidents/[id]/page.tsx`).
+I will view `docs/testing/frontend-testing-strategy.md` to see the existing frontend testing strategy.
+I will list the files in `apps/web/e2e` to see the existing Playwright tests.
+I will install `@axe-core/playwright` as a devDependency in `apps/web` to perform automated Axe accessibility audits.
+I will wait for the `@axe-core/playwright` installation to finish.
+I will run `pnpm typecheck` to verify that installing the package did not disrupt TypeScript compile.
+I will wait for the typecheck command to finish.
+I will view `apps/web/e2e/incident-creation.spec.ts` to see how the incident creation and dashboard flow is currently tested.
+I will view `apps/web/e2e/golden-evidence.spec.ts` to see how the golden incident room flow is currently tested.
+I will view `apps/web/app/global.css` to check the design system tokens, focus styles, and animation properties.
+I will create an accessibility E2E test suite in `apps/web/e2e/accessibility.spec.ts` to run automated Axe audits and assert keyboard/focus controls.
+I will create the `accessibility.spec.ts` test file in the project worktree without supplying the artifact metadata parameter.
+I will run the newly created accessibility E2E tests to identify accessibility and focus-flow violations.
+I will wait for the accessibility E2E tests to run.
+I will view the top part of the Playwright execution log to see the first test's failure reason.
+I will view the next chunk of the Playwright execution log to see the first test's failure.
+I will view the next section of the Playwright execution log to see the failure details of the first test ("Dashboard and Intake Modal - Accessibility & Focus Flow").
+I will search the codebase for usages of `var(--error)` to ensure we fix contrast issues on all error/alert text elements.
+I will modify `apps/web/app/global.css` to update the global theme colors for better dark-mode accessibility, increase the contrast of status badges and buttons, and add a prefers-reduced-motion media query to disable animations for users who request it.
+I will update the dashboard page (`apps/web/app/page.tsx`) to integrate focus trapping/restoration for the manual intake modal and apply higher contrast accessible color styling for all warning/error alert states.
+I will view lines 1 to 20 of `apps/web/app/page.tsx` to double-check the import statements.
+I will replace the React imports in `apps/web/app/page.tsx` to include `useRef`.
+I will view lines 68 to 80 of `apps/web/app/page.tsx` to locate the local state hooks.
+I will insert the `modalRef` declaration and the focus-trapping `useEffect` hook into the `DashboardPage` component.
+I will view lines 380 to 440 of `apps/web/app/page.tsx` to locate the `apiDown` and loading/error alert components.
+I will update the inline alert styles on the dashboard page to use high-contrast text and background colors for better accessibility.
+I will view the manual intake modal form section in `apps/web/app/page.tsx` to locate the outer modal container, close buttons, and form errors.
+I will attach the `modalRef` to the modal container and improve the color contrast of form submission error alerts.
+I will view lines 145 to 175 of `apps/web/app/incidents/[id]/page.tsx` to find where timeline, evidence, hypotheses, and plans fetches are set.
+I will view lines 55 to 70 of `apps/web/app/incidents/[id]/page.tsx` to locate the error state variables.
+I will declare new sub-resource error state hooks in `apps/web/app/incidents/[id]/page.tsx`.
+I will view the `scrollToEvidence` function in `apps/web/app/incidents/[id]/page.tsx` to prepare the prefers-reduced-motion changes.
+I will modify the `scrollToEvidence` function in `apps/web/app/incidents/[id]/page.tsx` to check the `prefers-reduced-motion` media query and scroll/highlight instantly without animation if the user prefers reduced motion.
+I will view lines 155 to 175 of `apps/web/app/incidents/[id]/page.tsx` to get the exact lines of code where hypotheses, plans, patches, and approvals are set.
+I will modify the sub-resource loading logic in `apps/web/app/incidents/[id]/page.tsx` to handle failures for hypotheses, remediation plans, patch attempts, and approvals, and populate the appropriate error states.
+I will view lines 320 to 345 of `apps/web/app/incidents/[id]/page.tsx` to locate the main error alert style.
+I will view lines 346 to 370 of `apps/web/app/incidents/[id]/page.tsx` to locate the main alert.
+I will update the main error alert style on the incident detail page to use high-contrast colors.
+I will view lines 430 to 455 of `apps/web/app/incidents/[id]/page.tsx` to find the pipeline execution actionError alert block.
+I will update the pipeline action error alert styling for higher color contrast.
+I will view lines 500 to 555 of `apps/web/app/incidents/[id]/page.tsx` to locate `timelineError` and `evidenceError` alert blocks.
+I will view lines 556 to 585 of `apps/web/app/incidents/[id]/page.tsx` to locate the `evidenceError` alert block.
+I will update the timeline/evidence alerts and fix the layout container class so it correctly applies the grid system on mobile/desktop screens.
+I will view lines 640 to 765 of `apps/web/app/incidents/[id]/page.tsx` to locate approvals, investigation panel, and error/alert blocks.
+I will view lines 766 to 820 of `apps/web/app/incidents/[id]/page.tsx` to inspect more of the investigation results and error blocks.
+I will modify the approvals gate alerts, buttons, and investigation error alerts on the incident detail page to resolve color contrast issues.
+I will view lines 930 to 980 of `apps/web/app/incidents/[id]/page.tsx` to locate where ranked hypotheses are rendered.
+I will search for occurrences of the state `hypotheses` variable to see if it is rendered or utilized on the page.
+I will view lines 1070 to 1130 of `apps/web/app/incidents/[id]/page.tsx` to locate where plans, patches, and approvals are rendered.
+I will view lines 1131 to 1194 of `apps/web/app/incidents/[id]/page.tsx` to locate the plans render block and the final closing structures.
+I will update the Remediation Plans card in `apps/web/app/incidents/[id]/page.tsx` to render accessible alert banners if fetching the plans or patches fails.
+I will update `apps/web/app/incidents/[id]/page.tsx` to render the `approvalsError` and `hypothesesError` alert banners in the right sidebar.
+I will run `pnpm typecheck` to verify that our code changes are type-safe and don't introduce any TypeScript errors.
+I will wait for the typecheck command to finish.
+I will view lines 105 to 130 of `apps/web/app/page.tsx` to inspect the focus trap logic.
+I will edit `apps/web/app/page.tsx` to handle the undefined check for `firstEl` and `lastEl` inside the focus trap function.
+I will run `pnpm typecheck` to verify that our TypeScript check now compiles without errors.
+I will wait for the typecheck command to finish.
+I will run `pnpm lint` to make sure there are no ESLint issues in our updated code.
+I will wait for the lint command to finish.
+I will run the unit tests with `pnpm test` to verify that our component/API logic is fully sound.
+I will wait for the Vitest unit tests to finish.
+I will run the accessibility E2E tests again to verify all serious/critical Axe violations and focus trap/restore behaviors are resolved.
+I will wait for the accessibility E2E tests to complete.
+I will now run the complete E2E test suite to verify that both the new accessibility tests and the original E2E scenarios pass successfully.
+I will wait for all Playwright E2E tests to complete.
+I will now build the project for production to verify that Next.js compilation compiles all pages and assets cleanly.
+I will wait for the production build command to complete.
+I will run `pnpm build` in the correct worktree directory.
+I will wait for the production build to finish.
+I will write the accessibility compliance documentation inside `docs/testing/frontend-accessibility.md`.
+I will create `AGENT_HANDOFF.md` in the root of the project to document our audit, the improvements, and the exact verification command outputs.
+I will check `git status` to ensure all modified and created files are strictly within the allowed workspace parameters and that no forbidden backend code was touched.
+I have completed the audit and improved the accessibility, responsive layout, reduced motion, keyboard flow, and error states of the Incident Commander frontend without touching any forbidden backend files.
+
+### 🛠️ Key Improvements Implemented
+
+1. **Focus Trapping & Restoration (Manual Intake Modal)**:
+   - Programmatically shifts focus to the first text input (`#form-title`) when the intake modal is opened.
+   - Captures `Tab`/`Shift+Tab` keyboard inputs to loop focus between interactive modal elements.
+   - Restores focus back to the button that triggered the modal upon closure.
+
+2. **Contrast Enhancement (WCAG 2.1 AA Compliant)**:
+   - Modified CSS variables for `success`, `warning`, `error`, and `info` badges in [global.css](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-ui-accessibility/apps/web/app/global.css) for better readability.
+   - Updated primary action button backgrounds (e.g., Approve changed to emerald-800 (`#065f46`) and Danger/Reject changed to red-700 (`#b91c1c`)) to exceed the minimum `4.5:1` contrast ratio.
+   - Implemented high-contrast alert boxes for error displays.
+
+3. **Motion Reductions & Smooth Scroll Prefs**:
+   - Integrated media queries in CSS to turn off loading spinners and pulse transitions when `prefers-reduced-motion: reduce` is detected.
+   - Configured `scrollToEvidence` to use instant scroll (`behavior: "auto"`) and skip highlighted fade-outs when reduced motion is preferred.
+
+4. **Failure State Error Banners**:
+   - Added state hooks for fetching failures (`hypothesesError`, `plansError`, `patchesError`, and `approvalsError`).
+   - Replaced silent page empties with explicit `role="alert"` boxes using a high-contrast dark scheme (`#1e131d` background, `#fca5a5` text).
+
+5. **Responsive Layouts**:
+   - Stacks modal sections vertically on mobile screens.
+   - Fixed missing `grid` class inside the incident room layout container to align columns on desktop viewports and cleanly stack them on mobile devices.
+
+6. **Automated E2E Verification**:
+   - Created [accessibility.spec.ts](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-ui-accessibility/apps/web/e2e/accessibility.spec.ts) running automated Axe audits and verifying keyboard navigation/mobile viewports.
+
+---
+
+### 🚀 Verification Results
+
+All quality gates compiled and passed successfully:
+- **Linter & Typings**: `pnpm lint` and `pnpm typecheck` successfully complete with zero errors.
+- **Unit/Integration Tests**: `pnpm test` (Vitest) runs and passes all 16 API/transport tests.
+- **End-to-End Tests**: `pnpm test:e2e` runs and passes all 5 Playwright scenarios.
+- **Production Bundle**: `pnpm build` successfully generates the static and server-rendered production build.
+
+Detailed documentation is available in [frontend-accessibility.md](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-ui-accessibility/docs/testing/frontend-accessibility.md), and the handover report is under [AGENT_HANDOFF.md](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-ui-accessibility/AGENT_HANDOFF.md).
