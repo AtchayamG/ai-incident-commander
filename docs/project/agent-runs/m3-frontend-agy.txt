@@ -1,0 +1,32 @@
+ROLE: frontend
+OBJECTIVE: Complete the M3 judge-facing investigation experience and browser gate using the integrated `/investigation` report and ranked hypothesis outputs.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m3-frontend
+ALLOWED FILES:
+- apps/web/**
+- packages/contracts/**
+- package.json
+- pnpm-lock.yaml
+- docs/adr/frontend-*.md
+- docs/testing/frontend-*.md
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- services/api/**, root status docs, production actions, secrets, unrelated refactors, commits
+REQUIREMENTS:
+- Add strict TypeScript parity for InvestigationReport, three RankedHypothesis entries, citations, rejected claims, code mapping, affected files/commits, falsification tests, status, and remediation_enabled.
+- Fetch `/api/v1/incidents/{id}/investigation` with visible loading/404/error states.
+- Render exactly three ranked hypotheses with rank, confidence, concise rationale, supporting and contradicting evidence links, unknowns, and falsification steps.
+- Show top code mapping for `src/checkout.ts`, `src/checkout.test.ts`, commit `c7f2e9a`, and the missing no-discount test.
+- Evidence links must focus the relevant provenance card; no unsupported claim may appear as fact.
+- Show safe insufficient-evidence state with remediation disabled and requested evidence/actions.
+- Never display chain-of-thought; show only concise rationale/evidence/actions.
+- Extend Playwright golden flow to assert three ranks, top unsafe-access hypothesis, affected files/commit, contradiction/unknown/falsification sections, citation links, and remediation enabled only for COMPLETE.
+- Preserve M1/M2 scenarios, accessibility, build configuration, and clean artifact handling.
+TESTS:
+- shared contracts lint/type/tests
+- frontend lint/type/vitest
+- all Playwright Chromium scenarios
+- production build
+DELIVERABLE:
+- implementation, tests, and AGENT_HANDOFF.md with exact results
+STOP IF:
+- backend contract is insufficient, architecture conflict, destructive action, or scope expansion
