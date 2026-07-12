@@ -2,8 +2,8 @@
 
 - Active milestone: M1 — durable incident intake and dashboard
 - Completed work: M0 monorepo foundation; typed backend/frontend contracts; deterministic demo pipeline; state machine; simulated providers; redaction; API/dashboard skeleton; CI and Docker contracts; ADRs 001-007
-- Current task: fix the Windows production-build teardown, then implement persistent incident intake, webhook contract, incident detail UI, and SSE events
-- Next three tasks: M1 persistence/intake; M1 dashboard/detail/E2E; M2 evidence/timeline
+- Current task: add and run M1 browser E2E proving manual incident creation persists and appears on the dashboard
+- Next three tasks: M1 browser E2E; M2 evidence/timeline; M3 typed investigation agents
 - Blocked items: none; live integrations will require credentials but demo mode must not
-- Quality gates: backend lint/typecheck/unit pass; frontend lint/typecheck/unit pass; frontend production build compiles but exits nonzero on Windows `kill EPERM`; Docker and E2E remain unproven
-- Latest successful commands: backend ruff; backend strict mypy (32 files); backend pytest (35 passed); pnpm lint/typecheck; vitest (13 passed)
+- Quality gates: backend lint/typecheck/unit pass (39 tests); frontend lint/typecheck/unit pass (15 web tests); frontend production build passes; fresh Alembic migration and demo reset covered; Docker and browser E2E remain unproven
+- Latest successful commands: backend ruff; strict mypy (36 files); pytest (39 passed); frontend lint/typecheck; vitest (15 passed); Next.js production build
