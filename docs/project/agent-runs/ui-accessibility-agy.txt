@@ -1,0 +1,28 @@
+ROLE: frontend QA/UX
+OBJECTIVE: Audit and improve the current dashboard and incident-room accessibility, responsive behavior, reduced motion, keyboard flow, and visible failure states without touching M4 backend-dependent UI.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-ui-accessibility
+ALLOWED FILES:
+- apps/web/**
+- package.json
+- pnpm-lock.yaml
+- docs/testing/frontend-accessibility.md
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- services/api/**, packages/contracts/**, root status docs, future M4/M5 API assumptions, production actions, secrets, unrelated refactors, commits
+REQUIREMENTS:
+- Add automated axe checks for dashboard and golden incident room with zero serious/critical violations.
+- Add keyboard-only assertions for intake modal, start investigation, evidence citations, and approval controls currently present.
+- Verify focus trapping/restoration for modal, visible focus, semantic landmarks/headings, form errors, and non-color status cues; fix defects found.
+- Respect `prefers-reduced-motion` for progress, scroll, and highlight animations.
+- Add mobile viewport assertions for no horizontal overflow and readable primary workflow sections.
+- Ensure API/evidence/investigation error states use accessible alerts and do not silently look empty.
+- Preserve existing visual design, M1-M3 browser scenarios, and production build worker settings.
+- Keep all test artifacts ignored and Markdown under `docs/`.
+TESTS:
+- frontend lint/type/vitest
+- Playwright Chromium existing scenarios plus accessibility/keyboard/mobile scenarios
+- production build
+DELIVERABLE:
+- fixes, automated tests, accessibility documentation, and AGENT_HANDOFF.md with exact results
+STOP IF:
+- backend changes are required, architecture conflict, destructive action, or scope expands into future milestone APIs
