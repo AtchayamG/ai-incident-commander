@@ -1,0 +1,29 @@
+ROLE: architecture/backend/security
+OBJECTIVE: Complete M4 bounded remediation planning and first human approval policy, building on the verified M3 investigation report without performing repository modifications yet.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m4-remediation
+ALLOWED FILES:
+- services/api/**
+- docs/adr/**
+- docs/testing/**
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- apps/web/**, packages/contracts/**, root status docs, repository patch execution, production actions, credentials, unrelated refactors, commits
+REQUIREMENTS:
+- Define strict remediation-plan output grounded only in a COMPLETE investigation report and its cited evidence/code map.
+- Golden plan must add a no-discount regression test, restore optional discount handling, name only expected files, avoid refactors, and declare rollback.
+- Include risk classification, prohibited paths, maximum files/lines, allowed commands, maximum attempts, timeout, no-network default, validation commands, and concise rationale.
+- Create first approval only after a valid bounded plan exists; approval binds incident ID, plan/artifact version/hash, expiry, risk, approver role, and action `APPLY_PATCH`.
+- Approval must be single-use, auditable, stale-version resistant, and required before any workspace mutation. Reject/expire paths must remain safe and persist transitions.
+- Insufficient evidence, invalid plan, prohibited paths, or budget breach must produce `NO_SAFE_REMEDIATION`/`NEEDS_INPUT` and no approval.
+- Do not implement actual workspace patching in this slice; M5 owns it.
+- Preserve all M0-M3 behavior and deterministic demo mode.
+TESTS:
+- backend ruff, strict mypy, full pytest
+- golden plan exact files/commands/budgets/risk/rollback tests
+- approval binding/stale/reuse/expiry/audit tests
+- unsafe/high-risk/prohibited path/no-approval tests
+- fresh migration test if schema changes
+DELIVERABLE:
+- implementation, tests, ADR if needed, and AGENT_HANDOFF.md with exact results
+STOP IF:
+- architecture conflict, required secret, destructive action, or scope expansion into M5
