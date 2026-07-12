@@ -28,8 +28,8 @@ from app.domain.investigation import (
 )
 from app.main import create_app
 from app.providers.base import EvidenceSource, RawEvidence
+from app.providers.code_agent import FixtureCodexGateway
 from app.providers.simulated import (
-    SimulatedCodeAgentGateway,
     SimulatedDeploymentHistoryProvider,
     SimulatedInvestigationProvider,
     SimulatedLocalRepositoryProvider,
@@ -45,6 +45,7 @@ from app.providers.simulated_investigation import (
     FixtureTelemetrySpecialist,
 )
 from app.providers.simulated_remediation import FixtureRemediationPlanner
+from app.sandbox.executor import SandboxPatchExecutor
 from app.security.redaction import redact
 from app.store.memory import InMemoryStore
 from app.workflow.investigation_manager import InvestigationManager
@@ -375,7 +376,7 @@ def test_pipeline_insufficient_evidence_stops_before_remediation() -> None:
         investigation=SimulatedInvestigationProvider(),
         investigation_manager=manager,
         remediation_planner=RemediationPlanningManager(planner=FixtureRemediationPlanner()),
-        code_agent=SimulatedCodeAgentGateway(),
+        patch_executor=SandboxPatchExecutor(store=store, gateway=FixtureCodexGateway()),
         verifier=SimulatedVerificationRunner(),
         provider_mode=ProviderMode.SIMULATED,
     )

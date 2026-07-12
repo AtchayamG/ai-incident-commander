@@ -31,8 +31,8 @@ from app.domain.remediation import (
     build_plan_artifact,
 )
 from app.main import create_app
+from app.providers.code_agent import FixtureCodexGateway
 from app.providers.simulated import (
-    SimulatedCodeAgentGateway,
     SimulatedDeploymentHistoryProvider,
     SimulatedInvestigationProvider,
     SimulatedLocalRepositoryProvider,
@@ -41,6 +41,7 @@ from app.providers.simulated import (
     SimulatedVerificationRunner,
 )
 from app.providers.simulated_remediation import FixtureRemediationPlanner
+from app.sandbox.executor import SandboxPatchExecutor
 from app.store.memory import InMemoryStore
 from app.store.protocol import StoreProtocol
 from app.workflow.pipeline import ApprovalRequiredError, WorkflowPipeline
@@ -205,7 +206,7 @@ def _pipeline(store: StoreProtocol, planner: Any) -> WorkflowPipeline:
         investigation=SimulatedInvestigationProvider(),
         investigation_manager=_fixture_manager(),
         remediation_planner=RemediationPlanningManager(planner=planner),
-        code_agent=SimulatedCodeAgentGateway(),
+        patch_executor=SandboxPatchExecutor(store=store, gateway=FixtureCodexGateway()),
         verifier=SimulatedVerificationRunner(),
         provider_mode=ProviderMode.SIMULATED,
     )

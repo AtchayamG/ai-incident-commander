@@ -17,6 +17,7 @@ from app.domain.contracts import (
 from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
 from app.domain.remediation import ApprovalBinding, RemediationPlanArtifact
+from app.domain.sandbox import PatchExecutionArtifact
 from app.store.models import (
     ApprovalBindingModel,
     ApprovalRequestModel,
@@ -26,6 +27,7 @@ from app.store.models import (
     IncidentModel,
     InvestigationReportModel,
     PatchAttemptModel,
+    PatchExecutionArtifactModel,
     RemediationPlanArtifactModel,
     RemediationPlanModel,
     TimelineEventModel,
@@ -359,6 +361,36 @@ class SqlAlchemyStore(StoreProtocol):
             )
             models = session.scalars(stmt).all()
             return [PatchAttempt.model_validate(m, from_attributes=True) for m in models]
+
+    def add_patch_execution(self, artifact: PatchExecutionArtifact) -> PatchExecutionArtifact:
+        with self.SessionLocal() as session:
+            model = PatchExecutionArtifactModel(
+                id=artifact.id,
+                incident_id=artifact.incident_id,
+                approval_id=artifact.approval_id,
+                status=artifact.status.value,
+                engine_id=artifact.engine_id,
+                simulated=artifact.simulated,
+                artifact_hash=artifact.artifact_hash,
+                document=artifact.model_dump(mode="json"),
+                created_at=artifact.created_at,
+            )
+            session.add(model)
+            session.commit()
+            return artifact
+
+    def list_patch_executions(self, incident_id: str) -> list[PatchExecutionArtifact]:
+        with self.SessionLocal() as session:
+            stmt = (
+                select(PatchExecutionArtifactModel)
+                .where(PatchExecutionArtifactModel.incident_id == incident_id)
+                .order_by(
+                    PatchExecutionArtifactModel.created_at.asc(),
+                    PatchExecutionArtifactModel.id.asc(),
+                )
+            )
+            models = session.scalars(stmt).all()
+            return [PatchExecutionArtifact.model_validate(m.document) for m in models]
 
     def add_verification(self, incident_id: str, run: VerificationRun) -> VerificationRun:
         with self.SessionLocal() as session:

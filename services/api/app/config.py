@@ -28,6 +28,13 @@ class Settings:
     database_url: str | None = None
     redis_url: str | None = None
     investigation_model: str = "simulated-fixture"
+    # M5 code-agent gateway selection. "fixture" is the deterministic,
+    # explicitly simulated adapter; "codex-cli" drives the locally installed
+    # Codex CLI and fails closed when binary/model/credentials are missing.
+    code_agent_engine: str = "fixture"
+    codex_model: str = ""
+    codex_binary: str = "codex"
+    codex_home: str | None = None
     openai_api_key_present: bool = False
     github_token_present: bool = False
 
@@ -46,6 +53,10 @@ class Settings:
             database_url=os.environ.get("DATABASE_URL") or None,
             redis_url=os.environ.get("REDIS_URL") or None,
             investigation_model=os.environ.get("INVESTIGATION_MODEL", "simulated-fixture"),
+            code_agent_engine=os.environ.get("CODE_AGENT_ENGINE", "fixture"),
+            codex_model=os.environ.get("CODEX_MODEL", ""),
+            codex_binary=os.environ.get("CODEX_BINARY", "codex"),
+            codex_home=os.environ.get("CODEX_HOME") or None,
             openai_api_key_present=bool(os.environ.get("OPENAI_API_KEY")),
             github_token_present=bool(os.environ.get("GITHUB_TOKEN")),
         )

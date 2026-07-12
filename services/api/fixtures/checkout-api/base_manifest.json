@@ -1,0 +1,11 @@
+{
+  "base_ref": "checkout-api@2026.07.13.4 (commit c7f2e9a, regressed deploy)",
+  "files": {
+    "history/c7f2e9a.diff": "cb5cf2628588f94bfc63d9ccf01592b59830b3ad5face97dd524005acfb7b418",
+    "history/commits.json": "b47c99cf22fcbbba0a0284c605d87986d50ad5fdbea44afba37e06d0625ad6f9",
+    "src/checkout.test.ts": "d86babe240d9d8a83d4a9d31d6e72325ff386356adf5ede7fdbb29428e1a882c",
+    "src/checkout.ts": "bab23e17694e5d24b474595eefa51df94ccb88457da63206db085168a1e8a1cf"
+  },
+  "normalization": "utf-8 text; CRLF normalized to LF before hashing",
+  "service": "checkout-api"
+}

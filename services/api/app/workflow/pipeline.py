@@ -37,8 +37,8 @@ from app.domain.remediation import (
     PlanningOutcome,
     RemediationPlanArtifact,
 )
+from app.domain.sandbox import PatchExecutionStatus
 from app.providers.base import (
-    CodeAgentGateway,
     DeploymentHistoryProvider,
     EvidenceSource,
     InvestigationProvider,
@@ -48,10 +48,18 @@ from app.providers.base import (
     TelemetryProvider,
     VerificationRunner,
 )
+from app.sandbox.executor import (
+    ApprovalRequiredError,
+    SandboxPatchExecutor,
+    SandboxSetupError,
+)
+from app.sandbox.workspace import WorkspaceIntegrityError
 from app.security.redaction import redact
 from app.store.protocol import StoreProtocol
 from app.workflow.investigation_manager import InvestigationManager
 from app.workflow.remediation_planner import RemediationPlanningManager
+
+__all__ = ["ApprovalRequiredError", "ChangeBudgetExceededError", "WorkflowPipeline"]
 
 APPROVAL_TTL = timedelta(hours=4)
 
@@ -72,7 +80,7 @@ class WorkflowPipeline:
         investigation: InvestigationProvider,
         investigation_manager: InvestigationManager,
         remediation_planner: RemediationPlanningManager,
-        code_agent: CodeAgentGateway,
+        patch_executor: SandboxPatchExecutor,
         verifier: VerificationRunner,
         provider_mode: ProviderMode,
     ) -> None:
@@ -87,7 +95,7 @@ class WorkflowPipeline:
         self._investigation = investigation
         self._investigation_manager = investigation_manager
         self._remediation_planner = remediation_planner
-        self._code_agent = code_agent
+        self._patch_executor = patch_executor
         self._verifier = verifier
         self._provider_mode = provider_mode
 
@@ -143,14 +151,51 @@ class WorkflowPipeline:
     def apply_patch_approval(self, incident: Incident, approved: bool) -> Incident:
         """Resolve the APPLY_PATCH approval gate.
 
-        Approved: PATCHING -> VERIFYING -> REVIEW_READY (simulated verification).
-        Rejected: CANCELLED.
+        Approved: PATCHING (bounded isolated-workspace execution) ->
+        VERIFYING -> REVIEW_READY (simulated verification until M6).
+        Rejected: CANCELLED. A failed or refused execution lands in
+        PATCH_FAILED with the failure recorded on the execution artifact.
         """
         if not approved:
             return self._transition(incident, WorkflowState.CANCELLED, "approval.rejected")
 
+        # Authorization is checked before any transition or workspace exists;
+        # the executor re-checks and consumes the single-use approval itself.
+        self._assert_patch_authorized(incident)
         incident = self._transition(incident, WorkflowState.PATCHING, "approval.approved")
-        patch = self._create_patch(incident)
+        try:
+            execution = self._patch_executor.execute(incident)
+        except (SandboxSetupError, WorkspaceIntegrityError) as exc:
+            self._store.add_timeline_event(
+                TimelineEvent(
+                    id=self._store.next_id("tl"),
+                    incident_id=incident.id,
+                    at=datetime.now(UTC),
+                    kind="sandbox_lifecycle",
+                    description=f"Sandbox unavailable; failing closed: {exc}"[:1000],
+                )
+            )
+            return self._transition(
+                incident, WorkflowState.PATCH_FAILED, "patch.sandbox_unavailable"
+            )
+        if execution.status is not PatchExecutionStatus.SUCCEEDED:
+            return self._transition(
+                incident, WorkflowState.PATCH_FAILED, "patch.execution_failed"
+            )
+
+        plans = self._store.list_plans(incident.id)
+        patch = self._store.add_patch(
+            PatchAttempt(
+                id=self._store.next_id("patch"),
+                incident_id=incident.id,
+                plan_id=plans[-1].id,
+                attempt=len(self._store.list_patches(incident.id)) + 1,
+                diff=execution.unified_diff,
+                files_changed=len(execution.changed_files),
+                lines_changed=execution.total_additions + execution.total_deletions,
+                provider_mode=self._provider_mode,
+            )
+        )
         incident = self._transition(incident, WorkflowState.VERIFYING, "patch.proposed")
         verification = self._verify(incident, patch)
         if verification.passed:
@@ -351,31 +396,6 @@ class WorkflowPipeline:
             "no approved APPLY_PATCH approval is bound to the current plan artifact"
         )
 
-    def _create_patch(self, incident: Incident) -> PatchAttempt:
-        self._assert_patch_authorized(incident)
-        plans = self._store.list_plans(incident.id)
-        plan = plans[-1]
-        proposal = self._code_agent.propose_patch(incident, plan)
-        if (
-            proposal.files_changed > plan.max_files_changed
-            or proposal.lines_changed > plan.max_lines_changed
-        ):
-            raise ChangeBudgetExceededError(
-                f"patch touches {proposal.files_changed} files / {proposal.lines_changed} lines,"
-                f" budget is {plan.max_files_changed} files / {plan.max_lines_changed} lines"
-            )
-        patch = PatchAttempt(
-            id=self._store.next_id("patch"),
-            incident_id=incident.id,
-            plan_id=plan.id,
-            attempt=len(self._store.list_patches(incident.id)) + 1,
-            diff=proposal.diff,
-            files_changed=proposal.files_changed,
-            lines_changed=proposal.lines_changed,
-            provider_mode=self._provider_mode,
-        )
-        return self._store.add_patch(patch)
-
     def _verify(self, incident: Incident, patch: PatchAttempt) -> VerificationRun:
         results = self._verifier.verify(incident, patch.diff)
         run = VerificationRun(
@@ -391,8 +411,5 @@ class WorkflowPipeline:
 
 
 class ChangeBudgetExceededError(Exception):
-    pass
-
-
-class ApprovalRequiredError(Exception):
-    """Raised when a patch is attempted without a valid, bound approval."""
+    """Legacy M0 budget error; M5 budget violations are enforced inside the
+    sandbox workspace and recorded on the execution artifact instead."""

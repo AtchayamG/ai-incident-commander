@@ -1,0 +1,25 @@
+--- a/src/checkout.test.ts
++++ b/src/checkout.test.ts
+@@ -31,6 +31,11 @@
+     });
+     expect(total).toBe(50);
+   });
++
++  it("returns the cart total for a session without a discount", () => {
++    const total = applyDiscount({ id: "sess-5", cartTotal: 75 });
++    expect(total).toBe(75);
++  });
+ });
+ 
+ describe("processCheckout", () => {
+--- a/src/checkout.ts
++++ b/src/checkout.ts
+@@ -23,7 +23,7 @@
+   //   const code = session.discount?.code ?? null;
+   // Direct property access throws a TypeError for sessions without a
+   // discount, which surfaces as HTTP 500 on POST /v1/checkout.
+-  const code = session.discount.code;
++  const code = session.discount?.code ?? null;
+   if (code == null) {
+     return session.cartTotal;
+   }

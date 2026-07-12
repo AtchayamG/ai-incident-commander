@@ -16,11 +16,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.domain.contracts import Incident, RemediationPlan
+from app.domain.contracts import Incident
 from app.domain.enums import EvidenceKind
 from app.providers.base import (
     HypothesisProposal,
-    PatchProposal,
     PlanProposal,
     PullRequestReceipt,
     RawEvidence,
@@ -273,25 +272,6 @@ class SimulatedRunbookProvider:
         ]
 
 
-_FIXTURE_DIFF = """\
---- a/src/checkout.ts
-+++ b/src/checkout.ts
-@@ -23,7 +23,7 @@ export function applyDiscount(session: CheckoutSession): number {
--  const code = session.discount.code;
-+  const code = session.discount?.code ?? null;
-   if (code == null) {
-     return session.cartTotal;
-   }
---- a/src/checkout.test.ts
-+++ b/src/checkout.test.ts
-@@ -33,6 +33,14 @@ describe("applyDiscount", () => {
-+  it("returns the cart total for a session without a discount", () => {
-+    const total = applyDiscount({ id: "sess-5", cartTotal: 75 });
-+    expect(total).toBe(75);
-+  });
-"""
-
-
 class SimulatedInvestigationProvider:
     def propose_hypothesis(
         self, incident: Incident, evidence_summaries: list[str]
@@ -320,11 +300,6 @@ class SimulatedInvestigationProvider:
             max_files_changed=2,
             max_lines_changed=40,
         )
-
-
-class SimulatedCodeAgentGateway:
-    def propose_patch(self, incident: Incident, plan: RemediationPlan) -> PatchProposal:
-        return PatchProposal(diff=_FIXTURE_DIFF, files_changed=2, lines_changed=10)
 
 
 class SimulatedVerificationRunner:

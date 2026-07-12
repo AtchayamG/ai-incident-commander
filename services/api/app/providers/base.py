@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
-from app.domain.contracts import EvidenceItem, Incident, RemediationPlan
+from app.domain.contracts import EvidenceItem, Incident
 from app.domain.enums import EvidenceKind
 from app.domain.investigation import (
     InvestigationDraft,
@@ -18,6 +18,7 @@ from app.domain.investigation import (
     SpecialistKind,
 )
 from app.domain.remediation import RemediationPlanDraft
+from app.sandbox.workspace import SandboxWorkspace
 
 
 @dataclass(frozen=True)
@@ -59,10 +60,21 @@ class PlanProposal:
 
 
 @dataclass(frozen=True)
-class PatchProposal:
-    diff: str
-    files_changed: int
-    lines_changed: int
+class PatchTaskContext:
+    """Bounded, typed instructions for one patch turn inside a workspace.
+
+    Derived from the approved plan artifact only; carries no secrets, no
+    credentials, and no host paths beyond the workspace itself.
+    """
+
+    incident_id: str
+    service: str
+    plan_summary: str
+    steps: tuple[str, ...]
+    files_expected: tuple[str, ...]
+    max_files_changed: int
+    max_lines_changed: int
+    timeout_seconds: int
 
 
 @dataclass(frozen=True)
@@ -202,13 +214,24 @@ class RemediationPlannerGateway(Protocol):
 
 @runtime_checkable
 class CodeAgentGateway(Protocol):
-    """Produces a bounded patch for an approved remediation plan.
+    """Applies a bounded patch turn inside an isolated ephemeral workspace.
 
-    In live mode this wraps the OpenAI Codex SDK against an isolated
-    workspace; in demo mode it returns a deterministic fixture diff.
+    ``engine_id`` and ``simulated`` are explicit provenance: the fixture
+    adapter is deterministic and always labeled simulated; the Codex CLI
+    adapter drives the locally installed ``codex exec`` contract and fails
+    closed when the binary, model, or credentials are unavailable. Fixture
+    output is never described as live Codex. The gateway only edits files
+    through (or inside) the workspace; the executor owns approval
+    consumption, budget enforcement, diff capture, and destruction.
     """
 
-    def propose_patch(self, incident: Incident, plan: RemediationPlan) -> PatchProposal: ...
+    @property
+    def engine_id(self) -> str: ...
+
+    @property
+    def simulated(self) -> bool: ...
+
+    def apply_patch_turn(self, workspace: SandboxWorkspace, task: PatchTaskContext) -> None: ...
 
 
 @runtime_checkable

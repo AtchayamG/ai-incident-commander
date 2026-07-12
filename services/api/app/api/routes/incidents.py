@@ -30,6 +30,7 @@ from app.domain.contracts import (
 from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
 from app.domain.remediation import RemediationPlanArtifact
+from app.domain.sandbox import PatchExecutionArtifact
 from app.store.protocol import NotFoundError, StoreProtocol
 from app.workflow import state_machine
 from app.workflow.pipeline import WorkflowPipeline
@@ -247,6 +248,20 @@ def list_patches(
 ) -> list[PatchAttempt]:
     _get_or_404(store, incident_id)
     return store.list_patches(incident_id)
+
+
+@router.get(
+    "/{incident_id}/patch-executions", response_model=list[PatchExecutionArtifact]
+)
+def list_patch_executions(
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
+) -> list[PatchExecutionArtifact]:
+    """Immutable M5 isolated-workspace execution records: consumed approval,
+    engine provenance (simulated/live), captured diff and per-file change
+    counts, lifecycle audit, and workspace destruction / source immutability
+    proof. Read-only."""
+    _get_or_404(store, incident_id)
+    return store.list_patch_executions(incident_id)
 
 
 @router.get("/{incident_id}/verifications", response_model=list[VerificationRun])

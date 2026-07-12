@@ -112,6 +112,30 @@ class PatchAttemptModel(Base):
     provider_mode: Mapped[str] = mapped_column(String(50))
 
 
+class PatchExecutionArtifactModel(Base):
+    """Immutable M5 isolated-workspace patch execution record.
+
+    The full typed artifact is stored as a JSON ``document``; the scalar
+    columns exist for querying and to make the safety-relevant fields
+    (consumed approval, status, provenance) inspectable without
+    deserializing.
+    """
+
+    __tablename__ = "patch_execution_artifacts"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), index=True)
+    approval_id: Mapped[str] = mapped_column(
+        ForeignKey("approval_requests.id"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(50))
+    engine_id: Mapped[str] = mapped_column(String(200))
+    simulated: Mapped[bool] = mapped_column(Boolean)
+    artifact_hash: Mapped[str] = mapped_column(String(100))
+    document: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class VerificationRunModel(Base):
     __tablename__ = "verification_runs"
 

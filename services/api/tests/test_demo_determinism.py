@@ -36,9 +36,19 @@ def _run_golden_path() -> dict[str, Any]:
                 )
                 for e in client.get("/api/v1/incidents/inc-demo-0001/evidence").json()
             ],
+            # Sandbox lifecycle audit events carry real wall-clock capture
+            # times and workspace IDs by design (M5); their order, kind, and
+            # stage text stay deterministic while `at`/detail identifiers are
+            # provenance metadata, so they are compared without those fields.
             "timeline": [
                 (t["id"], t["at"], t["kind"], t["description"], t["evidence_id"])
                 for t in client.get("/api/v1/incidents/inc-demo-0001/timeline").json()
+                if t["kind"] != "sandbox_lifecycle"
+            ],
+            "sandbox_lifecycle": [
+                (t["id"], t["kind"], t["description"].split(":", 2)[:2])
+                for t in client.get("/api/v1/incidents/inc-demo-0001/timeline").json()
+                if t["kind"] == "sandbox_lifecycle"
             ],
             "hypotheses": [
                 (h["id"], h["statement"], h["confidence"])

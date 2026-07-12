@@ -16,6 +16,7 @@ from app.domain.contracts import (
 from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
 from app.domain.remediation import ApprovalBinding, RemediationPlanArtifact
+from app.domain.sandbox import PatchExecutionArtifact
 
 
 class NotFoundError(Exception):
@@ -79,6 +80,10 @@ class StoreProtocol(Protocol):
     def list_plan_artifacts(self, incident_id: str) -> list[RemediationPlanArtifact]: ...
 
     def add_patch(self, patch: PatchAttempt) -> PatchAttempt: ...
+
+    def add_patch_execution(self, artifact: PatchExecutionArtifact) -> PatchExecutionArtifact: ...
+
+    def list_patch_executions(self, incident_id: str) -> list[PatchExecutionArtifact]: ...
 
     def list_patches(self, incident_id: str) -> list[PatchAttempt]: ...
 

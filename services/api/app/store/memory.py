@@ -22,6 +22,7 @@ from app.domain.contracts import (
 from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
 from app.domain.remediation import ApprovalBinding, RemediationPlanArtifact
+from app.domain.sandbox import PatchExecutionArtifact
 from app.store.protocol import NotFoundError
 
 
@@ -36,6 +37,7 @@ class InMemoryStore:
         self._plans: dict[str, list[RemediationPlan]] = {}
         self._plan_artifacts: dict[str, list[RemediationPlanArtifact]] = {}
         self._patches: dict[str, list[PatchAttempt]] = {}
+        self._patch_executions: dict[str, list[PatchExecutionArtifact]] = {}
         self._verifications: dict[str, list[VerificationRun]] = {}
         self._approvals: dict[str, ApprovalRequest] = {}
         self._approval_bindings: dict[str, ApprovalBinding] = {}
@@ -52,6 +54,7 @@ class InMemoryStore:
             self._plans.clear()
             self._plan_artifacts.clear()
             self._patches.clear()
+            self._patch_executions.clear()
             self._verifications.clear()
             self._approvals.clear()
             self._approval_bindings.clear()
@@ -208,6 +211,15 @@ class InMemoryStore:
     def list_patches(self, incident_id: str) -> list[PatchAttempt]:
         with self._lock:
             return list(self._patches.get(incident_id, []))
+
+    def add_patch_execution(self, artifact: PatchExecutionArtifact) -> PatchExecutionArtifact:
+        with self._lock:
+            self._patch_executions.setdefault(artifact.incident_id, []).append(artifact)
+            return artifact
+
+    def list_patch_executions(self, incident_id: str) -> list[PatchExecutionArtifact]:
+        with self._lock:
+            return list(self._patch_executions.get(incident_id, []))
 
     def add_verification(self, incident_id: str, run: VerificationRun) -> VerificationRun:
         with self._lock:

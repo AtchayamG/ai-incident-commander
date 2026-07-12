@@ -2,11 +2,10 @@
 
 from datetime import UTC, datetime
 
-from app.domain.contracts import Incident, RemediationPlan
+from app.domain.contracts import Incident
 from app.domain.enums import (
     Environment,
     ProviderMode,
-    RiskLevel,
     Severity,
     WorkflowState,
 )
@@ -21,8 +20,8 @@ from app.providers.base import (
     TelemetryProvider,
     VerificationRunner,
 )
+from app.providers.code_agent import CodexCliGateway, FixtureCodexGateway
 from app.providers.simulated import (
-    SimulatedCodeAgentGateway,
     SimulatedDeploymentHistoryProvider,
     SimulatedInvestigationProvider,
     SimulatedLocalRepositoryProvider,
@@ -47,17 +46,6 @@ INCIDENT = Incident(
     updated_at=NOW,
 )
 
-PLAN = RemediationPlan(
-    id="plan-0001",
-    incident_id=INCIDENT.id,
-    hypothesis_id="hyp-0001",
-    summary="Restore optional discount access",
-    steps=["step"],
-    risk_level=RiskLevel.MEDIUM,
-    max_files_changed=2,
-    max_lines_changed=40,
-)
-
 EVIDENCE_SOURCES = (
     SimulatedTelemetryProvider(),
     SimulatedDeploymentHistoryProvider(),
@@ -72,7 +60,8 @@ def test_simulated_providers_satisfy_protocols() -> None:
     assert isinstance(SimulatedLocalRepositoryProvider(), LocalRepositoryProvider)
     assert isinstance(SimulatedRunbookProvider(), RunbookProvider)
     assert isinstance(SimulatedInvestigationProvider(), InvestigationProvider)
-    assert isinstance(SimulatedCodeAgentGateway(), CodeAgentGateway)
+    assert isinstance(FixtureCodexGateway(), CodeAgentGateway)
+    assert isinstance(CodexCliGateway(binary="codex", model="test"), CodeAgentGateway)
     assert isinstance(SimulatedVerificationRunner(), VerificationRunner)
     assert isinstance(SimulatedPullRequestProvider(), PullRequestProvider)
     for source in EVIDENCE_SOURCES:
@@ -105,12 +94,13 @@ def test_deployment_history_correlates_commit_and_deploy() -> None:
     assert "session.discount?.code ?? null" in commit.content
 
 
-def test_patch_respects_change_budget_shape() -> None:
-    proposal = SimulatedCodeAgentGateway().propose_patch(INCIDENT, PLAN)
-    assert proposal.files_changed <= PLAN.max_files_changed
-    assert proposal.lines_changed <= PLAN.max_lines_changed
-    assert proposal.diff.startswith("---")
-    assert "session.discount?.code ?? null" in proposal.diff
+def test_code_agent_gateways_declare_explicit_provenance() -> None:
+    fixture = FixtureCodexGateway()
+    assert fixture.simulated is True
+    assert fixture.engine_id == "fixture-codex"
+    live = CodexCliGateway(binary="codex", model="test-model")
+    assert live.simulated is False
+    assert live.engine_id == "codex-cli:test-model"
 
 
 def test_pull_request_receipt_is_simulated_and_idempotent_keyed() -> None:

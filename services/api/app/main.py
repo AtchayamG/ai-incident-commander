@@ -13,8 +13,8 @@ from app.api.routes import approvals, health, incidents
 from app.config import Settings
 from app.demo.seed import seed_demo
 from app.domain.enums import ProviderMode
+from app.providers.code_agent import build_code_agent_gateway
 from app.providers.simulated import (
-    SimulatedCodeAgentGateway,
     SimulatedDeploymentHistoryProvider,
     SimulatedInvestigationProvider,
     SimulatedLocalRepositoryProvider,
@@ -30,6 +30,7 @@ from app.providers.simulated_investigation import (
     FixtureTelemetrySpecialist,
 )
 from app.providers.simulated_remediation import FixtureRemediationPlanner
+from app.sandbox.executor import SandboxPatchExecutor
 from app.store.sql import SqlAlchemyStore
 from app.workflow.investigation_manager import InvestigationManager
 from app.workflow.pipeline import WorkflowPipeline
@@ -64,6 +65,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     remediation_planner = RemediationPlanningManager(
         planner=FixtureRemediationPlanner(model_id=settings.investigation_model),
     )
+    # M5: the sandbox executor owns the isolated-workspace patch lifecycle;
+    # the gateway (fixture in demo mode, codex-cli when explicitly configured)
+    # only produces the edits inside the workspace.
+    patch_executor = SandboxPatchExecutor(
+        store=store,
+        gateway=build_code_agent_gateway(settings),
+    )
     pipeline = WorkflowPipeline(
         store=store,
         telemetry=SimulatedTelemetryProvider(),
@@ -73,7 +81,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         investigation=SimulatedInvestigationProvider(),
         investigation_manager=investigation_manager,
         remediation_planner=remediation_planner,
-        code_agent=SimulatedCodeAgentGateway(),
+        patch_executor=patch_executor,
         verifier=SimulatedVerificationRunner(),
         provider_mode=settings.provider_mode,
     )

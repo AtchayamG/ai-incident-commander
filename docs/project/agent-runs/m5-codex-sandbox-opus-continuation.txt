@@ -1,0 +1,25 @@
+ROLE: Principal backend/security engineer continuing an interrupted M5 implementation with Claude Opus 4.8 and Ponytail full/minimal discipline.
+CONTEXT: Fable exhausted quota after producing a coherent partial diff. The existing worktree checkpoint and its raw log are authoritative. Thirty focused sandbox/workspace tests already pass; do not rewrite working code.
+OBJECTIVE: Complete, repair, document, and verify M5 Codex sandbox patching end to end.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m5-codex-sandbox
+ALLOWED FILES:
+- services/api/**
+- evals/fixtures/**
+- docs/adr/**
+- docs/testing/**
+- docs/project/agent-runs/M5_CODEX_SANDBOX_FINAL_HANDOFF.md
+FORBIDDEN:
+- apps/web/**, packages/contracts/** unless an unavoidable API boundary conflict is documented and you stop, root status docs, commits, external repositories/actions, deployment, secrets
+REMAINING CHECKLIST:
+- Inspect the checkpoint diff and retain the smallest correct implementation.
+- Finish workflow/API/persistence integration so an approved golden action creates an isolated fixture workspace, produces a minimal regression-test patch, stores immutable diff/metrics/provenance, and always destroys the workspace.
+- Prove missing/rejected/stale/reused approval cannot mutate a workspace.
+- Prove source fixture immutability, allowed-path and file/line/attempt/timeout budgets, network denied, environment secrets absent, cleanup on every failure path.
+- Keep deterministic adapter explicitly simulated. Real Codex adapter must be configurable, fail closed when unavailable, and never claim a live run it did not perform.
+- Ensure Alembic migration and memory/SQL stores agree.
+- Add or finish focused API/workflow tests; do not implement M6 verification runner.
+- Remove runtime databases, virtual environments, caches, and generated artifacts from tracked scope.
+- Run focused tests, full pytest, ruff, and strict mypy. Fix every regression.
+- Write docs/project/agent-runs/M5_CODEX_SANDBOX_FINAL_HANDOFF.md with exact commands/results, provider provenance, remaining limitations, and every touched file.
+STOP IF:
+- Architecture requires frontend/shared-contract changes, live credentials are required, or any external/production write would occur.
