@@ -31,11 +31,16 @@ class EvidenceItemModel(Base):
     id: Mapped[str] = mapped_column(String(100), primary_key=True)
     incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), index=True)
     kind: Mapped[str] = mapped_column(String(50))
+    provider: Mapped[str] = mapped_column(String(100))
     source: Mapped[str] = mapped_column(String(100))
     summary: Mapped[str] = mapped_column(String(1000))
     content: Mapped[str] = mapped_column(String)
+    content_hash: Mapped[str] = mapped_column(String(100))
+    display_ref: Mapped[str] = mapped_column(String(500))
     redaction_applied: Mapped[bool] = mapped_column(Boolean)
+    redaction_rules: Mapped[list[str]] = mapped_column(JSON)
     provenance: Mapped[dict[str, Any]] = mapped_column(JSON)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 

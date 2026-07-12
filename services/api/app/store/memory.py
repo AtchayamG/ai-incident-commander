@@ -135,7 +135,9 @@ class InMemoryStore:
 
     def list_evidence(self, incident_id: str) -> list[EvidenceItem]:
         with self._lock:
-            return list(self._evidence.get(incident_id, []))
+            return sorted(
+                self._evidence.get(incident_id, []), key=lambda e: (e.captured_at, e.id)
+            )
 
     def add_timeline_event(self, event: TimelineEvent) -> TimelineEvent:
         with self._lock:
@@ -144,7 +146,7 @@ class InMemoryStore:
 
     def list_timeline(self, incident_id: str) -> list[TimelineEvent]:
         with self._lock:
-            return sorted(self._timeline.get(incident_id, []), key=lambda e: e.at)
+            return sorted(self._timeline.get(incident_id, []), key=lambda e: (e.at, e.id))
 
     # Investigation artifacts ----------------------------------------------
 

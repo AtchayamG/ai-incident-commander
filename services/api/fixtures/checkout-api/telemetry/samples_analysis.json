@@ -1,0 +1,9 @@
+{
+  "service": "checkout-api",
+  "window": { "from": "2026-07-13T10:05:00Z", "to": "2026-07-13T10:09:00Z" },
+  "failed_requests": 128,
+  "failed_without_discount": 128,
+  "failed_with_discount": 0,
+  "succeeded_with_discount": 45,
+  "observed_at": "2026-07-13T10:09:00Z"
+}

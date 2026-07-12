@@ -1,0 +1,14 @@
+[
+  {
+    "version": "2026.07.13.3",
+    "deployed_at": "2026-07-13T08:15:00Z",
+    "commit": "a1e5c30",
+    "status": "healthy"
+  },
+  {
+    "version": "2026.07.13.4",
+    "deployed_at": "2026-07-13T10:02:00Z",
+    "commit": "c7f2e9a",
+    "status": "degraded"
+  }
+]

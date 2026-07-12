@@ -59,11 +59,18 @@ class EvidenceItem(StrictModel):
     id: str
     incident_id: str
     kind: EvidenceKind
+    provider: str = Field(description="Identifier of the provider adapter that captured this")
     source: str
     summary: str
     content: str = Field(description="Redacted content; raw payloads never cross this boundary")
+    content_hash: str = Field(description="sha256 of the redacted content, prefixed 'sha256:'")
+    display_ref: str = Field(description="Stable human-facing reference to the evidence origin")
     redaction_applied: bool
+    redaction_rules: list[str] = Field(
+        default_factory=list, description="Names of redaction rules that matched"
+    )
     provenance: dict[str, Any] = Field(default_factory=dict)
+    captured_at: datetime = Field(description="When the underlying fact was observed")
     created_at: datetime
 
 

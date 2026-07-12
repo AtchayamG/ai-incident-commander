@@ -4,6 +4,7 @@ WORKDIR /srv
 
 COPY pyproject.toml ./
 COPY app ./app
+COPY fixtures ./fixtures
 
 RUN pip install --no-cache-dir .
 

@@ -1,0 +1,14 @@
+# [SIMULATED] Runbook: checkout-api elevated 5xx
+
+1. Check deployment correlation first: compare the incident start time with
+   the most recent deployment of `checkout-api`. If a deploy landed within
+   the previous 15 minutes, treat it as the prime suspect.
+2. Inspect the commits shipped by that deployment for changes to the failing
+   code path shown in the stack trace.
+3. Reproduce locally: replay a failing request payload (a checkout session
+   without a discount) against a local `checkout-api` build of the deployed
+   version and confirm the error.
+4. Prefer the smallest safe fix: restore the previous behavior of the failing
+   path and add a regression test before any broader refactor.
+5. If the fix cannot be verified quickly, roll back to the previous healthy
+   version instead.

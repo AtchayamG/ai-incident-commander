@@ -22,8 +22,23 @@ def _run_golden_path() -> dict[str, Any]:
         return {
             "state": client.get("/api/v1/incidents/inc-demo-0001").json()["state"],
             "evidence": [
-                (e["id"], e["kind"], e["summary"], e["content"], e["redaction_applied"])
+                (
+                    e["id"],
+                    e["kind"],
+                    e["provider"],
+                    e["summary"],
+                    e["content"],
+                    e["content_hash"],
+                    e["display_ref"],
+                    e["redaction_applied"],
+                    tuple(e["redaction_rules"]),
+                    e["captured_at"],
+                )
                 for e in client.get("/api/v1/incidents/inc-demo-0001/evidence").json()
+            ],
+            "timeline": [
+                (t["id"], t["at"], t["kind"], t["description"], t["evidence_id"])
+                for t in client.get("/api/v1/incidents/inc-demo-0001/timeline").json()
             ],
             "hypotheses": [
                 (h["id"], h["statement"], h["confidence"])

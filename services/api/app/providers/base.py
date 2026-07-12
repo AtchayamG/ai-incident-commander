@@ -16,12 +16,20 @@ from app.domain.enums import EvidenceKind
 @dataclass(frozen=True)
 class RawEvidence:
     """Unredacted evidence as returned by a provider. Must pass the redaction
-    boundary before persistence."""
+    boundary before persistence.
+
+    ``observed_at`` is the time the underlying fact happened (deploy time,
+    commit time, log timestamp) and drives chronological timeline ordering.
+    ``display_ref`` is a stable human-facing reference for the evidence
+    origin (dashboard URL, file path, commit ref) shown in the UI.
+    """
 
     kind: EvidenceKind
+    provider: str
     source: str
     summary: str
     content: str
+    display_ref: str
     observed_at: datetime
     provenance: dict[str, Any] = field(default_factory=dict)
 
@@ -66,8 +74,45 @@ class PullRequestReceipt:
 
 
 @runtime_checkable
-class TelemetryProvider(Protocol):
-    """Fetches signals/logs/deploy history for an incident's service."""
+class EvidenceSource(Protocol):
+    """Common shape of every evidence-producing provider. The pipeline treats
+    all sources uniformly: fetch, redact, hash, persist."""
+
+    def fetch_evidence(self, incident: Incident) -> list[RawEvidence]: ...
+
+
+@runtime_checkable
+class TelemetryProvider(EvidenceSource, Protocol):
+    """Fetches alert metrics and log/error samples for an incident's service.
+
+    Live adapters (Sentry, Grafana, CloudWatch) implement the same shape."""
+
+    def fetch_evidence(self, incident: Incident) -> list[RawEvidence]: ...
+
+
+@runtime_checkable
+class DeploymentHistoryProvider(EvidenceSource, Protocol):
+    """Fetches deployment history and the commits each deploy shipped.
+
+    Live adapters (GitHub Deployments, Argo, Vercel) implement the same
+    shape."""
+
+    def fetch_evidence(self, incident: Incident) -> list[RawEvidence]: ...
+
+
+@runtime_checkable
+class LocalRepositoryProvider(EvidenceSource, Protocol):
+    """Inspects a checkout of the affected service's repository (sources and
+    tests) for gaps and regressions. Live adapters clone the real repo."""
+
+    def fetch_evidence(self, incident: Incident) -> list[RawEvidence]: ...
+
+
+@runtime_checkable
+class RunbookProvider(EvidenceSource, Protocol):
+    """Fetches operator runbook guidance for the affected service.
+
+    Live adapters (Notion, Confluence, repo docs) implement the same shape."""
 
     def fetch_evidence(self, incident: Incident) -> list[RawEvidence]: ...
 

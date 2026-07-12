@@ -1,0 +1,14 @@
+2026-07-13T10:06:12Z ERROR checkout-api req=r-1043 route="POST /v1/checkout" status=500 discount=none
+TypeError: Cannot read properties of undefined (reading 'code')
+    at applyDiscount (src/checkout.ts:26:31)
+    at processCheckout (src/checkout.ts:35:17)
+    at handler (src/routes/checkout.route.ts:18:11)
+session context: cart_total=59.90 customer_tier=standard discount=none
+debug env dump: STRIPE_API_KEY=sk-fixture9c31f7a2b8d4e6f0 DATABASE=postgres://checkout:S3cretPw41@db.internal:5432/checkout
+2026-07-13T10:06:45Z ERROR checkout-api req=r-1051 route="POST /v1/checkout" status=500 discount=none
+TypeError: Cannot read properties of undefined (reading 'code')
+    at applyDiscount (src/checkout.ts:26:31)
+2026-07-13T10:07:02Z INFO checkout-api req=r-1052 route="POST /v1/checkout" status=200 discount=SUMMER10
+2026-07-13T10:07:19Z ERROR checkout-api req=r-1057 route="POST /v1/checkout" status=500 discount=none
+TypeError: Cannot read properties of undefined (reading 'code')
+    at applyDiscount (src/checkout.ts:26:31)

@@ -1,0 +1,8 @@
+--- a/src/checkout.ts
++++ b/src/checkout.ts
+@@ -23,7 +23,7 @@ export function applyDiscount(session: CheckoutSession): number {
+-  const code = session.discount?.code ?? null;
++  const code = session.discount.code;
+   if (code == null) {
+     return session.cartTotal;
+   }

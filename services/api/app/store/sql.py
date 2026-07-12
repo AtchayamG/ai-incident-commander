@@ -153,11 +153,16 @@ class SqlAlchemyStore(StoreProtocol):
                 id=item.id,
                 incident_id=item.incident_id,
                 kind=item.kind.value,
+                provider=item.provider,
                 source=item.source,
                 summary=item.summary,
                 content=item.content,
+                content_hash=item.content_hash,
+                display_ref=item.display_ref,
                 redaction_applied=item.redaction_applied,
+                redaction_rules=item.redaction_rules,
                 provenance=item.provenance,
+                captured_at=item.captured_at,
                 created_at=item.created_at,
             )
             session.add(model)
@@ -169,7 +174,7 @@ class SqlAlchemyStore(StoreProtocol):
             stmt = (
                 select(EvidenceItemModel)
                 .where(EvidenceItemModel.incident_id == incident_id)
-                .order_by(EvidenceItemModel.created_at.asc())
+                .order_by(EvidenceItemModel.captured_at.asc(), EvidenceItemModel.id.asc())
             )
             models = session.scalars(stmt).all()
             return [EvidenceItem.model_validate(m, from_attributes=True) for m in models]
@@ -193,7 +198,7 @@ class SqlAlchemyStore(StoreProtocol):
             stmt = (
                 select(TimelineEventModel)
                 .where(TimelineEventModel.incident_id == incident_id)
-                .order_by(TimelineEventModel.at.asc())
+                .order_by(TimelineEventModel.at.asc(), TimelineEventModel.id.asc())
             )
             models = session.scalars(stmt).all()
             return [TimelineEvent.model_validate(m, from_attributes=True) for m in models]

@@ -1,0 +1,17 @@
+[
+  {
+    "sha": "a1e5c30",
+    "authored_at": "2026-07-12T15:20:00Z",
+    "author": "fixture-dev",
+    "message": "feat: add optional discount support to checkout",
+    "files": ["src/checkout.ts", "src/checkout.test.ts"]
+  },
+  {
+    "sha": "c7f2e9a",
+    "authored_at": "2026-07-13T09:48:00Z",
+    "author": "fixture-dev",
+    "message": "refactor: simplify discount code lookup",
+    "files": ["src/checkout.ts"],
+    "diff_artifact": "c7f2e9a.diff"
+  }
+]

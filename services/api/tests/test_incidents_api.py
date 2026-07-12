@@ -41,14 +41,14 @@ def test_start_runs_pipeline_to_patch_approval_gate(client: TestClient) -> None:
 
     incident_id = incident["id"]
     evidence = client.get(f"/api/v1/incidents/{incident_id}/evidence").json()
-    assert len(evidence) == 3
-    log_items = [e for e in evidence if e["kind"] == "log"]
-    assert log_items[0]["redaction_applied"] is True
-    assert "sk-demo1234567890abcdef" not in log_items[0]["content"]
+    assert len(evidence) == 8
+    stack_trace = next(e for e in evidence if "TypeError" in e["summary"])
+    assert stack_trace["redaction_applied"] is True
+    assert "sk-fixture9c31f7a2b8d4e6f0" not in stack_trace["content"]
     assert all(e["provenance"].get("simulated") is True for e in evidence)
 
     timeline = client.get(f"/api/v1/incidents/{incident_id}/timeline").json()
-    assert len(timeline) == 3
+    assert len(timeline) == 8
 
     hypotheses = client.get(f"/api/v1/incidents/{incident_id}/hypotheses").json()
     assert len(hypotheses) == 1
@@ -90,7 +90,7 @@ def test_approve_patch_reaches_review_ready(client: TestClient) -> None:
     patches = client.get(f"/api/v1/incidents/{incident_id}/patches").json()
     assert len(patches) == 1
     assert patches[0]["provider_mode"] == "simulated"
-    assert "payments/charge.py" in patches[0]["diff"]
+    assert "src/checkout.ts" in patches[0]["diff"]
 
     verifications = client.get(f"/api/v1/incidents/{incident_id}/verifications").json()
     assert len(verifications) == 1

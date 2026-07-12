@@ -26,13 +26,23 @@ def test_fresh_migration() -> None:
         # Run the migration
         command.upgrade(alembic_cfg, "head")
 
-        # Verify it works by starting the app
+        # Verify it works by starting the app and exercising the M2 evidence
+        # columns against the migrated schema (no create_all shortcuts).
         settings = Settings(demo_mode=True, database_url=url)
         app = create_app(settings)
         with TestClient(app) as client:
             res = client.get("/api/v1/incidents")
             assert res.status_code == 200
             assert "total" in res.json()
+
+            assert client.post("/api/v1/incidents/inc-demo-0001/start").status_code == 200
+            evidence = client.get("/api/v1/incidents/inc-demo-0001/evidence").json()
+            assert len(evidence) == 8
+            for item in evidence:
+                assert item["content_hash"].startswith("sha256:")
+                assert item["provider"]
+                assert item["display_ref"]
+                assert item["captured_at"]
     finally:
         with contextlib.suppress(OSError):
             os.unlink(path)

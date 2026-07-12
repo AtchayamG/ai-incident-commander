@@ -7,6 +7,7 @@ workflow event for each change. M1+ moves execution to a durable worker; the
 state and event contracts stay the same.
 """
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 
 from app.domain.contracts import (
@@ -29,7 +30,12 @@ from app.domain.enums import (
 )
 from app.providers.base import (
     CodeAgentGateway,
+    DeploymentHistoryProvider,
+    EvidenceSource,
     InvestigationProvider,
+    LocalRepositoryProvider,
+    RawEvidence,
+    RunbookProvider,
     TelemetryProvider,
     VerificationRunner,
 )
@@ -44,13 +50,21 @@ class WorkflowPipeline:
         self,
         store: StoreProtocol,
         telemetry: TelemetryProvider,
+        deployments: DeploymentHistoryProvider,
+        repository: LocalRepositoryProvider,
+        runbook: RunbookProvider,
         investigation: InvestigationProvider,
         code_agent: CodeAgentGateway,
         verifier: VerificationRunner,
         provider_mode: ProviderMode,
     ) -> None:
         self._store = store
-        self._telemetry = telemetry
+        self._evidence_sources: tuple[EvidenceSource, ...] = (
+            telemetry,
+            deployments,
+            repository,
+            runbook,
+        )
         self._investigation = investigation
         self._code_agent = code_agent
         self._verifier = verifier
@@ -110,32 +124,52 @@ class WorkflowPipeline:
     # Internal stages -------------------------------------------------------
 
     def _collect_evidence(self, incident: Incident) -> list[EvidenceItem]:
+        """Gather evidence from every source, redact, hash, persist, and build
+        the chronological timeline.
+
+        Raw items are sorted by (observed_at, provider, display_ref) before any
+        ID is allocated, so IDs, persisted rows, and timeline order are stable
+        across runs regardless of provider iteration order.
+        """
+        raw_items: list[RawEvidence] = []
+        for source in self._evidence_sources:
+            raw_items.extend(source.fetch_evidence(incident))
+        raw_items.sort(key=lambda r: (r.observed_at, r.provider, r.display_ref))
+
         items: list[EvidenceItem] = []
-        for raw in self._telemetry.fetch_evidence(incident):
+        for raw in raw_items:
             redacted = redact(raw.content)
+            digest = hashlib.sha256(redacted.content.encode("utf-8")).hexdigest()
             item = EvidenceItem(
                 id=self._store.next_id("ev"),
                 incident_id=incident.id,
                 kind=raw.kind,
+                provider=raw.provider,
                 source=raw.source,
                 summary=raw.summary,
                 content=redacted.content,
+                content_hash=f"sha256:{digest}",
+                display_ref=raw.display_ref,
                 redaction_applied=redacted.applied,
+                redaction_rules=redacted.matched_rules,
                 provenance=raw.provenance,
+                captured_at=raw.observed_at,
                 created_at=datetime.now(UTC),
             )
             self._store.add_evidence(item)
+            items.append(item)
+
+        for item in items:
             self._store.add_timeline_event(
                 TimelineEvent(
                     id=self._store.next_id("tl"),
                     incident_id=incident.id,
-                    at=raw.observed_at,
-                    kind=str(raw.kind),
-                    description=raw.summary,
+                    at=item.captured_at,
+                    kind=str(item.kind),
+                    description=item.summary,
                     evidence_id=item.id,
                 )
             )
-            items.append(item)
         return items
 
     def _investigate(self, incident: Incident, evidence: list[EvidenceItem]) -> Hypothesis:

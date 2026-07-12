@@ -15,7 +15,10 @@ from app.demo.seed import seed_demo
 from app.domain.enums import ProviderMode
 from app.providers.simulated import (
     SimulatedCodeAgentGateway,
+    SimulatedDeploymentHistoryProvider,
     SimulatedInvestigationProvider,
+    SimulatedLocalRepositoryProvider,
+    SimulatedRunbookProvider,
     SimulatedTelemetryProvider,
     SimulatedVerificationRunner,
 )
@@ -35,6 +38,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     pipeline = WorkflowPipeline(
         store=store,
         telemetry=SimulatedTelemetryProvider(),
+        deployments=SimulatedDeploymentHistoryProvider(),
+        repository=SimulatedLocalRepositoryProvider(),
+        runbook=SimulatedRunbookProvider(),
         investigation=SimulatedInvestigationProvider(),
         code_agent=SimulatedCodeAgentGateway(),
         verifier=SimulatedVerificationRunner(),
