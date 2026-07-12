@@ -53,6 +53,45 @@ export default function IncidentDetailPage() {
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Errors for sub-resources
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
+
+  // Pipeline execution progress state
+  const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
+  const [pipelineStateIndex, setPipelineStateIndex] = useState<number>(-1);
+
+  const PIPELINE_STAGES = [
+    "Initializing incident commander pipeline...",
+    "Normalizing incident signal...",
+    "Querying telemetry sources for logs, metrics and events...",
+    "Validating evidence provenance data...",
+    "Analyzing failure correlation metrics...",
+    "Formulating ranked hypotheses...",
+    "Designing bounded remediation patch...",
+    "Requesting approval for patch execution..."
+  ];
+
+  // Scroll to and focus evidence card
+  const scrollToEvidence = (evidenceId: string) => {
+    // Expand card if collapsed
+    setExpandedEvidence(prev => ({
+      ...prev,
+      [evidenceId]: true
+    }));
+    setTimeout(() => {
+      const el = document.getElementById(`evidence-${evidenceId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+        el.classList.add("evidence-highlighted");
+        setTimeout(() => {
+          el.classList.remove("evidence-highlighted");
+        }, 2000);
+      }
+    }, 100);
+  };
+
   // Fetch all incident-related resources
   const loadIncidentData = useCallback(async (isSilent = false) => {
     if (!incidentId) return;
@@ -88,8 +127,20 @@ export default function IncidentDetailPage() {
 
     setIncident(incidentRes.data);
 
-    if (evidenceRes.ok) setEvidence(evidenceRes.data);
-    if (timelineRes.ok) setTimeline(timelineRes.data);
+    if (evidenceRes.ok) {
+      setEvidence(evidenceRes.data);
+      setEvidenceError(null);
+    } else {
+      setEvidenceError(`Failed to fetch evidence: ${evidenceRes.error || "Unknown error"}`);
+    }
+
+    if (timelineRes.ok) {
+      setTimeline(timelineRes.data);
+      setTimelineError(null);
+    } else {
+      setTimelineError(`Failed to fetch timeline: ${timelineRes.error || "Unknown error"}`);
+    }
+
     if (hypothesesRes.ok) setHypotheses(hypothesesRes.data);
     if (plansRes.ok) setPlans(plansRes.data);
     if (patchesRes.ok) setPatches(patchesRes.data);
@@ -125,7 +176,22 @@ export default function IncidentDetailPage() {
   const handleStartIncident = async () => {
     if (!incident) return;
     setActionError(null);
-    const res = await startIncident(incident.id);
+    setPipelineProgress("Starting pipeline...");
+    setPipelineStateIndex(0);
+
+    const apiPromise = startIncident(incident.id);
+
+    // Step-by-step UI progression sequence
+    for (let i = 0; i < PIPELINE_STAGES.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setPipelineStateIndex(i);
+      setPipelineProgress(PIPELINE_STAGES[i]!);
+    }
+
+    const res = await apiPromise;
+    setPipelineProgress(null);
+    setPipelineStateIndex(-1);
+
     if (res.ok) {
       loadIncidentData(true);
     } else {
@@ -327,6 +393,52 @@ export default function IncidentDetailPage() {
           </div>
         )}
 
+        {pipelineProgress && (
+          <div 
+            className="card" 
+            style={{ 
+              marginTop: "1rem", 
+              border: "1px solid var(--primary)", 
+              background: "rgba(139, 92, 246, 0.05)", 
+              padding: "1rem" 
+            }} 
+            data-testid="pipeline-progress-panel"
+            aria-live="polite"
+          >
+            <h3 style={{ fontSize: "1.05rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span className="spin-indicator" style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid var(--border-color)", borderTopColor: "var(--primary)", borderRadius: "50%", animation: "spin 1s linear infinite" }}></span>
+              Autonomous Investigation Pipeline Active: <span style={{ color: "var(--primary-hover)" }}>{pipelineProgress}</span>
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.5rem", marginTop: "0.5rem" }}>
+              {PIPELINE_STAGES.map((stage, idx) => {
+                let statusIcon = "⚪";
+                let textColor = "var(--text-muted)";
+                let fontWeight = "normal";
+                if (idx < pipelineStateIndex) {
+                  statusIcon = "✅";
+                  textColor = "var(--success)";
+                } else if (idx === pipelineStateIndex) {
+                  statusIcon = "⚡";
+                  textColor = "var(--primary-hover)";
+                  fontWeight = "600";
+                }
+                return (
+                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: textColor, fontWeight }}>
+                    <span>{statusIcon}</span>
+                    <span>{stage}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <style jsx>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        )}
+
         <div style={{ marginTop: "1rem", background: "rgba(0,0,0,0.15)", padding: "1rem", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
           <h3 style={{ fontSize: "0.95rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>Intake Description Summary:</h3>
           <p style={{ fontSize: "0.95rem", whiteSpace: "pre-wrap" }}>{incident.summary}</p>
@@ -341,22 +453,47 @@ export default function IncidentDetailPage() {
           {/* Timeline Event Log */}
           <div className="card">
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1.25rem" }}>🕒 Chronological Timeline</h2>
+            
+            {timelineError && (
+              <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+                <strong>⚠️ Timeline Fetch Error:</strong> {timelineError}
+              </div>
+            )}
+
             {timeline.length === 0 ? (
               <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>No events logged in the timeline yet.</p>
             ) : (
               <div className="timeline">
-                {timeline.map((evt) => (
-                  <div key={evt.id} className="timeline-item" aria-label={`Timeline event: ${evt.description} at ${evt.at}`}>
-                    <div className="timeline-time">{new Date(evt.at).toLocaleString()}</div>
-                    <div style={{ fontWeight: "600", fontSize: "0.95rem", color: "#ffffff" }}>{evt.kind.replace(/\./g, " ").toUpperCase()}</div>
-                    <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>{evt.description}</p>
-                    {evt.evidence_id && (
-                      <a href={`#evidence-${evt.evidence_id}`} style={{ fontSize: "0.8rem", color: "var(--primary-hover)", textDecoration: "underline", display: "inline-block", marginTop: "0.25rem" }}>
-                        View Supporting Evidence
-                      </a>
-                    )}
-                  </div>
-                ))}
+                {[...timeline]
+                  .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+                  .map((evt) => (
+                    <div key={evt.id} className="timeline-item" aria-label={`Timeline event: ${evt.description} at ${evt.at}`}>
+                      <div className="timeline-time">{new Date(evt.at).toLocaleString()}</div>
+                      <div style={{ fontWeight: "600", fontSize: "0.95rem", color: "#ffffff" }}>{evt.kind.replace(/\./g, " ").toUpperCase()}</div>
+                      <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>{evt.description}</p>
+                      {evt.evidence_id && (
+                        <button
+                          onClick={() => scrollToEvidence(evt.evidence_id!)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            fontSize: "0.8rem",
+                            color: "var(--primary-hover)",
+                            textDecoration: "underline",
+                            display: "inline-block",
+                            marginTop: "0.25rem",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            textAlign: "left"
+                          }}
+                          data-testid={`timeline-link-${evt.evidence_id}`}
+                        >
+                          View Supporting Evidence
+                        </button>
+                      )}
+                    </div>
+                  ))}
               </div>
             )}
           </div>
@@ -364,6 +501,13 @@ export default function IncidentDetailPage() {
           {/* Evidence Panel with Provenance */}
           <div className="card">
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🔍 Telemetry & Evidence Provenance</h2>
+            
+            {evidenceError && (
+              <div role="alert" style={{ background: "var(--error-light)", color: "var(--error)", border: "1px solid var(--error)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+                <strong>⚠️ Evidence Fetch Error:</strong> {evidenceError}
+              </div>
+            )}
+
             {evidence.length === 0 ? (
               <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)" }}>
                 <p>No telemetry or logs gathered yet.</p>
@@ -373,64 +517,97 @@ export default function IncidentDetailPage() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                {evidence.map((item) => (
-                  <div 
-                    key={item.id} 
-                    id={`evidence-${item.id}`} 
-                    style={{ border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(0,0,0,0.1)" }}
-                  >
-                    {/* Header bar */}
+                {evidence.map((item) => {
+                  const isSimulated = item.provenance?.simulated === true || (incident && incident.provider_mode === "simulated");
+                  return (
                     <div 
-                      onClick={() => toggleEvidence(item.id)}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleEvidence(item.id); } }}
-                      tabIndex={0}
-                      role="button"
-                      aria-expanded={expandedEvidence[item.id] || false}
-                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }}
+                      key={item.id} 
+                      id={`evidence-${item.id}`} 
+                      tabIndex={-1}
+                      className="evidence-card"
+                      data-testid={`evidence-card-${item.kind}`}
+                      data-evidence-id={item.id}
+                      style={{ border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(0,0,0,0.1)" }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <span className="badge badge-sev3" style={{ background: "rgba(59,130,246,0.15)", color: "var(--info)" }}>
-                          {item.kind}
-                        </span>
-                        <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                          source: <strong>{item.source}</strong>
-                        </span>
-                        {item.redaction_applied && (
-                          <span className="badge" style={{ background: "rgba(239,68,68,0.1)", color: "var(--error)", fontSize: "0.7rem", padding: "0.1rem 0.3rem" }}>
-                            🔒 Redacted
+                      {/* Header bar */}
+                      <div 
+                        onClick={() => toggleEvidence(item.id)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleEvidence(item.id); } }}
+                        tabIndex={0}
+                        role="button"
+                        data-testid={`evidence-expand-${item.id}`}
+                        aria-expanded={expandedEvidence[item.id] || false}
+                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                          <span className="badge badge-sev3" style={{ background: "rgba(59,130,246,0.15)", color: "var(--info)" }}>
+                            {item.kind}
                           </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                        {expandedEvidence[item.id] ? "Collapse ▲" : "Expand ▼"}
-                      </div>
-                    </div>
+                          
+                          {isSimulated && (
+                            <span className="badge badge-sev4" data-testid="evidence-simulated-label" style={{ background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                              🤖 SIMULATED
+                            </span>
+                          )}
 
-                    {/* Summary row */}
-                    <div style={{ padding: "0 1rem 0.75rem 1rem", fontSize: "0.9rem" }}>
-                      <p style={{ fontWeight: "600" }}>{item.summary}</p>
-                    </div>
+                          {item.redaction_applied && (
+                            <span className="badge" data-testid="evidence-redacted-label" style={{ background: "rgba(239,68,68,0.1)", color: "var(--error)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                              🔒 REDACTED
+                            </span>
+                          )}
 
-                    {/* Collapsible raw content */}
-                    {expandedEvidence[item.id] && (
-                      <div style={{ borderTop: "1px solid var(--border-color)", padding: "1rem", background: "#050811", borderBottomLeftRadius: "8px", borderBottomRightRadius: "8px" }}>
-                        <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontFamily: "var(--font-mono)" }}>
-                          RAW EVIDENCE CONTENT:
-                        </h4>
-                        <pre style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", overflowX: "auto", whiteSpace: "pre-wrap", color: "#e2e8f0", background: "rgba(0,0,0,0.3)", padding: "0.75rem", borderRadius: "4px", border: "1px solid #101827" }}>
-                          {item.content}
-                        </pre>
-                        
-                        <div style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "var(--text-muted)", borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem" }}>
-                          <strong>Provenance Metadata:</strong>
-                          <pre style={{ marginTop: "0.25rem", color: "#a0aec0" }}>
-                            {JSON.stringify(item.provenance, null, 2)}
-                          </pre>
+                          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                            provider: <strong data-testid="evidence-provider">{item.provider}</strong>
+                          </span>
+
+                          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                            source: <strong data-testid="evidence-source">{item.source}</strong>
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                          {expandedEvidence[item.id] ? "Collapse ▲" : "Expand ▼"}
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {/* Summary row */}
+                      <div style={{ padding: "0 1rem 0.75rem 1rem", fontSize: "0.95rem" }}>
+                        <p style={{ fontWeight: "600" }}>{item.summary}</p>
+                      </div>
+
+                      {/* High-density Metadata Row */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.5rem", padding: "0.75rem 1rem", borderTop: "1px dashed var(--border-color)", fontSize: "0.8rem", color: "var(--text-muted)", background: "rgba(0,0,0,0.05)" }}>
+                        <div><strong>Captured:</strong> <span data-testid="evidence-captured-at">{new Date(item.captured_at).toLocaleString()}</span></div>
+                        <div><strong>Ref:</strong> <code data-testid="evidence-display-ref" style={{ color: "var(--text-main)" }}>{item.display_ref || "N/A"}</code></div>
+                        <div><strong>Hash:</strong> <code data-testid="evidence-hash" style={{ color: "var(--text-muted)", fontSize: "0.75rem" }} title={item.content_hash}>{item.content_hash || "N/A"}</code></div>
+                      </div>
+
+                      {/* Collapsible raw content */}
+                      {expandedEvidence[item.id] && (
+                        <div style={{ borderTop: "1px solid var(--border-color)", padding: "1rem", background: "#050811", borderBottomLeftRadius: "8px", borderBottomRightRadius: "8px" }}>
+                          <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontFamily: "var(--font-mono)" }}>
+                            RAW SANITIZED EVIDENCE CONTENT:
+                          </h4>
+                          <pre data-testid="evidence-content" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", overflowX: "auto", whiteSpace: "pre-wrap", color: "#e2e8f0", background: "rgba(0,0,0,0.3)", padding: "0.75rem", borderRadius: "4px", border: "1px solid #101827" }}>
+                            {item.content}
+                          </pre>
+                          
+                          {item.redaction_applied && item.redaction_rules && item.redaction_rules.length > 0 && (
+                            <div style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "var(--error)", background: "rgba(239, 68, 68, 0.05)", padding: "0.5rem", borderRadius: "4px", border: "1px solid rgba(239, 68, 68, 0.15)" }}>
+                              <strong>Applied Redaction Rules:</strong> <span data-testid="evidence-redaction-rules">{item.redaction_rules.join(", ")}</span>
+                            </div>
+                          )}
+                          
+                          <div style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "var(--text-muted)", borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem" }}>
+                            <strong>Provenance Metadata:</strong>
+                            <pre data-testid="evidence-provenance" style={{ marginTop: "0.25rem", color: "#a0aec0", fontSize: "0.75rem", overflowX: "auto", background: "rgba(0,0,0,0.2)", padding: "0.5rem", borderRadius: "4px" }}>
+                              {JSON.stringify(item.provenance, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -130,11 +130,16 @@ export interface EvidenceItem {
   id: string;
   incident_id: string;
   kind: EvidenceKind;
+  provider: string;
   source: string;
   summary: string;
   content: string;
+  content_hash: string;
+  display_ref: string;
   redaction_applied: boolean;
-  provenance: Record<string, unknown>;
+  redaction_rules?: string[];
+  provenance?: Record<string, unknown>;
+  captured_at: string;
   created_at: string;
 }
 

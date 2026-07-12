@@ -345,3 +345,14 @@ a:hover {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Evidence card highlighting */
+.evidence-card {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+.evidence-card:focus-visible, .evidence-card.evidence-highlighted {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+  background-color: rgba(139, 92, 246, 0.05) !important;
+  outline: none;
+}

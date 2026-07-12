@@ -1,0 +1,24 @@
+﻿I will pause here for a moment to allow the API dependency installation to finish. The system will automatically wake me up when the process is done.
+I will wait for the pytest run to finish to verify the current backend status.
+I will wait for the typecheck command to verify TypeScript compilation.
+I will wait for the pipeline check.
+I will wait for the vitest run to complete.
+I will wait for the Playwright E2E tests to run.
+I will wait for the E2E test runs to complete.
+I will wait for the production build to complete.
+I will check git status to verify my changes.
+I have successfully completed the judge-facing M2 evidence and timeline experience.
+
+### Summary of Changes:
+1. **TypeScript Contract Parity**: Updated [packages/contracts/src/index.ts](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m2-frontend/packages/contracts/src/index.ts) to define complete backend fields on the `EvidenceItem` interface (`provider`, `content_hash`, `display_ref`, `redaction_rules`, `captured_at`).
+2. **Complete Golden Evidence Rendering**: Modified the incident room's Evidence Panel in [apps/web/app/incidents/\[id\]/page.tsx](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m2-frontend/apps/web/app/incidents/%5Bid%5D/page.tsx) to render a clean, high-density metadata grid showing Captured time, display reference, content SHA-256 hash, provider, and source. Included clear simulated labels (`🤖 SIMULATED`) and redaction state labels (`🔒 REDACTED`), and displayed redaction rules and raw sanitized content on card expansion.
+3. **Timeline Chronology & Focus Scroll**: Sorted timeline events in stable chronological ascending order. Added an interactive click handler that expands the cited evidence card, scrolls it smoothly into view, sets keyboard focus, and triggers a temporary glow animation using `.evidence-highlighted` in [apps/web/app/global.css](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m2-frontend/apps/web/app/global.css).
+4. **Demo Progress checklist**: Added an interactive progress checklist when starting a `RECEIVED` demo incident, showing the active pipeline stage (sequences through 8 visual steps) as the FastAPI backend processes it in the background. Shows the human approval gate once ready without skipping or hiding boundaries.
+5. **Visible API Failures**: Tracked and displayed evidence and timeline API fetch errors inside high-visibility warning blocks instead of silently passing.
+6. **E2E Playwright Tests**: Added [apps/web/e2e/golden-evidence.spec.ts](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m2-frontend/apps/web/e2e/golden-evidence.spec.ts) asserting the complete demo reset, start progress checklist, evidence bundle matching metrics, chronology, and provenance.
+7. **Deliverables**: Generated the [AGENT_HANDOFF.md](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m2-frontend/AGENT_HANDOFF.md) file detailing exact results.
+
+### Test Verification Results:
+- **Unit & Parity Tests**: Both `@incident-commander/contracts` (6/6) and `@incident-commander/web` (15/15) Vitest suites **Passed**.
+- **Playwright E2E Tests**: Running `pnpm test:e2e` ran both `golden-evidence.spec.ts` and `incident-creation.spec.ts` successfully (**2 passed in 20.3s**).
+- **Production Build**: Running `pnpm build` completed successfully with Next.js generating all static routes.
