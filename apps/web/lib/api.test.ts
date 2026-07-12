@@ -13,6 +13,7 @@ import {
   getIncidentPatches,
   getIncidentApprovals,
   getIncidentInvestigation,
+  getIncidentVerifications,
 } from "./api";
 
 describe("buildUrl", () => {
@@ -174,6 +175,15 @@ describe("request handling", () => {
     const [url] = fetchMock.mock.calls[0] as any;
     expect(url).toContain("api/v1/incidents/inc-1/investigation");
   });
+
+  it("getIncidentVerifications fetches authoritative incident verification runs", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ id: "vr-1", passed: true, checks: [] }]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getIncidentVerifications("inc/1");
+    expect(result.ok).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as any;
+    expect(url).toContain("api/v1/incidents/inc%2F1/verifications");
+  });
 });
 
 describe('API Contract - decideApproval', () => {
@@ -246,7 +256,8 @@ describe('API Contract - bounded remediation artifact', () => {
 
     const result = await getIncidentPlanArtifact('inc/demo');
 
-    expect(mockFetch.mock.calls[0]?.[0]).toContain(
+    const [url] = mockFetch.mock.calls[0] as any;
+    expect(url).toContain(
       '/api/v1/incidents/inc%2Fdemo/remediation-plan/artifact',
     );
     expect(result.ok).toBe(true);

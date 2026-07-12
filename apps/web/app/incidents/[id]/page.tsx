@@ -14,6 +14,7 @@ import type {
   WorkflowState,
   Severity,
   InvestigationReport,
+  VerificationRun,
 } from "@incident-commander/contracts";
 import {
   getIncident,
@@ -28,6 +29,7 @@ import {
   cancelIncident,
   decideApproval,
   getIncidentInvestigation,
+  getIncidentVerifications,
 } from "@/lib/api";
 
 export default function IncidentDetailPage() {
@@ -54,6 +56,8 @@ export default function IncidentDetailPage() {
   const [investigationError, setInvestigationError] = useState<string | null>(null);
   const [investigationStatus, setInvestigationStatus] = useState<number | null>(null);
   const [investigationLoading, setInvestigationLoading] = useState<boolean>(true);
+  const [verificationRuns, setVerificationRuns] = useState<VerificationRun[]>([]);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   // Interactive UI States
   const [expandedEvidence, setExpandedEvidence] = useState<Record<string, boolean>>({});
@@ -126,6 +130,7 @@ export default function IncidentDetailPage() {
       plansRes,
       planArtifactRes,
       patchesRes,
+      verificationsRes,
       approvalsRes,
       investigationRes,
     ] = await Promise.all([
@@ -136,6 +141,7 @@ export default function IncidentDetailPage() {
       getIncidentPlans(incidentId),
       getIncidentPlanArtifact(incidentId),
       getIncidentPatches(incidentId),
+      getIncidentVerifications(incidentId),
       getIncidentApprovals(incidentId),
       getIncidentInvestigation(incidentId),
     ]);
@@ -191,6 +197,14 @@ export default function IncidentDetailPage() {
       setPatchesError(null);
     } else {
       setPatchesError(`Failed to fetch patch attempts: ${patchesRes.error || "Unknown error"}`);
+    }
+
+    if (verificationsRes.ok) {
+      setVerificationRuns(verificationsRes.data);
+      setVerificationError(null);
+    } else {
+      setVerificationRuns([]);
+      setVerificationError(verificationsRes.error || "Failed to fetch verification runs");
     }
 
     if (approvalsRes.ok) {
@@ -701,6 +715,14 @@ export default function IncidentDetailPage() {
               {approvals.filter(a => a.status === "pending").map((approval) => {
                 const plan = plans.find(p => p.incident_id === approval.incident_id) || plans[0];
                 const hyp = investigation?.hypotheses?.[0];
+                const matchingPatch = plan ? patches.find(p => p.plan_id === plan.id) : undefined;
+                const verifRun = matchingPatch
+                  ? verificationRuns.find(run => run.patch_id === matchingPatch.id)
+                  : undefined;
+                const isPRApproval = approval.approval_type === "CREATE_DRAFT_PR";
+                const verifPassed = verifRun?.passed === true;
+                const blockPRApproval = isPRApproval && !verifPassed;
+
                 return (
                 <div key={approval.id} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                   <div style={{ background: "rgba(245, 158, 11, 0.1)", padding: "0.75rem", borderRadius: "6px", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
@@ -781,22 +803,29 @@ export default function IncidentDetailPage() {
                     />
                   </div>
 
-                  <div style={{ display: "flex", gap: "0.75rem" }}>
-                    <button 
-                      className="btn btn-primary" 
-                      style={{ background: "#065f46", color: "#ffffff" }}
-                      onClick={() => handleDecision(approval.id, "approved")}
-                      disabled={isSubmittingApproval}
-                    >
-                      {isSubmittingApproval ? "Submitting..." : "✓ Approve & Execute Patch"}
-                    </button>
-                    <button 
-                      className="btn btn-danger"
-                      onClick={() => handleDecision(approval.id, "rejected")}
-                      disabled={isSubmittingApproval}
-                    >
-                      {isSubmittingApproval ? "Submitting..." : "✕ Reject Patch"}
-                    </button>
+                  <div style={{ display: "flex", gap: "0.75rem", flexDirection: "column" }}>
+                    {blockPRApproval && (
+                      <div style={{ fontSize: "0.85rem", color: "var(--warning)", background: "rgba(245, 158, 11, 0.1)", padding: "0.75rem", borderRadius: "4px", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
+                        <strong>⚠️ Prerequisite Unmet:</strong> Cannot approve PR creation because verification checks have not passed or are missing.
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: "0.75rem" }}>
+                      <button 
+                        className="btn btn-primary" 
+                        style={{ background: "#065f46", color: "#ffffff", opacity: blockPRApproval ? 0.5 : 1 }}
+                        onClick={() => handleDecision(approval.id, "approved")}
+                        disabled={isSubmittingApproval || blockPRApproval}
+                      >
+                        {isSubmittingApproval ? "Submitting..." : isPRApproval ? "✓ Approve & Create PR" : "✓ Approve & Execute Patch"}
+                      </button>
+                      <button 
+                        className="btn btn-danger"
+                        onClick={() => handleDecision(approval.id, "rejected")}
+                        disabled={isSubmittingApproval}
+                      >
+                        {isSubmittingApproval ? "Submitting..." : isPRApproval ? "✕ Reject PR" : "✕ Reject Patch"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )})}
@@ -1220,6 +1249,10 @@ export default function IncidentDetailPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 {plans.map((plan) => {
                   const matchingPatch = patches.find(p => p.plan_id === plan.id);
+                  const verifRun = matchingPatch
+                    ? verificationRuns.find(run => run.patch_id === matchingPatch.id)
+                    : undefined;
+                  const verifErr = verificationError;
                   return (
                     <div key={plan.id} style={{ border: "1px solid var(--border-color)", padding: "1rem", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
@@ -1258,6 +1291,43 @@ export default function IncidentDetailPage() {
                           ) : (
                             <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontStyle: "italic" }}>No diff text available for this patch attempt.</p>
                           )}
+
+                          {/* M6 Verification Run section */}
+                          <div style={{ marginTop: "1rem", borderTop: "1px dashed var(--border-color)", paddingTop: "1rem" }}>
+                            <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "0.5rem" }}>
+                              🧪 Verification Results
+                            </h4>
+                            {verifErr ? (
+                              <div style={{ padding: "0.75rem", background: "var(--error-light)", color: "var(--error)", borderRadius: "4px", fontSize: "0.85rem" }}>
+                                Failed to fetch verification: {verifErr}
+                              </div>
+                            ) : verifRun === undefined ? (
+                              <div style={{ padding: "0.75rem", border: "1px dashed var(--border-color)", color: "var(--text-muted)", borderRadius: "4px", fontSize: "0.85rem" }}>
+                                <div><strong>Status:</strong> Pending / Not Started</div>
+                                <div style={{ marginTop: "0.25rem", fontStyle: "italic" }}>No verification run data available yet. Verification runs after patch application.</div>
+                              </div>
+                            ) : (
+                              <div style={{ padding: "0.75rem", border: `1px solid ${verifRun.passed ? "var(--success)" : "var(--error)"}`, borderRadius: "4px", background: verifRun.passed ? "var(--success-light)" : "var(--error-light)" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                                  <strong style={{ color: verifRun.passed ? "var(--success)" : "var(--error)" }}>
+                                    {verifRun.passed ? "✅ Verification Passed" : "❌ Verification Failed"}
+                                  </strong>
+                                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>ID: {verifRun.id}</span>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                                  {verifRun.checks.map((check, cIdx) => (
+                                    <div key={cIdx} style={{ fontSize: "0.85rem", background: "rgba(0,0,0,0.15)", padding: "0.5rem", borderRadius: "4px" }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                                        <span>{check.passed ? "✅" : "❌"}</span>
+                                        <strong>{check.name}</strong>
+                                      </div>
+                                      <div style={{ color: "var(--text-muted)", marginLeft: "1.5rem" }}>{check.detail}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ) : (
                         <div style={{ marginTop: "1rem", border: "1px dashed var(--border-color)", padding: "0.75rem", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem" }}>

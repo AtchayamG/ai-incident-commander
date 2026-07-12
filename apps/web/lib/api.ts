@@ -20,6 +20,7 @@ import type {
   RemediationPlan,
   RemediationPlanArtifact,
   PatchAttempt,
+  VerificationRun,
   InvestigationReport,
 } from "@incident-commander/contracts";
 
@@ -164,4 +165,11 @@ export function getIncidentInvestigation(incidentId: string): Promise<ApiResult<
   return request<InvestigationReport>(`api/v1/incidents/${encodeURIComponent(incidentId)}/investigation`);
 }
 
+export function getIncidentVerifications(
+  incidentId: string,
+): Promise<ApiResult<VerificationRun[]>> {
+  return request<VerificationRun[]>(
+    `api/v1/incidents/${encodeURIComponent(incidentId)}/verifications`,
+  );
+}
 
