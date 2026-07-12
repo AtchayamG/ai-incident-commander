@@ -9,3 +9,4 @@
 - Repaired the Windows Next.js build using supported worker threads and upgraded Next.js from 14.2.15 to 14.2.35; rejected a global child-process error suppression workaround.
 - Added a durable Playwright Chromium E2E that starts the real API/web services, validates manual intake, creates a persisted incident, finds it on the dashboard, and verifies incident detail metadata.
 - Implemented M2's full deterministic checkout-api evidence bundle, provenance/hash/display references, persistent redaction, Git/deployment/runbook adapters, stable evidence-linked timeline, provenance-rich UI, and golden-evidence Chromium scenario.
+- Implemented M3 strict investigation outputs, four bounded specialists plus manager validation, three ranked cited hypotheses, contradictions/unknowns/falsification, affected files/commit mapping, persisted report/API, safe insufficient-evidence stop, and judge-facing hypothesis/code-map UI with Chromium assertions.
