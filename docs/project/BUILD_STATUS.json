@@ -1,5 +1,5 @@
 {
-  "active_milestone": "M2",
+  "active_milestone": "M3",
   "status": "in_progress",
   "gates": {
     "frontend_lint": true,
