@@ -1,5 +1,5 @@
 {
-  "active_milestone": "M1",
+  "active_milestone": "M2",
   "status": "in_progress",
   "gates": {
     "frontend_lint": true,
@@ -8,9 +8,9 @@
     "backend_lint": true,
     "backend_typecheck": true,
     "unit_tests": true,
-    "integration_tests": false,
-    "contract_tests": false,
-    "e2e_tests": false,
+    "integration_tests": true,
+    "contract_tests": true,
+    "e2e_tests": true,
     "fresh_migrations": true,
     "demo_reset": true,
     "local_startup": false,
