@@ -14,6 +14,7 @@ from app.domain.contracts import (
     WorkflowEvent,
 )
 from app.domain.enums import Environment, Severity, WorkflowState
+from app.domain.investigation import InvestigationReport
 
 
 class NotFoundError(Exception):
@@ -61,6 +62,10 @@ class StoreProtocol(Protocol):
     def add_hypothesis(self, hypothesis: Hypothesis) -> Hypothesis: ...
 
     def list_hypotheses(self, incident_id: str) -> list[Hypothesis]: ...
+
+    def add_investigation_report(self, report: InvestigationReport) -> InvestigationReport: ...
+
+    def get_investigation_report(self, incident_id: str) -> InvestigationReport | None: ...
 
     def add_plan(self, plan: RemediationPlan) -> RemediationPlan: ...
 

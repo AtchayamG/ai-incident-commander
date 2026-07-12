@@ -28,6 +28,11 @@ from app.domain.enums import (
     RiskLevel,
     WorkflowState,
 )
+from app.domain.investigation import (
+    InvestigationReport,
+    InvestigationStatus,
+    RankedHypothesis,
+)
 from app.providers.base import (
     CodeAgentGateway,
     DeploymentHistoryProvider,
@@ -41,6 +46,7 @@ from app.providers.base import (
 )
 from app.security.redaction import redact
 from app.store.protocol import StoreProtocol
+from app.workflow.investigation_manager import InvestigationManager
 
 APPROVAL_TTL = timedelta(hours=4)
 
@@ -54,6 +60,7 @@ class WorkflowPipeline:
         repository: LocalRepositoryProvider,
         runbook: RunbookProvider,
         investigation: InvestigationProvider,
+        investigation_manager: InvestigationManager,
         code_agent: CodeAgentGateway,
         verifier: VerificationRunner,
         provider_mode: ProviderMode,
@@ -66,6 +73,7 @@ class WorkflowPipeline:
             runbook,
         )
         self._investigation = investigation
+        self._investigation_manager = investigation_manager
         self._code_agent = code_agent
         self._verifier = verifier
         self._provider_mode = provider_mode
@@ -90,13 +98,21 @@ class WorkflowPipeline:
         incident = self._transition(incident, WorkflowState.EVIDENCE_READY, "evidence.collected")
 
         incident = self._transition(incident, WorkflowState.INVESTIGATING, "investigation.start")
-        hypothesis = self._investigate(incident, evidence_items)
+        top_hypothesis, report = self._investigate(incident, evidence_items)
+        if report.status is not InvestigationStatus.COMPLETE or top_hypothesis is None:
+            # Safe insufficient-evidence path: the investigation is not
+            # grounded well enough to remediate. Stop at NEEDS_INPUT; no plan,
+            # patch, or approval is created, so no remediation can proceed
+            # until more evidence arrives.
+            return self._transition(
+                incident, WorkflowState.NEEDS_INPUT, "investigation.insufficient_evidence"
+            )
         incident = self._transition(incident, WorkflowState.HYPOTHESES_READY, "hypotheses.ready")
 
         incident = self._transition(
             incident, WorkflowState.PLANNING_REMEDIATION, "planning.start"
         )
-        plan = self._plan(incident, hypothesis)
+        plan = self._plan(incident, top_hypothesis)
         incident = self._transition(incident, WorkflowState.PLAN_READY, "plan.ready")
 
         self._request_patch_approval(incident, plan)
@@ -172,23 +188,42 @@ class WorkflowPipeline:
             )
         return items
 
-    def _investigate(self, incident: Incident, evidence: list[EvidenceItem]) -> Hypothesis:
-        proposal = self._investigation.propose_hypothesis(
-            incident, [e.summary for e in evidence]
+    def _investigate(
+        self, incident: Incident, evidence: list[EvidenceItem]
+    ) -> tuple[Hypothesis | None, InvestigationReport]:
+        """Run the investigation manager, persist the typed report and one
+        Hypothesis row per ranked hypothesis, and return the top hypothesis
+        (None when the investigation is not COMPLETE) plus the report.
+
+        The manager owns citation validation and the remediation gate; this
+        stage only persists its deterministic output.
+        """
+        report_id = self._store.next_id("inv")
+        report = self._investigation_manager.investigate(
+            incident, evidence, report_id, datetime.now(UTC)
         )
-        supporting = [
-            evidence[i].id for i in proposal.supporting_evidence_indexes if i < len(evidence)
-        ]
-        hypothesis = Hypothesis(
-            id=self._store.next_id("hyp"),
-            incident_id=incident.id,
-            statement=proposal.statement,
-            confidence=proposal.confidence,
-            supporting_evidence_ids=supporting,
-            contradictions=proposal.contradictions,
-            unknowns=proposal.unknowns,
-        )
-        return self._store.add_hypothesis(hypothesis)
+
+        persisted: list[Hypothesis] = []
+        linked: list[RankedHypothesis] = []
+        for ranked in report.hypotheses:
+            hypothesis = Hypothesis(
+                id=self._store.next_id("hyp"),
+                incident_id=incident.id,
+                statement=ranked.statement,
+                confidence=ranked.confidence,
+                supporting_evidence_ids=[c.evidence_id for c in ranked.supporting],
+                contradictions=[c.note for c in ranked.contradicting],
+                unknowns=list(ranked.unknowns),
+            )
+            self._store.add_hypothesis(hypothesis)
+            persisted.append(hypothesis)
+            linked.append(ranked.model_copy(update={"hypothesis_id": hypothesis.id}))
+
+        report = report.model_copy(update={"hypotheses": linked})
+        self._store.add_investigation_report(report)
+
+        top = persisted[0] if persisted else None
+        return top, report
 
     def _plan(self, incident: Incident, hypothesis: Hypothesis) -> RemediationPlan:
         proposal = self._investigation.propose_plan(incident, hypothesis.statement)

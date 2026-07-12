@@ -28,6 +28,7 @@ from app.domain.contracts import (
     WorkflowEvent,
 )
 from app.domain.enums import Environment, Severity, WorkflowState
+from app.domain.investigation import InvestigationReport
 from app.store.protocol import NotFoundError, StoreProtocol
 from app.workflow import state_machine
 from app.workflow.pipeline import WorkflowPipeline
@@ -191,6 +192,25 @@ def list_hypotheses(
 ) -> list[Hypothesis]:
     _get_or_404(store, incident_id)
     return store.list_hypotheses(incident_id)
+
+
+@router.get("/{incident_id}/investigation", response_model=InvestigationReport)
+def get_investigation(
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
+) -> InvestigationReport:
+    """Return the latest typed M3 investigation report for the incident.
+
+    404 until the investigation stage has run. The report carries ranked,
+    evidence-grounded hypotheses, the code/commit mapping, unknowns, rejected
+    claims, and the remediation gate.
+    """
+    _get_or_404(store, incident_id)
+    report = store.get_investigation_report(incident_id)
+    if report is None:
+        raise HTTPException(
+            status_code=404, detail="no investigation report for this incident yet"
+        )
+    return report
 
 
 @router.get("/{incident_id}/remediation-plan", response_model=list[RemediationPlan])

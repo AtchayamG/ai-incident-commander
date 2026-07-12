@@ -118,6 +118,26 @@ class ApprovalRequestModel(Base):
     decision_reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
 
 
+class InvestigationReportModel(Base):
+    """Validated M3 investigation output for one incident run.
+
+    The full typed report (summary, ranked hypotheses, code mapping, unknowns,
+    rejected claims) is stored as a JSON ``document``; the scalar columns exist
+    for querying and to make the safety-relevant fields (status,
+    remediation_enabled) inspectable without deserializing.
+    """
+
+    __tablename__ = "investigation_reports"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), index=True)
+    status: Mapped[str] = mapped_column(String(50))
+    gateway: Mapped[str] = mapped_column(String(100))
+    remediation_enabled: Mapped[bool] = mapped_column(Boolean)
+    document: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class WorkflowEventModel(Base):
     __tablename__ = "workflow_events"
 

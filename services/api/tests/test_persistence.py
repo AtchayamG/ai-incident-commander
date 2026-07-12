@@ -43,6 +43,13 @@ def test_fresh_migration() -> None:
                 assert item["provider"]
                 assert item["display_ref"]
                 assert item["captured_at"]
+
+            # The M3 investigation_reports table was created by the migration
+            # (no create_all shortcut) and the report persists and reads back.
+            report = client.get("/api/v1/incidents/inc-demo-0001/investigation")
+            assert report.status_code == 200
+            assert report.json()["status"] == "complete"
+            assert report.json()["remediation_enabled"] is True
     finally:
         with contextlib.suppress(OSError):
             os.unlink(path)

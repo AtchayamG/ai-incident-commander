@@ -20,6 +20,7 @@ from app.domain.contracts import (
     WorkflowEvent,
 )
 from app.domain.enums import Environment, Severity, WorkflowState
+from app.domain.investigation import InvestigationReport
 from app.store.protocol import NotFoundError
 
 
@@ -30,6 +31,7 @@ class InMemoryStore:
         self._evidence: dict[str, list[EvidenceItem]] = {}
         self._timeline: dict[str, list[TimelineEvent]] = {}
         self._hypotheses: dict[str, list[Hypothesis]] = {}
+        self._investigation_reports: dict[str, list[InvestigationReport]] = {}
         self._plans: dict[str, list[RemediationPlan]] = {}
         self._patches: dict[str, list[PatchAttempt]] = {}
         self._verifications: dict[str, list[VerificationRun]] = {}
@@ -43,6 +45,7 @@ class InMemoryStore:
             self._evidence.clear()
             self._timeline.clear()
             self._hypotheses.clear()
+            self._investigation_reports.clear()
             self._plans.clear()
             self._patches.clear()
             self._verifications.clear()
@@ -158,6 +161,16 @@ class InMemoryStore:
     def list_hypotheses(self, incident_id: str) -> list[Hypothesis]:
         with self._lock:
             return list(self._hypotheses.get(incident_id, []))
+
+    def add_investigation_report(self, report: InvestigationReport) -> InvestigationReport:
+        with self._lock:
+            self._investigation_reports.setdefault(report.incident_id, []).append(report)
+            return report
+
+    def get_investigation_report(self, incident_id: str) -> InvestigationReport | None:
+        with self._lock:
+            reports = self._investigation_reports.get(incident_id, [])
+            return reports[-1] if reports else None
 
     def add_plan(self, plan: RemediationPlan) -> RemediationPlan:
         with self._lock:

@@ -51,8 +51,13 @@ def test_start_runs_pipeline_to_patch_approval_gate(client: TestClient) -> None:
     assert len(timeline) == 8
 
     hypotheses = client.get(f"/api/v1/incidents/{incident_id}/hypotheses").json()
-    assert len(hypotheses) == 1
+    assert len(hypotheses) == 3
     assert hypotheses[0]["supporting_evidence_ids"]
+    # Ranked by non-increasing confidence; top hypothesis is the unsafe access.
+    confidences = [h["confidence"] for h in hypotheses]
+    assert confidences == sorted(confidences, reverse=True)
+    assert "session.discount.code" in hypotheses[0]["statement"]
+    assert "c7f2e9a" in hypotheses[0]["statement"]
 
     approvals = client.get(f"/api/v1/incidents/{incident_id}/approvals").json()
     assert len(approvals) == 1

@@ -22,7 +22,15 @@ from app.providers.simulated import (
     SimulatedTelemetryProvider,
     SimulatedVerificationRunner,
 )
+from app.providers.simulated_investigation import (
+    FixtureChangeCorrelationSpecialist,
+    FixtureCodeMappingSpecialist,
+    FixtureInvestigationGateway,
+    FixtureRunbookSpecialist,
+    FixtureTelemetrySpecialist,
+)
 from app.store.sql import SqlAlchemyStore
+from app.workflow.investigation_manager import InvestigationManager
 from app.workflow.pipeline import WorkflowPipeline
 
 
@@ -35,6 +43,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     store = SqlAlchemyStore(settings.database_url or "sqlite:///demo.db")
+    # The investigation manager is the single explicit M3 stage. Specialists
+    # and the gateway are the demo (fixture) bindings; the gateway's model ID
+    # is environment-driven so a live structured-output model can replace it
+    # without touching the manager or workflow.
+    investigation_manager = InvestigationManager(
+        specialists=(
+            FixtureTelemetrySpecialist(),
+            FixtureChangeCorrelationSpecialist(),
+            FixtureCodeMappingSpecialist(),
+            FixtureRunbookSpecialist(),
+        ),
+        gateway=FixtureInvestigationGateway(model_id=settings.investigation_model),
+    )
     pipeline = WorkflowPipeline(
         store=store,
         telemetry=SimulatedTelemetryProvider(),
@@ -42,6 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         repository=SimulatedLocalRepositoryProvider(),
         runbook=SimulatedRunbookProvider(),
         investigation=SimulatedInvestigationProvider(),
+        investigation_manager=investigation_manager,
         code_agent=SimulatedCodeAgentGateway(),
         verifier=SimulatedVerificationRunner(),
         provider_mode=settings.provider_mode,

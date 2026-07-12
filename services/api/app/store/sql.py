@@ -15,12 +15,14 @@ from app.domain.contracts import (
     WorkflowEvent,
 )
 from app.domain.enums import Environment, Severity, WorkflowState
+from app.domain.investigation import InvestigationReport
 from app.store.models import (
     ApprovalRequestModel,
     Base,
     EvidenceItemModel,
     HypothesisModel,
     IncidentModel,
+    InvestigationReportModel,
     PatchAttemptModel,
     RemediationPlanModel,
     TimelineEventModel,
@@ -220,9 +222,44 @@ class SqlAlchemyStore(StoreProtocol):
 
     def list_hypotheses(self, incident_id: str) -> list[Hypothesis]:
         with self.SessionLocal() as session:
-            stmt = select(HypothesisModel).where(HypothesisModel.incident_id == incident_id)
+            stmt = (
+                select(HypothesisModel)
+                .where(HypothesisModel.incident_id == incident_id)
+                .order_by(HypothesisModel.id.asc())
+            )
             models = session.scalars(stmt).all()
             return [Hypothesis.model_validate(m, from_attributes=True) for m in models]
+
+    def add_investigation_report(self, report: InvestigationReport) -> InvestigationReport:
+        with self.SessionLocal() as session:
+            model = InvestigationReportModel(
+                id=report.id,
+                incident_id=report.incident_id,
+                status=report.status.value,
+                gateway=report.gateway,
+                remediation_enabled=report.remediation_enabled,
+                document=report.model_dump(mode="json"),
+                created_at=report.created_at,
+            )
+            session.add(model)
+            session.commit()
+            return report
+
+    def get_investigation_report(self, incident_id: str) -> InvestigationReport | None:
+        with self.SessionLocal() as session:
+            stmt = (
+                select(InvestigationReportModel)
+                .where(InvestigationReportModel.incident_id == incident_id)
+                .order_by(
+                    InvestigationReportModel.created_at.desc(),
+                    InvestigationReportModel.id.desc(),
+                )
+                .limit(1)
+            )
+            model = session.scalars(stmt).first()
+            if model is None:
+                return None
+            return InvestigationReport.model_validate(model.document)
 
     def add_plan(self, plan: RemediationPlan) -> RemediationPlan:
         with self.SessionLocal() as session:
