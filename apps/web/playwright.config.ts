@@ -8,7 +8,7 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
-const tempDbPath = path.join(outputDir, 'temp_e2e.db');
+const tempDbPath = path.join(outputDir, `temp_e2e_${process.pid}_${Date.now()}.db`);
 // Convert to a clean SQLite URL format with forward slashes
 const sqliteDbUrl = `sqlite:///${tempDbPath.replace(/\\/g, '/')}`;
 

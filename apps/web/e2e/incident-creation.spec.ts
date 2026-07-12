@@ -46,6 +46,11 @@ test.describe('Incident Commander - Creation and Dashboard Flow', () => {
     const incidentId = matches[1];
     console.log(`Successfully created incident with ID: ${incidentId}`);
 
+    const evidenceResponse = await page.request.get(
+      `http://localhost:8001/api/v1/incidents/${incidentId}/evidence`,
+    );
+    expect(evidenceResponse.ok()).toBeTruthy();
+
     // Verify detail page has correct initial values
     await expect(page.getByRole('heading', { name: title })).toBeVisible();
 
