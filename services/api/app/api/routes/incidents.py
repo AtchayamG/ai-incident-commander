@@ -1,10 +1,11 @@
 """Incident endpoints (blueprint sections 17.1-17.3)."""
 
+import asyncio
+import hashlib
+import hmac
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from typing import Annotated, Any
-import asyncio
-import hmac
-import hashlib
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
@@ -27,14 +28,14 @@ from app.domain.contracts import (
     WorkflowEvent,
 )
 from app.domain.enums import Environment, Severity, WorkflowState
-from app.store.memory import InMemoryStore, NotFoundError
+from app.store.protocol import NotFoundError, StoreProtocol
 from app.workflow import state_machine
 from app.workflow.pipeline import WorkflowPipeline
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
 
 
-def _get_or_404(store: InMemoryStore, incident_id: str) -> Incident:
+def _get_or_404(store: StoreProtocol, incident_id: str) -> Incident:
     try:
         return store.get_incident(incident_id)
     except NotFoundError as exc:
@@ -44,7 +45,7 @@ def _get_or_404(store: InMemoryStore, incident_id: str) -> Incident:
 @router.post("", response_model=Incident, status_code=status.HTTP_201_CREATED)
 def create_incident(
     body: IncidentCreate,
-    store: Annotated[InMemoryStore, Depends(get_store)],
+    store: Annotated[StoreProtocol, Depends(get_store)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Incident:
     now = datetime.now(UTC)
@@ -101,7 +102,7 @@ async def webhook_intake(
 
 @router.get("", response_model=IncidentList)
 def list_incidents(
-    store: Annotated[InMemoryStore, Depends(get_store)],
+    store: Annotated[StoreProtocol, Depends(get_store)],
     status_filter: Annotated[WorkflowState | None, Query(alias="status")] = None,
     severity: Severity | None = None,
     service: str | None = None,
@@ -120,7 +121,7 @@ def list_incidents(
 
 @router.get("/{incident_id}", response_model=Incident)
 def get_incident(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> Incident:
     return _get_or_404(store, incident_id)
 
@@ -128,7 +129,7 @@ def get_incident(
 @router.post("/{incident_id}/start", response_model=Incident)
 def start_incident(
     incident_id: str,
-    store: Annotated[InMemoryStore, Depends(get_store)],
+    store: Annotated[StoreProtocol, Depends(get_store)],
     pipeline: Annotated[WorkflowPipeline, Depends(get_pipeline)],
 ) -> Incident:
     incident = _get_or_404(store, incident_id)
@@ -142,7 +143,7 @@ def start_incident(
 
 @router.post("/{incident_id}/cancel", response_model=Incident)
 def cancel_incident(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> Incident:
     incident = _get_or_404(store, incident_id)
     if state_machine.is_terminal(incident.state):
@@ -155,7 +156,7 @@ def cancel_incident(
 
 @router.post("/reset-demo", response_model=ResetResult)
 def reset_demo(
-    store: Annotated[InMemoryStore, Depends(get_store)],
+    store: Annotated[StoreProtocol, Depends(get_store)],
     settings: Annotated[Settings, Depends(get_settings)],
     x_demo_admin_key: Annotated[str | None, Header()] = None,
 ) -> ResetResult:
@@ -170,7 +171,7 @@ def reset_demo(
 
 @router.get("/{incident_id}/evidence", response_model=list[EvidenceItem])
 def list_evidence(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> list[EvidenceItem]:
     _get_or_404(store, incident_id)
     return store.list_evidence(incident_id)
@@ -178,7 +179,7 @@ def list_evidence(
 
 @router.get("/{incident_id}/timeline", response_model=list[TimelineEvent])
 def list_timeline(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> list[TimelineEvent]:
     _get_or_404(store, incident_id)
     return store.list_timeline(incident_id)
@@ -186,7 +187,7 @@ def list_timeline(
 
 @router.get("/{incident_id}/hypotheses", response_model=list[Hypothesis])
 def list_hypotheses(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> list[Hypothesis]:
     _get_or_404(store, incident_id)
     return store.list_hypotheses(incident_id)
@@ -194,7 +195,7 @@ def list_hypotheses(
 
 @router.get("/{incident_id}/remediation-plan", response_model=list[RemediationPlan])
 def list_plans(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> list[RemediationPlan]:
     _get_or_404(store, incident_id)
     return store.list_plans(incident_id)
@@ -202,7 +203,7 @@ def list_plans(
 
 @router.get("/{incident_id}/patches", response_model=list[PatchAttempt])
 def list_patches(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> list[PatchAttempt]:
     _get_or_404(store, incident_id)
     return store.list_patches(incident_id)
@@ -210,7 +211,7 @@ def list_patches(
 
 @router.get("/{incident_id}/verifications", response_model=list[VerificationRun])
 def list_verifications(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> list[VerificationRun]:
     _get_or_404(store, incident_id)
     return store.list_verifications(incident_id)
@@ -218,7 +219,7 @@ def list_verifications(
 
 @router.get("/{incident_id}/approvals", response_model=list[ApprovalRequest])
 def list_approvals(
-    incident_id: str, store: Annotated[InMemoryStore, Depends(get_store)]
+    incident_id: str, store: Annotated[StoreProtocol, Depends(get_store)]
 ) -> list[ApprovalRequest]:
     _get_or_404(store, incident_id)
     return store.list_approvals(incident_id)
@@ -235,26 +236,31 @@ def list_workflow_events(
 @router.get("/{incident_id}/events/stream")
 async def stream_workflow_events(
     request: Request,
-    incident_id: str, 
-    store: Annotated[StoreProtocol, Depends(get_store)]
+    incident_id: str,
+    store: Annotated[StoreProtocol, Depends(get_store)],
+    once: bool = Query(default=False),
 ) -> StreamingResponse:
     _get_or_404(store, incident_id)
 
-    async def event_generator():
+    async def event_generator() -> AsyncGenerator[str, None]:
         last_seen = 0
         while True:
             if await request.is_disconnected():
                 break
-                
+
             events = store.list_workflow_events(incident_id)
             for event in events[last_seen:]:
                 yield f"data: {event.model_dump_json()}\n\n"
             last_seen = len(events)
-            
+
+            if once:
+                break
+
             incident = store.get_incident(incident_id)
             if state_machine.is_terminal(incident.state):
                 break
-                
+
+            yield ": ping\n\n"
             await asyncio.sleep(0.1)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

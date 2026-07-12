@@ -1,8 +1,7 @@
 from datetime import UTC, datetime
-from typing import Any
 
 from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from app.domain.contracts import (
     ApprovalRequest,
@@ -12,7 +11,6 @@ from app.domain.contracts import (
     PatchAttempt,
     RemediationPlan,
     TimelineEvent,
-    VerificationCheck,
     VerificationRun,
     WorkflowEvent,
 )
@@ -37,12 +35,14 @@ class SqlAlchemyStore(StoreProtocol):
         from sqlalchemy.pool import StaticPool
         connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
         poolclass = StaticPool if database_url == "sqlite:///:memory:" else None
-        
+
         if poolclass:
-            self.engine = create_engine(database_url, connect_args=connect_args, poolclass=poolclass)
+            self.engine = create_engine(
+                database_url, connect_args=connect_args, poolclass=poolclass
+            )
         else:
             self.engine = create_engine(database_url, connect_args=connect_args)
-            
+
         Base.metadata.create_all(bind=self.engine)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         self._counter = 0
@@ -237,7 +237,9 @@ class SqlAlchemyStore(StoreProtocol):
 
     def list_plans(self, incident_id: str) -> list[RemediationPlan]:
         with self.SessionLocal() as session:
-            stmt = select(RemediationPlanModel).where(RemediationPlanModel.incident_id == incident_id)
+            stmt = select(RemediationPlanModel).where(
+                RemediationPlanModel.incident_id == incident_id
+            )
             models = session.scalars(stmt).all()
             return [RemediationPlan.model_validate(m, from_attributes=True) for m in models]
 
@@ -328,6 +330,8 @@ class SqlAlchemyStore(StoreProtocol):
 
     def list_approvals(self, incident_id: str) -> list[ApprovalRequest]:
         with self.SessionLocal() as session:
-            stmt = select(ApprovalRequestModel).where(ApprovalRequestModel.incident_id == incident_id)
+            stmt = select(ApprovalRequestModel).where(
+                ApprovalRequestModel.incident_id == incident_id
+            )
             models = session.scalars(stmt).all()
             return [ApprovalRequest.model_validate(m, from_attributes=True) for m in models]

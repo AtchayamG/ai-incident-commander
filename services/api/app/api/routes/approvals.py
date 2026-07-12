@@ -36,7 +36,10 @@ def decide(
         raise HTTPException(
             status_code=409, detail=f"approval already {approval.status}; cannot decide again"
         )
-    if now >= approval.expires_at:
+    expires_at = approval.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if now >= expires_at:
         expired = approval.model_copy(update={"status": ApprovalStatus.EXPIRED})
         store.update_approval(expired)
         raise HTTPException(status_code=409, detail="approval has expired")

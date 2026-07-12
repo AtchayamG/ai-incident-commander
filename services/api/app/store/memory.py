@@ -20,10 +20,7 @@ from app.domain.contracts import (
     WorkflowEvent,
 )
 from app.domain.enums import Environment, Severity, WorkflowState
-
-
 from app.store.protocol import NotFoundError
-
 
 
 class InMemoryStore:

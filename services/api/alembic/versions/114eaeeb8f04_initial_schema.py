@@ -1,21 +1,22 @@
 """Initial schema
 
 Revision ID: 114eaeeb8f04
-Revises: 
+Revises:
 Create Date: 2026-07-12 01:36:51.872045
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import sqlite
 
+from alembic import op
+
 # revision identifiers, used by Alembic.
 revision: str = '114eaeeb8f04'
-down_revision: Union[str, Sequence[str], None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -49,7 +50,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_approval_requests_incident_id'), 'approval_requests', ['incident_id'], unique=False)
+    op.create_index(
+        op.f('ix_approval_requests_incident_id'),
+        'approval_requests',
+        ['incident_id'],
+        unique=False
+    )
     op.create_table('evidence_items',
     sa.Column('id', sa.String(length=100), nullable=False),
     sa.Column('incident_id', sa.String(length=100), nullable=False),
@@ -63,7 +69,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_evidence_items_incident_id'), 'evidence_items', ['incident_id'], unique=False)
+    op.create_index(
+        op.f('ix_evidence_items_incident_id'),
+        'evidence_items',
+        ['incident_id'],
+        unique=False
+    )
     op.create_table('hypotheses',
     sa.Column('id', sa.String(length=100), nullable=False),
     sa.Column('incident_id', sa.String(length=100), nullable=False),
@@ -75,7 +86,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_hypotheses_incident_id'), 'hypotheses', ['incident_id'], unique=False)
+    op.create_index(
+        op.f('ix_hypotheses_incident_id'),
+        'hypotheses',
+        ['incident_id'],
+        unique=False
+    )
     op.create_table('workflow_events',
     sa.Column('id', sa.String(length=100), nullable=False),
     sa.Column('incident_id', sa.String(length=100), nullable=False),
@@ -87,7 +103,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_workflow_events_incident_id'), 'workflow_events', ['incident_id'], unique=False)
+    op.create_index(
+        op.f('ix_workflow_events_incident_id'),
+        'workflow_events',
+        ['incident_id'],
+        unique=False
+    )
     op.create_table('remediation_plans',
     sa.Column('id', sa.String(length=100), nullable=False),
     sa.Column('incident_id', sa.String(length=100), nullable=False),
@@ -101,7 +122,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_remediation_plans_incident_id'), 'remediation_plans', ['incident_id'], unique=False)
+    op.create_index(
+        op.f('ix_remediation_plans_incident_id'),
+        'remediation_plans',
+        ['incident_id'],
+        unique=False
+    )
     op.create_table('timeline_events',
     sa.Column('id', sa.String(length=100), nullable=False),
     sa.Column('incident_id', sa.String(length=100), nullable=False),
@@ -113,7 +139,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_timeline_events_incident_id'), 'timeline_events', ['incident_id'], unique=False)
+    op.create_index(
+        op.f('ix_timeline_events_incident_id'),
+        'timeline_events',
+        ['incident_id'],
+        unique=False
+    )
     op.create_table('patch_attempts',
     sa.Column('id', sa.String(length=100), nullable=False),
     sa.Column('incident_id', sa.String(length=100), nullable=False),
@@ -127,7 +158,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['plan_id'], ['remediation_plans.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_patch_attempts_incident_id'), 'patch_attempts', ['incident_id'], unique=False)
+    op.create_index(
+        op.f('ix_patch_attempts_incident_id'),
+        'patch_attempts',
+        ['incident_id'],
+        unique=False
+    )
     op.create_table('verification_runs',
     sa.Column('id', sa.String(length=100), nullable=False),
     sa.Column('patch_id', sa.String(length=100), nullable=False),
@@ -136,7 +172,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['patch_id'], ['patch_attempts.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_verification_runs_patch_id'), 'verification_runs', ['patch_id'], unique=False)
+    op.create_index(
+        op.f('ix_verification_runs_patch_id'),
+        'verification_runs',
+        ['patch_id'],
+        unique=False
+    )
     # ### end Alembic commands ###
 
 
