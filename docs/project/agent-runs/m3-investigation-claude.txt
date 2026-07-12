@@ -1,0 +1,30 @@
+ROLE: architecture/backend
+OBJECTIVE: Complete M3 typed investigation-agent outputs for the deterministic golden incident: three ranked evidence-grounded hypotheses, code/commit mapping, explicit unknowns, and structured validation behind replaceable model gateways.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m3-investigation
+ALLOWED FILES:
+- services/api/**
+- docs/adr/**
+- docs/testing/**
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- apps/web/**, packages/contracts/**, root status docs, production actions, credentials, unrelated refactors, commits
+REQUIREMENTS:
+- Define strict Pydantic structured outputs for incident summary, specialist findings, ranked hypotheses, affected files/commits, supporting and contradicting evidence IDs, confidence, unknowns, falsification tests, and concise rationale.
+- Implement bounded specialist interfaces for telemetry analysis, change correlation, code mapping, and runbook analysis, orchestrated by one explicit manager/state-machine stage.
+- Deterministic fixture gateway must produce at least three ranked hypotheses; top hypothesis must be unsafe `session.discount.code` access from commit `c7f2e9a`, supported by correct evidence citations.
+- Every material claim must cite persisted evidence IDs; reject/mark invalid unsupported claims and never expose chain-of-thought.
+- Include contradicting evidence and unknowns for every hypothesis and a safe insufficient-evidence path that disables remediation.
+- Identify `src/checkout.ts`, `src/checkout.test.ts`, commit `c7f2e9a`, and the coverage gap; include bounded falsification steps.
+- Persist structured outputs and make them available through existing hypothesis/API routes; add migrations if required.
+- Model IDs/provider configuration remain environment-driven; demo mode requires no credentials.
+- Preserve M0-M2 behavior and all approval gates.
+TESTS:
+- backend ruff, strict mypy, full pytest
+- schema rejection/unsupported-claim tests
+- top-hypothesis/citation/code-map determinism tests
+- insufficient-evidence/no-remediation test
+- fresh migration test
+DELIVERABLE:
+- implementation, focused tests, ADR if needed, and AGENT_HANDOFF.md with exact results
+STOP IF:
+- architecture conflict, missing secret for a non-simulatable requirement, destructive action, or scope expansion
