@@ -1,5 +1,5 @@
 {
-  "active_milestone": "M4",
+  "active_milestone": "M6",
   "status": "in_progress",
   "gates": {
     "frontend_lint": true,
@@ -13,12 +13,12 @@
     "e2e_tests": true,
     "fresh_migrations": true,
     "demo_reset": true,
-    "local_startup": false,
+    "local_startup": true,
     "secret_scan": false,
-    "approval_boundaries": false,
+    "approval_boundaries": true,
     "failed_verification_blocks_pr": false,
     "golden_demo": false,
     "five_run_reliability": false
   },
-  "last_updated": "2026-07-12T00:00:00+05:30"
+  "last_updated": "2026-07-12T22:45:00+05:30"
 }
