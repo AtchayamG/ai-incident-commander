@@ -1,0 +1,27 @@
+ROLE: frontend integration test
+OBJECTIVE: Add and execute a deterministic Playwright M1 E2E proving a user can create an incident through the real UI and the persisted record appears on the dashboard and incident detail screen.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m1-e2e
+ALLOWED FILES:
+- apps/web/**
+- package.json
+- pnpm-lock.yaml
+- docs/testing/**
+- AGENT_HANDOFF.md
+FORBIDDEN:
+- services/api application code, shared contracts, root status docs, production actions, secrets, unrelated refactors, commits
+REQUIREMENTS:
+- Use `@playwright/test` for the mandatory durable E2E gate and place runtime artifacts under `output/playwright/` (ignored from Git).
+- Configure Playwright to start the existing FastAPI API and Next.js web app with explicit demo-mode environment and an isolated temporary SQLite database.
+- The test must load the dashboard, open manual intake, validate required fields, create a uniquely named incident, observe it on the dashboard, open its detail route, and assert severity/service/state/simulated labeling.
+- Avoid hardcoded sleeps; use locator assertions and bounded timeouts.
+- Ensure server processes terminate after the test and no `.db`, trace, screenshot, or report artifacts are tracked.
+- Preserve the supported Next worker-thread build configuration; do not suppress process errors.
+TESTS:
+- frontend lint and strict typecheck
+- frontend vitest
+- Playwright E2E on Chromium
+- frontend production build
+DELIVERABLE:
+- implementation, reproducible E2E, and AGENT_HANDOFF.md with exact results
+STOP IF:
+- browser/runtime dependency cannot install, API fails to start, architecture conflict, or destructive action
