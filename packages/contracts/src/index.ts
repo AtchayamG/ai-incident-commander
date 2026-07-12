@@ -173,6 +173,30 @@ export interface RemediationPlan {
   max_lines_changed: number;
 }
 
+export interface RemediationPlanArtifact {
+  id: string;
+  incident_id: string;
+  investigation_report_id: string;
+  hypothesis_id: string;
+  version: number;
+  summary: string;
+  files_expected: string[];
+  steps: string[];
+  verification_commands: string[];
+  allowed_commands: string[];
+  prohibited_paths: string[];
+  risk_level: RiskLevel;
+  max_files_changed: number;
+  max_lines_changed: number;
+  max_attempts: number;
+  timeout_seconds: number;
+  network_allowed: boolean;
+  rollback: string;
+  rationale: string;
+  artifact_hash: string;
+  created_at: string;
+}
+
 export interface PatchAttempt {
   id: string;
   incident_id: string;

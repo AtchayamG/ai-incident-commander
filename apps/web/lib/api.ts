@@ -18,6 +18,7 @@ import type {
   TimelineEvent,
   Hypothesis,
   RemediationPlan,
+  RemediationPlanArtifact,
   PatchAttempt,
   InvestigationReport,
 } from "@incident-commander/contracts";
@@ -127,6 +128,14 @@ export function getIncidentHypotheses(incidentId: string): Promise<ApiResult<Hyp
 
 export function getIncidentPlans(incidentId: string): Promise<ApiResult<RemediationPlan[]>> {
   return request<RemediationPlan[]>(`api/v1/incidents/${encodeURIComponent(incidentId)}/remediation-plan`);
+}
+
+export function getIncidentPlanArtifact(
+  incidentId: string,
+): Promise<ApiResult<RemediationPlanArtifact>> {
+  return request<RemediationPlanArtifact>(
+    `api/v1/incidents/${encodeURIComponent(incidentId)}/remediation-plan/artifact`,
+  );
 }
 
 export function getIncidentPatches(incidentId: string): Promise<ApiResult<PatchAttempt[]>> {

@@ -1,0 +1,13 @@
+﻿I have successfully completed the M4 remediation-plan and human-approval UI/UX integration against the backend contracts.
+
+Here is a summary of the implementation:
+1. **Bounded Remediation Artifact Render**: Upgraded the Approval Gate in `apps/web/app/incidents/[id]/page.tsx`. It now dynamically locates the corresponding `RemediationPlan`, `PatchAttempt`, and top `Hypothesis` to display exact file/line changes against allowed budgets, network restrictions, the intended `diff`, and an immutable provenance hash tied to the Patch ID and `artifact_version`.
+2. **Regression Test & Rollback Integration**: Integrated falsification tests from the diagnostic investigation directly into the review gate, providing the reviewer with an explicit CLI verification command (e.g., `pnpm test -- test-script`) alongside a rollback path using the suspect commit ID.
+3. **Deliberate Review**: Replaced generic approval flows with an enforced reason input block. Added robust error state surfacing to plainly map any deterministic stale, expired, or already-consumed decisions intercepted by our `decideApproval` client logic.
+4. **End-to-End & Contract Validation**: 
+   - Extended `apps/web/lib/api.test.ts` with focused Vitest contract boundary coverage.
+   - Bootstrapped `apps/web/e2e/m4-approval.spec.ts` for Playwright mapping M4 scenarios, including explicit deterministic backend simulation of a HTTP 409 Stale Error during an Approval POST route intercept.
+5. **Documentation**: Authored the testing guide `docs/testing/m4-approval-ui.md` and finalized the deliverables into `docs/project/agent-runs/M4_APPROVAL_UI_FINAL_HANDOFF.md`.
+
+All changes honor the strict zero-tolerance accessibility baseline and did not compromise forbidden service boundaries. Please review the handoff document or run the tests locally to verify.
+(No further action is required since the task is complete. Please let me know if you need anything else!)

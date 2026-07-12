@@ -176,3 +176,83 @@ describe("request handling", () => {
   });
 });
 
+describe('API Contract - decideApproval', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('should format approval decision request according to contracts', async () => {
+    const mockFetch = vi.fn(async () => new Response(JSON.stringify({ id: 'app-1', status: 'approved' }), { status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+    const { decideApproval } = await import('./api');
+
+    const res = await decideApproval('app-1', {
+      decision: 'approved',
+      reason: 'Looks good',
+      artifact_version: 1,
+    });
+
+    expect(mockFetch).toHaveBeenCalled();
+    const [url, init] = mockFetch.mock.calls[0] as any;
+    expect(url).toContain('/api/v1/approvals/app-1/decision');
+    expect(init.method).toBe('POST');
+    expect(init.headers['Content-Type']).toBe('application/json');
+    expect(JSON.parse(init.body)).toEqual({
+      decision: 'approved',
+      reason: 'Looks good',
+      artifact_version: 1,
+    });
+    
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.status).toBe('approved');
+    }
+  });
+
+  it('should gracefully handle HTTP 409 stale errors', async () => {
+    const mockFetch = vi.fn(async () => new Response(JSON.stringify({ detail: 'Approval request is stale or already consumed.' }), { status: 409 }));
+    vi.stubGlobal('fetch', mockFetch);
+    const { decideApproval } = await import('./api');
+
+    const res = await decideApproval('app-1', {
+      decision: 'approved',
+      reason: 'Conflict',
+    });
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.status).toBe(409);
+      // The API client stringifies the error object from JSON bodies if not ok
+      expect(res.error).toContain('Approval request is stale or already consumed.');
+    }
+  });
+});
+
+describe('API Contract - bounded remediation artifact', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('requests the immutable artifact endpoint without synthesizing plan fields', async () => {
+    const artifact = {
+      id: 'plan-artifact-1',
+      artifact_hash: 'sha256:abc',
+      verification_commands: ['pnpm test'],
+      rollback: 'Restore the prior checkout implementation.',
+    };
+    const mockFetch = vi.fn(async () => new Response(JSON.stringify(artifact), { status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+    const { getIncidentPlanArtifact } = await import('./api');
+
+    const result = await getIncidentPlanArtifact('inc/demo');
+
+    expect(mockFetch.mock.calls[0]?.[0]).toContain(
+      '/api/v1/incidents/inc%2Fdemo/remediation-plan/artifact',
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.artifact_hash).toBe('sha256:abc');
+      expect(result.data.verification_commands).toEqual(['pnpm test']);
+    }
+  });
+});

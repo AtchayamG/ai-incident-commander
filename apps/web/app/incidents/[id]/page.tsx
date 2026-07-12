@@ -8,6 +8,7 @@ import type {
   TimelineEvent,
   Hypothesis,
   RemediationPlan,
+  RemediationPlanArtifact,
   PatchAttempt,
   ApprovalRequest,
   WorkflowState,
@@ -20,6 +21,7 @@ import {
   getIncidentTimeline,
   getIncidentHypotheses,
   getIncidentPlans,
+  getIncidentPlanArtifact,
   getIncidentPatches,
   getIncidentApprovals,
   startIncident,
@@ -45,6 +47,7 @@ export default function IncidentDetailPage() {
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
   const [plans, setPlans] = useState<RemediationPlan[]>([]);
+  const [planArtifact, setPlanArtifact] = useState<RemediationPlanArtifact | null>(null);
   const [patches, setPatches] = useState<PatchAttempt[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [investigation, setInvestigation] = useState<InvestigationReport | null>(null);
@@ -121,6 +124,7 @@ export default function IncidentDetailPage() {
       timelineRes,
       hypothesesRes,
       plansRes,
+      planArtifactRes,
       patchesRes,
       approvalsRes,
       investigationRes,
@@ -130,6 +134,7 @@ export default function IncidentDetailPage() {
       getIncidentTimeline(incidentId),
       getIncidentHypotheses(incidentId),
       getIncidentPlans(incidentId),
+      getIncidentPlanArtifact(incidentId),
       getIncidentPatches(incidentId),
       getIncidentApprovals(incidentId),
       getIncidentInvestigation(incidentId),
@@ -171,6 +176,14 @@ export default function IncidentDetailPage() {
       setPlansError(null);
     } else {
       setPlansError(`Failed to fetch remediation plans: ${plansRes.error || "Unknown error"}`);
+    }
+
+    if (planArtifactRes.ok) {
+      setPlanArtifact(planArtifactRes.data);
+    } else if (planArtifactRes.status === 404) {
+      setPlanArtifact(null);
+    } else {
+      setPlansError(`Failed to fetch bounded remediation artifact: ${planArtifactRes.error || "Unknown error"}`);
     }
 
     if (patchesRes.ok) {
@@ -685,7 +698,10 @@ export default function IncidentDetailPage() {
               <h2 style={{ fontSize: "1.25rem", color: "var(--warning)", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 ⚠️ Action Required: Human Approval Gate
               </h2>
-              {approvals.filter(a => a.status === "pending").map((approval) => (
+              {approvals.filter(a => a.status === "pending").map((approval) => {
+                const plan = plans.find(p => p.incident_id === approval.incident_id) || plans[0];
+                const hyp = investigation?.hypotheses?.[0];
+                return (
                 <div key={approval.id} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                   <div style={{ background: "rgba(245, 158, 11, 0.1)", padding: "0.75rem", borderRadius: "6px", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
@@ -695,6 +711,55 @@ export default function IncidentDetailPage() {
                     <div><strong>Request rationale:</strong> {approval.reason}</div>
                     <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
                       Requested at: {new Date(approval.requested_at).toLocaleTimeString()} (Expires: {new Date(approval.expires_at).toLocaleTimeString()})
+                    </div>
+                  </div>
+
+                  <div style={{ border: "1px solid var(--primary-light)", padding: "1rem", borderRadius: "6px", background: "rgba(139, 92, 246, 0.05)" }}>
+                    <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.75rem" }}>
+                      📦 Bounded Remediation Artifact (v{planArtifact?.version ?? approval.artifact_version})
+                    </h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", fontSize: "0.85rem", marginBottom: "1rem" }}>
+                      <div>
+                        <strong>Exact Files & Budgets:</strong><br />
+                        <span style={{ color: "var(--text-muted)" }}>Files: {planArtifact?.files_expected.join(", ") ?? "Unavailable"}</span><br />
+                        <span style={{ color: "var(--text-muted)" }}>Budget: {planArtifact?.max_files_changed ?? plan?.max_files_changed ?? "N/A"} files / {planArtifact?.max_lines_changed ?? plan?.max_lines_changed ?? "N/A"} lines</span><br />
+                        <span style={{ color: "var(--text-muted)" }}>Network: {planArtifact ? (planArtifact.network_allowed ? "Allowed" : "Denied") : "Unavailable"}</span>
+                      </div>
+                      <div>
+                        <strong>Hash & Provenance:</strong><br />
+                        <code data-testid="remediation-artifact-hash" style={{ fontSize: "0.75rem", color: "var(--text-main)", overflowWrap: "anywhere" }}>{planArtifact?.artifact_hash ?? "Unavailable"}</code><br />
+                        <span style={{ color: "var(--text-muted)" }}>Artifact: {planArtifact?.id ?? "Unavailable"} · created {planArtifact ? new Date(planArtifact.created_at).toLocaleString() : "N/A"}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: "1rem", fontSize: "0.9rem" }}>
+                      <strong>Diagnosis Link:</strong>{" "}
+                      <a href={`#evidence-${hyp?.supporting?.[0]?.evidence_id ?? ""}`} style={{ color: "var(--primary-hover)", textDecoration: "underline" }} onClick={(e) => { e.preventDefault(); if (hyp?.supporting?.[0]?.evidence_id) scrollToEvidence(hyp.supporting[0].evidence_id); }}>
+                        View Primary Evidence ({hyp?.supporting?.[0]?.evidence_id ?? "N/A"})
+                      </a>
+                    </div>
+
+                    <div style={{ marginBottom: "1rem", fontSize: "0.9rem" }}>
+                      <strong>Verification Commands:</strong>
+                      {planArtifact?.verification_commands.length ? (
+                         <div style={{ padding: "0.5rem", background: "rgba(0,0,0,0.2)", borderRadius: "4px", marginTop: "0.25rem" }}>
+                           {planArtifact.verification_commands.map(command => <div key={command}><code style={{ color: "var(--success)" }}>{command}</code></div>)}
+                         </div>
+                      ) : (
+                         <div style={{ color: "var(--text-muted)" }}>No deterministic verification steps generated.</div>
+                      )}
+                    </div>
+
+                    <div style={{ marginBottom: "1rem", fontSize: "0.9rem" }}>
+                      <strong>Rollback Procedure:</strong>
+                      <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                        <span>{planArtifact?.rollback ?? "Unavailable"}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: "1rem", borderTop: "1px dashed var(--border-color)", paddingTop: "0.75rem" }}>
+                      <strong>Intended Changes:</strong>
+                      {planArtifact?.steps.length ? <ol>{planArtifact.steps.map(step => <li key={step}>{step}</li>)}</ol> : <div style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: "0.85rem" }}>No immutable artifact is available.</div>}
                     </div>
                   </div>
 
@@ -723,18 +788,18 @@ export default function IncidentDetailPage() {
                       onClick={() => handleDecision(approval.id, "approved")}
                       disabled={isSubmittingApproval}
                     >
-                      ✓ Approve & Execute Patch
+                      {isSubmittingApproval ? "Submitting..." : "✓ Approve & Execute Patch"}
                     </button>
                     <button 
                       className="btn btn-danger"
                       onClick={() => handleDecision(approval.id, "rejected")}
                       disabled={isSubmittingApproval}
                     >
-                      ✕ Reject Patch
+                      {isSubmittingApproval ? "Submitting..." : "✕ Reject Patch"}
                     </button>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
 
