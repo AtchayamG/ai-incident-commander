@@ -4,11 +4,13 @@ import tempfile
 
 from alembic.config import Config
 from fastapi.testclient import TestClient
+from sqlalchemy import inspect
 
 from alembic import command
 from app.config import Settings
 from app.domain.enums import WorkflowState
 from app.main import create_app
+from app.store.sql import SqlAlchemyStore
 
 
 def test_fresh_migration() -> None:
@@ -95,6 +97,17 @@ def test_restart_persistence(test_db_path: str) -> None:
         res2 = client2.get(f"/api/v1/incidents/{inc_id}")
         assert res2.status_code == 200
         assert res2.json()["title"] == "Test Persistence"
+
+
+def test_reset_clears_rows_without_dropping_schema(test_db_path: str) -> None:
+    store = SqlAlchemyStore(f"sqlite:///{test_db_path}")
+    tables_before = set(inspect(store.engine).get_table_names())
+
+    store.reset()
+
+    assert set(inspect(store.engine).get_table_names()) == tables_before
+    assert "incidents" in tables_before
+    assert store.list_incidents() == []
 
 def test_webhook_intake(client: TestClient) -> None:
     """Test generic JSON webhook intake with safe demo behavior."""

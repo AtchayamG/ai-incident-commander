@@ -6,6 +6,8 @@ credentials. Live providers are not implemented in M0; constructing the app
 with ``demo_mode=False`` raises rather than silently pretending.
 """
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,7 +22,6 @@ from app.providers.simulated import (
     SimulatedLocalRepositoryProvider,
     SimulatedRunbookProvider,
     SimulatedTelemetryProvider,
-    SimulatedVerificationRunner,
 )
 from app.providers.simulated_investigation import (
     FixtureChangeCorrelationSpecialist,
@@ -31,6 +32,7 @@ from app.providers.simulated_investigation import (
 )
 from app.providers.simulated_remediation import FixtureRemediationPlanner
 from app.sandbox.executor import SandboxPatchExecutor
+from app.sandbox.verifier import DeterministicVerifier
 from app.store.sql import SqlAlchemyStore
 from app.workflow.investigation_manager import InvestigationManager
 from app.workflow.pipeline import WorkflowPipeline
@@ -82,7 +84,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         investigation_manager=investigation_manager,
         remediation_planner=remediation_planner,
         patch_executor=patch_executor,
-        verifier=SimulatedVerificationRunner(),
+        # M6: deterministic subprocess verification of the captured candidate
+        # patch. The environment is copied once here so the runner's own
+        # allowlist — not the parent process — decides what the check
+        # subprocesses can see.
+        verifier=DeterministicVerifier(store=store, environ=dict(os.environ)),
         provider_mode=settings.provider_mode,
     )
 

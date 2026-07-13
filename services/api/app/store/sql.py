@@ -18,6 +18,7 @@ from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
 from app.domain.remediation import ApprovalBinding, RemediationPlanArtifact
 from app.domain.sandbox import PatchExecutionArtifact
+from app.domain.verification import VerificationRunArtifact
 from app.store.models import (
     ApprovalBindingModel,
     ApprovalRequestModel,
@@ -31,6 +32,7 @@ from app.store.models import (
     RemediationPlanArtifactModel,
     RemediationPlanModel,
     TimelineEventModel,
+    VerificationRunArtifactModel,
     VerificationRunModel,
     WorkflowEventModel,
 )
@@ -55,8 +57,12 @@ class SqlAlchemyStore(StoreProtocol):
         self._counter = 0
 
     def reset(self) -> None:
-        Base.metadata.drop_all(bind=self.engine)
-        Base.metadata.create_all(bind=self.engine)
+        # Preserve the schema so concurrent dashboard reads never observe the
+        # drop/create gap during a demo reset. Readers see either the old rows
+        # or the committed empty store; foreign-key order is reversed.
+        with self.engine.begin() as connection:
+            for table in reversed(Base.metadata.sorted_tables):
+                connection.execute(table.delete())
         self._counter = 0
 
     def next_id(self, prefix: str) -> str:
@@ -413,6 +419,57 @@ class SqlAlchemyStore(StoreProtocol):
             )
             models = session.scalars(stmt).all()
             return [VerificationRun.model_validate(m, from_attributes=True) for m in models]
+
+    def add_verification_artifact(
+        self, artifact: VerificationRunArtifact
+    ) -> VerificationRunArtifact:
+        with self.SessionLocal() as session:
+            model = VerificationRunArtifactModel(
+                id=artifact.id,
+                incident_id=artifact.incident_id,
+                patch_id=artifact.patch_id,
+                passed=artifact.passed,
+                failure_kind=artifact.failure_kind.value if artifact.failure_kind else None,
+                artifact_hash=artifact.artifact_hash,
+                document=artifact.model_dump(mode="json"),
+                created_at=artifact.created_at,
+            )
+            session.add(model)
+            session.commit()
+            return artifact
+
+    def list_verification_artifacts(
+        self, incident_id: str
+    ) -> list[VerificationRunArtifact]:
+        with self.SessionLocal() as session:
+            stmt = (
+                select(VerificationRunArtifactModel)
+                .where(VerificationRunArtifactModel.incident_id == incident_id)
+                .order_by(
+                    VerificationRunArtifactModel.created_at.asc(),
+                    VerificationRunArtifactModel.id.asc(),
+                )
+            )
+            models = session.scalars(stmt).all()
+            return [VerificationRunArtifact.model_validate(m.document) for m in models]
+
+    def get_verification_artifact_for_patch(
+        self, patch_id: str
+    ) -> VerificationRunArtifact | None:
+        with self.SessionLocal() as session:
+            stmt = (
+                select(VerificationRunArtifactModel)
+                .where(VerificationRunArtifactModel.patch_id == patch_id)
+                .order_by(
+                    VerificationRunArtifactModel.created_at.desc(),
+                    VerificationRunArtifactModel.id.desc(),
+                )
+                .limit(1)
+            )
+            model = session.scalars(stmt).first()
+            if model is None:
+                return None
+            return VerificationRunArtifact.model_validate(model.document)
 
     def add_approval(self, approval: ApprovalRequest) -> ApprovalRequest:
         with self.SessionLocal() as session:

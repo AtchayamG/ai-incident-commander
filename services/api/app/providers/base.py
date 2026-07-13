@@ -78,13 +78,6 @@ class PatchTaskContext:
 
 
 @dataclass(frozen=True)
-class VerificationCheckResult:
-    name: str
-    passed: bool
-    detail: str
-
-
-@dataclass(frozen=True)
 class PullRequestReceipt:
     provider: str
     url: str
@@ -232,13 +225,6 @@ class CodeAgentGateway(Protocol):
     def simulated(self) -> bool: ...
 
     def apply_patch_turn(self, workspace: SandboxWorkspace, task: PatchTaskContext) -> None: ...
-
-
-@runtime_checkable
-class VerificationRunner(Protocol):
-    """Runs tests/lint/typecheck against a patched workspace."""
-
-    def verify(self, incident: Incident, diff: str) -> list[VerificationCheckResult]: ...
 
 
 @runtime_checkable

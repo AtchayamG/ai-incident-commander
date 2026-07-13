@@ -1,0 +1,25 @@
+﻿M6 verification pipeline finished. Branch fully verified, integration-ready.
+
+## Done
+
+**Six failures fixed** — legacy `SimulatedVerificationRunner.verify(incident, diff)` killed. One strict `Verifier` protocol (`verify(incident, execution, patch_id, attempt) -> VerificationRunArtifact`), `DeterministicVerifier` sole impl, wired in `main.py`, all test doubles migrated. Deleted dead `VerificationRunner`/`VerificationCheckResult`.
+
+**Persistence + API** — added 3 missing `SqlAlchemyStore` methods + `VerificationRunArtifactModel` + migration `d4b8f1e6c530`. Exposure reuses existing `/verifications` contract (artifact projected onto `VerificationRun`) — no parallel API.
+
+**Real verification confirmed** — byte-exact diff reconstruction, no-shell allowlisted argv, env/network denial, per-command + total timeouts, bounded output, base-state failure classification, bounded repair (cap 2), fail-closed → `PATCH_FAILED`, only all-pass + acceptable risk → `REVIEW_READY`. Runs on node v22.9.0 offline harness.
+
+**13 focused tests** (`test_verification.py`): pass, allowlist rejection, timeout, output bound, env-issue + patch-issue classification, repair cap, PR blocking (high-risk + failed), persistence/API. Fixed determinism test by masking M6 lifecycle volatile tokens (mirrors M5).
+
+## Exact results
+
+| Gate | Result |
+|------|--------|
+| ruff | All checks passed! |
+| mypy --strict | Success: 43 source files |
+| pytest | **133 passed** (was 114/6 failed) |
+| fresh alembic upgrade head | chain → `d4b8f1e6c530`, `verification_run_artifacts` table present, 8 cols |
+
+## Scope
+14 files, all within allowed set. No commits, no forbidden paths. Handoff at `docs/project/agent-runs/M6_VERIFICATION_OPUS_FINAL_HANDOFF.md`.
+
+Risk: node-dependent tests `skipif` when node absent; verifier fails **closed** without it. No BLOCKED items.

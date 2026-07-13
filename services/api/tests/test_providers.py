@@ -18,7 +18,6 @@ from app.providers.base import (
     PullRequestProvider,
     RunbookProvider,
     TelemetryProvider,
-    VerificationRunner,
 )
 from app.providers.code_agent import CodexCliGateway, FixtureCodexGateway
 from app.providers.simulated import (
@@ -28,8 +27,9 @@ from app.providers.simulated import (
     SimulatedPullRequestProvider,
     SimulatedRunbookProvider,
     SimulatedTelemetryProvider,
-    SimulatedVerificationRunner,
 )
+from app.sandbox.verifier import DeterministicVerifier, Verifier
+from app.store.memory import InMemoryStore
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -62,7 +62,9 @@ def test_simulated_providers_satisfy_protocols() -> None:
     assert isinstance(SimulatedInvestigationProvider(), InvestigationProvider)
     assert isinstance(FixtureCodexGateway(), CodeAgentGateway)
     assert isinstance(CodexCliGateway(binary="codex", model="test"), CodeAgentGateway)
-    assert isinstance(SimulatedVerificationRunner(), VerificationRunner)
+    assert isinstance(
+        DeterministicVerifier(store=InMemoryStore(), environ={}), Verifier
+    )
     assert isinstance(SimulatedPullRequestProvider(), PullRequestProvider)
     for source in EVIDENCE_SOURCES:
         assert isinstance(source, EvidenceSource)

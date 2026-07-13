@@ -54,6 +54,10 @@ from app.store.protocol import StoreProtocol
 
 MANIFEST_FILENAME = "base_manifest.json"
 
+# Hard ceiling on verification-driven repair executions per consumed approval
+# (blueprint 19.4), independent of the plan's own attempt budget.
+MAX_REPAIR_ATTEMPTS = 2
+
 
 class ApprovalRequiredError(Exception):
     """Raised when a patch is attempted without a valid, bound approval."""
@@ -77,6 +81,37 @@ class BaseManifest:
     service: str
     base_ref: str
     files: dict[str, str]
+
+
+def load_base_manifest(
+    fixtures_root: Path | None, service: str
+) -> tuple[Path, BaseManifest]:
+    """Load the pinned immutable base manifest for a service, failing closed
+    when it is missing or invalid. Shared by the M5 executor and the M6
+    verifier so both always describe the same base."""
+    source_dir = (fixtures_root or default_fixtures_root()) / service
+    manifest_path = source_dir / MANIFEST_FILENAME
+    if not manifest_path.is_file():
+        raise SandboxSetupError(
+            f"immutable base manifest missing for {service} at {manifest_path}; "
+            "failing closed"
+        )
+    try:
+        raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = BaseManifest(
+            service=raw["service"],
+            base_ref=raw["base_ref"],
+            files=dict(raw["files"]),
+        )
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise SandboxSetupError(
+            f"immutable base manifest for {service} is invalid: {exc}"
+        ) from exc
+    if manifest.service != service or not manifest.files:
+        raise SandboxSetupError(
+            f"immutable base manifest does not describe service {service}"
+        )
+    return source_dir, manifest
 
 
 class SandboxPatchExecutor:
@@ -111,12 +146,85 @@ class SandboxPatchExecutor:
                     f"approval {approval.id} was already consumed by execution "
                     f"{previous.id}; a new approval is required"
                 )
+        return self._run_execution(
+            incident, plan, approval, extra_steps=(), attempt_budget=plan.max_attempts
+        )
+
+    def repair_budget_remaining(
+        self, incident: Incident, prior: PatchExecutionArtifact
+    ) -> int:
+        """Patch turns still available for bounded repairs under the approval
+        that ``prior`` consumed: the plan's attempt budget minus every turn
+        already used, additionally hard-capped at MAX_REPAIR_ATTEMPTS repair
+        executions (blueprint 19.4)."""
+        plan = self._store.get_latest_plan_artifact(incident.id)
+        if (
+            plan is None
+            or plan.id != prior.plan_id
+            or plan.version != prior.plan_version
+            or plan.artifact_hash != prior.plan_hash
+        ):
+            return 0
+        siblings = [
+            a
+            for a in self._store.list_patch_executions(incident.id)
+            if a.approval_id == prior.approval_id
+        ]
+        used = sum(a.attempts_used for a in siblings)
+        repairs_done = max(len(siblings) - 1, 0)
+        if repairs_done >= MAX_REPAIR_ATTEMPTS:
+            return 0
+        return max(plan.max_attempts - used, 0)
+
+    def repair(
+        self, incident: Incident, prior: PatchExecutionArtifact, failure_summary: str
+    ) -> PatchExecutionArtifact:
+        """Run one bounded repair turn after a relevant verification failure
+        (blueprint 19.4). The repair re-uses the approval ``prior`` consumed —
+        it must still be APPROVED and bound to the unchanged plan artifact —
+        and spends the remaining attempt budget on a fresh workspace reset to
+        the immutable base. Scope never widens: same plan, same files, same
+        budgets; the only addition is the deterministic failure summary."""
+        plan = self._store.get_latest_plan_artifact(incident.id)
+        if plan is None or plan.artifact_hash != prior.plan_hash:
+            raise SandboxSetupError(
+                "the plan artifact changed since the approved execution; "
+                "refusing to repair under a different contract"
+            )
+        approval = self._authorizing_approval(incident, plan)
+        if approval.id != prior.approval_id:
+            raise ApprovalRequiredError(
+                "the authorizing approval is not the one the prior execution "
+                "consumed; a repair cannot switch approvals"
+            )
+        remaining = self.repair_budget_remaining(incident, prior)
+        if remaining < 1:
+            raise ApprovalRequiredError(
+                "no repair attempt budget remains for this approval"
+            )
+        summary = failure_summary.strip()[:300]
+        extra = (
+            "Repair attempt: the previous candidate patch failed deterministic "
+            f"verification: {summary}",
+        )
+        return self._run_execution(
+            incident, plan, approval, extra_steps=extra, attempt_budget=remaining
+        )
+
+    def _run_execution(
+        self,
+        incident: Incident,
+        plan: RemediationPlanArtifact,
+        approval: ApprovalRequest,
+        extra_steps: tuple[str, ...],
+        attempt_budget: int,
+    ) -> PatchExecutionArtifact:
         if plan.network_allowed:
             raise SandboxSetupError(
                 "plan requests network access; sandbox policy denies network"
             )
 
-        source_dir, manifest = self._load_manifest(incident.service)
+        source_dir, manifest = load_base_manifest(self._fixtures_root, incident.service)
         repo_root = source_dir / "repo"
         pre_hashes = self._source_hashes(repo_root)
         self._verify_against_manifest(pre_hashes, manifest)
@@ -165,13 +273,15 @@ class SandboxPatchExecutor:
                 incident_id=incident.id,
                 service=incident.service,
                 plan_summary=plan.summary,
-                steps=tuple(plan.steps),
+                steps=tuple(plan.steps) + extra_steps,
                 files_expected=tuple(sorted(plan.files_expected)),
                 max_files_changed=plan.max_files_changed,
                 max_lines_changed=plan.max_lines_changed,
                 timeout_seconds=plan.timeout_seconds,
             )
-            attempts_used, turn_error = self._run_attempts(workspace, task, plan, log)
+            attempts_used, turn_error = self._run_attempts(
+                workspace, task, plan, log, attempt_budget
+            )
             if turn_error is not None:
                 raise turn_error
 
@@ -266,15 +376,16 @@ class SandboxPatchExecutor:
         task: PatchTaskContext,
         plan: RemediationPlanArtifact,
         log: Callable[[SandboxLifecycleStage, str], None],
+        attempt_budget: int,
     ) -> tuple[int, GatewayTurnError | None]:
-        """Run gateway patch turns within the plan's attempt and timeout
-        budgets. Returns (attempts used, error); the error is the final turn
-        failure once the budget is exhausted, so attempts stay auditable on
-        failure paths."""
+        """Run gateway patch turns within the attempt and timeout budgets.
+        Returns (attempts used, error); the error is the final turn failure
+        once the budget is exhausted, so attempts stay auditable on failure
+        paths."""
         started = time.monotonic()
         last_error: GatewayTurnError | None = None
         attempts_used = 0
-        for attempt in range(1, plan.max_attempts + 1):
+        for attempt in range(1, attempt_budget + 1):
             if time.monotonic() - started >= plan.timeout_seconds:
                 return attempts_used, GatewayTurnError(
                     f"timeout budget of {plan.timeout_seconds}s exhausted after "
@@ -282,7 +393,7 @@ class SandboxPatchExecutor:
                 )
             log(
                 SandboxLifecycleStage.PATCH_TURN_STARTED,
-                f"attempt {attempt}/{plan.max_attempts} via {self._gateway.engine_id}",
+                f"attempt {attempt}/{attempt_budget} via {self._gateway.engine_id}",
             )
             attempts_used = attempt
             try:
@@ -294,10 +405,10 @@ class SandboxPatchExecutor:
                     SandboxLifecycleStage.PATCH_TURN_FAILED,
                     f"attempt {attempt} failed: {exc}",
                 )
-                if attempt < plan.max_attempts:
+                if attempt < attempt_budget:
                     workspace.reset_to_base()
         return attempts_used, GatewayTurnError(
-            f"attempt budget of {plan.max_attempts} exhausted: {last_error}"
+            f"attempt budget of {attempt_budget} exhausted: {last_error}"
         )
 
     def _authorizing_approval(
@@ -320,31 +431,6 @@ class SandboxPatchExecutor:
         raise ApprovalRequiredError(
             "no approved APPLY_PATCH approval is bound to the current plan artifact"
         )
-
-    def _load_manifest(self, service: str) -> tuple[Path, BaseManifest]:
-        source_dir = (self._fixtures_root or default_fixtures_root()) / service
-        manifest_path = source_dir / MANIFEST_FILENAME
-        if not manifest_path.is_file():
-            raise SandboxSetupError(
-                f"immutable base manifest missing for {service} at {manifest_path}; "
-                "failing closed"
-            )
-        try:
-            raw = json.loads(manifest_path.read_text(encoding="utf-8"))
-            manifest = BaseManifest(
-                service=raw["service"],
-                base_ref=raw["base_ref"],
-                files=dict(raw["files"]),
-            )
-        except (json.JSONDecodeError, KeyError, TypeError) as exc:
-            raise SandboxSetupError(
-                f"immutable base manifest for {service} is invalid: {exc}"
-            ) from exc
-        if manifest.service != service or not manifest.files:
-            raise SandboxSetupError(
-                f"immutable base manifest does not describe service {service}"
-            )
-        return source_dir, manifest
 
     @staticmethod
     def _source_hashes(repo_root: Path) -> dict[str, str]:

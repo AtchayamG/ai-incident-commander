@@ -38,10 +38,10 @@ from app.providers.simulated import (
     SimulatedLocalRepositoryProvider,
     SimulatedRunbookProvider,
     SimulatedTelemetryProvider,
-    SimulatedVerificationRunner,
 )
 from app.providers.simulated_remediation import FixtureRemediationPlanner
 from app.sandbox.executor import SandboxPatchExecutor
+from app.sandbox.verifier import DeterministicVerifier
 from app.store.memory import InMemoryStore
 from app.store.protocol import StoreProtocol
 from app.workflow.pipeline import ApprovalRequiredError, WorkflowPipeline
@@ -207,7 +207,7 @@ def _pipeline(store: StoreProtocol, planner: Any) -> WorkflowPipeline:
         investigation_manager=_fixture_manager(),
         remediation_planner=RemediationPlanningManager(planner=planner),
         patch_executor=SandboxPatchExecutor(store=store, gateway=FixtureCodexGateway()),
-        verifier=SimulatedVerificationRunner(),
+        verifier=DeterministicVerifier(store=store, environ={}),
         provider_mode=ProviderMode.SIMULATED,
     )
 

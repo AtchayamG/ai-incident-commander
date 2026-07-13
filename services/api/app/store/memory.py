@@ -23,6 +23,7 @@ from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
 from app.domain.remediation import ApprovalBinding, RemediationPlanArtifact
 from app.domain.sandbox import PatchExecutionArtifact
+from app.domain.verification import VerificationRunArtifact
 from app.store.protocol import NotFoundError
 
 
@@ -39,6 +40,7 @@ class InMemoryStore:
         self._patches: dict[str, list[PatchAttempt]] = {}
         self._patch_executions: dict[str, list[PatchExecutionArtifact]] = {}
         self._verifications: dict[str, list[VerificationRun]] = {}
+        self._verification_artifacts: dict[str, list[VerificationRunArtifact]] = {}
         self._approvals: dict[str, ApprovalRequest] = {}
         self._approval_bindings: dict[str, ApprovalBinding] = {}
         self._workflow_events: dict[str, list[WorkflowEvent]] = {}
@@ -56,6 +58,7 @@ class InMemoryStore:
             self._patches.clear()
             self._patch_executions.clear()
             self._verifications.clear()
+            self._verification_artifacts.clear()
             self._approvals.clear()
             self._approval_bindings.clear()
             self._workflow_events.clear()
@@ -229,6 +232,27 @@ class InMemoryStore:
     def list_verifications(self, incident_id: str) -> list[VerificationRun]:
         with self._lock:
             return list(self._verifications.get(incident_id, []))
+
+    def add_verification_artifact(
+        self, artifact: VerificationRunArtifact
+    ) -> VerificationRunArtifact:
+        with self._lock:
+            self._verification_artifacts.setdefault(artifact.incident_id, []).append(artifact)
+            return artifact
+
+    def list_verification_artifacts(self, incident_id: str) -> list[VerificationRunArtifact]:
+        with self._lock:
+            return list(self._verification_artifacts.get(incident_id, []))
+
+    def get_verification_artifact_for_patch(
+        self, patch_id: str
+    ) -> VerificationRunArtifact | None:
+        with self._lock:
+            for artifacts in self._verification_artifacts.values():
+                for artifact in reversed(artifacts):
+                    if artifact.patch_id == patch_id:
+                        return artifact
+            return None
 
     # Approvals -------------------------------------------------------------
 

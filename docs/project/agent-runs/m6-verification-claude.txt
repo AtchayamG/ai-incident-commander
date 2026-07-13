@@ -1,0 +1,29 @@
+ROLE: Principal backend/security engineer implementing M6 with Fable 5 and Ponytail full/minimal discipline.
+OBJECTIVE: Replace simulated verification with deterministic checks against the captured M5 candidate patch, produce an immutable review package/risk decision, and complete the real REVIEW_READY or PATCH_FAILED workflow.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m6-verification
+SOURCE: docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md sections 14.2, 17.5, 19.3-19.4, 21, M6, and existing M4/M5 contracts.
+ALLOWED FILES:
+- services/api/**
+- evals/fixtures/**
+- docs/adr/**
+- docs/testing/**
+- docs/project/agent-runs/M6_VERIFICATION_FINAL_HANDOFF.md
+FORBIDDEN:
+- apps/web/**, packages/contracts/** unless a true boundary conflict requires stopping, root status docs, commits, external actions, deployment, secrets
+REQUIREMENTS:
+- Materialize a verification workspace from the immutable fixture base plus the exact stored candidate diff; never verify a different tree.
+- Run only plan-authorized deterministic commands through a strict argv allowlist, without a shell, with network denied, explicit environment allowlist, cwd confinement, per-command timeout, output size bounds, and total verification budget.
+- Capture command/category, sanitized stdout/stderr, exit code, duration, and artifacts; require at least one relevant regression test.
+- Classify failures as patch issue, environment issue, or pre-existing failure using known base-state evidence.
+- Implement maximum two bounded repair attempts only for relevant patch failures while approval/budgets remain valid; reset workspace between attempts and never silently widen scope.
+- Persist VerificationRun data through memory and SQL stores and serve authoritative existing incident verification API. Add per-patch detail endpoint only if blueprint-required and typed consistently.
+- Produce deterministic risk review over changed paths/size/content; high-risk auth/payment/migration/infra/secrets block real PR readiness by default.
+- REVIEW_READY only when required checks pass and policy allows; otherwise PATCH_FAILED with structured evidence.
+- Keep fixture/simulated versus live Codex and verification provenance explicit.
+- Cleanup every workspace on success/failure and prove it.
+- Add focused unit/API/integration tests for allowlist rejection, shell metacharacters, network/env isolation, timeout, output truncation, relevant-test requirement, base failure, retry success/exhaustion, risk blocking, persistence, and golden path.
+- Run ruff, strict mypy, full pytest, migration roundtrip. Do not claim unrun gates.
+DELIVERABLE:
+- Implementation/tests/docs/project/agent-runs/M6_VERIFICATION_FINAL_HANDOFF.md with exact evidence.
+STOP IF:
+- Existing M5 artifact cannot safely reconstruct the exact patch, frontend/shared contract changes are required, credentials are required, or any external/production action would occur.

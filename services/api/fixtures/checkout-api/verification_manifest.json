@@ -1,0 +1,22 @@
+{
+  "service": "checkout-api",
+  "harness": "checks/harness.mjs",
+  "commands": {
+    "npm test -- checkout.test.ts": {
+      "category": "targeted_test",
+      "argv": ["{node}", "--experimental-strip-types", "--no-warnings", "{harness}", "targeted-test", "{workspace}"]
+    },
+    "npm test": {
+      "category": "test",
+      "argv": ["{node}", "--experimental-strip-types", "--no-warnings", "{harness}", "test", "{workspace}"]
+    },
+    "npm run lint": {
+      "category": "lint",
+      "argv": ["{node}", "--experimental-strip-types", "--no-warnings", "{harness}", "lint", "{workspace}"]
+    },
+    "npm run typecheck": {
+      "category": "typecheck",
+      "argv": ["{node}", "--experimental-strip-types", "--no-warnings", "{harness}", "typecheck", "{workspace}"]
+    }
+  }
+}

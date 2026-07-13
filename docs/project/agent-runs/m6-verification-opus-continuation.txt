@@ -1,0 +1,33 @@
+ROLE: backend/security/test
+OBJECTIVE: Finish the existing M6 real verification pipeline from commit 496a3b4 and leave the branch fully verified and integration-ready.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m6-verification
+ALLOWED FILES:
+- services/api/app/**
+- services/api/tests/**
+- services/api/fixtures/checkout-api/**
+- services/api/alembic/** only if persistence schema genuinely requires it
+- docs/project/agent-runs/M6_VERIFICATION_OPUS_FINAL_HANDOFF.md
+- docs/testing/** only for exact reproduced evidence
+FORBIDDEN:
+- apps/web/**, root files, production actions, uploads, publishing, secrets, unrelated refactors, commits
+REQUIREMENTS:
+- Read AGENTS.md, the authoritative blueprint M6 sections, and M6_VERIFICATION_FABLE_PARTIAL_HANDOFF.md first.
+- Continue the coherent Fable checkpoint; do not restart it.
+- Fix the six current failures caused by the legacy SimulatedVerificationRunner.verify contract. Establish one strict typed verifier protocol and migrate all implementations/test doubles.
+- Reconstruct and verify the exact approved patch in an isolated workspace.
+- Execute verification commands without a shell through a strict argv allowlist; deny network and secret-bearing environment; enforce per-command/total timeouts and bounded stdout/stderr.
+- Always run the required regression check. Classify infra/config/baseline/patch-caused failures with immutable evidence.
+- Permit at most two bounded repair attempts only for relevant patch-caused failures. Any failed/incomplete verification or unsafe risk result must end PATCH_FAILED and must never enable PR creation. Only all-pass plus acceptable risk reaches REVIEW_READY.
+- Persist verification runs/checks and expose them through the existing incident verification API contract without inventing a parallel API.
+- Add focused tests for pass, allowlist rejection, timeout, output bound, failure classification, repair bound, persistence/API, and PR blocking.
+- Reuse repository/stdlib code before adding abstractions or dependencies. Preserve M0-M5 behavior and deterministic fixtures.
+- Do not claim success unless every requested command was actually run. Write the required final handoff using DONE/BLOCKED/RISK/NEXT and exact command results.
+TESTS:
+- uv run --project services/api ruff check services/api/app services/api/tests
+- uv run --project services/api mypy --strict services/api/app
+- uv run --project services/api pytest -q services/api/tests
+- fresh Alembic upgrade from an empty temporary database using the repository's existing migration test/command
+DELIVERABLE:
+- completed implementation, focused tests, and docs/project/agent-runs/M6_VERIFICATION_OPUS_FINAL_HANDOFF.md
+STOP IF:
+- architecture conflict, missing credential, destructive action, or scope expansion is required

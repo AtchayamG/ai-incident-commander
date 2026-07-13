@@ -37,7 +37,8 @@ from app.domain.remediation import (
     PlanningOutcome,
     RemediationPlanArtifact,
 )
-from app.domain.sandbox import PatchExecutionStatus
+from app.domain.sandbox import PatchExecutionArtifact, PatchExecutionStatus
+from app.domain.verification import VerificationFailureKind, VerificationRunArtifact
 from app.providers.base import (
     DeploymentHistoryProvider,
     EvidenceSource,
@@ -46,13 +47,13 @@ from app.providers.base import (
     RawEvidence,
     RunbookProvider,
     TelemetryProvider,
-    VerificationRunner,
 )
 from app.sandbox.executor import (
     ApprovalRequiredError,
     SandboxPatchExecutor,
     SandboxSetupError,
 )
+from app.sandbox.verifier import VerificationSetupError, Verifier
 from app.sandbox.workspace import WorkspaceIntegrityError
 from app.security.redaction import redact
 from app.store.protocol import StoreProtocol
@@ -81,7 +82,7 @@ class WorkflowPipeline:
         investigation_manager: InvestigationManager,
         remediation_planner: RemediationPlanningManager,
         patch_executor: SandboxPatchExecutor,
-        verifier: VerificationRunner,
+        verifier: Verifier,
         provider_mode: ProviderMode,
     ) -> None:
         self._store = store
@@ -152,9 +153,12 @@ class WorkflowPipeline:
         """Resolve the APPLY_PATCH approval gate.
 
         Approved: PATCHING (bounded isolated-workspace execution) ->
-        VERIFYING -> REVIEW_READY (simulated verification until M6).
-        Rejected: CANCELLED. A failed or refused execution lands in
-        PATCH_FAILED with the failure recorded on the execution artifact.
+        VERIFYING (deterministic checks against the captured candidate diff)
+        -> REVIEW_READY only when every required check passes and the risk
+        policy allows a real PR. A relevant patch-caused check failure may
+        re-enter PATCHING for a bounded repair attempt (blueprint 19.4);
+        everything else lands in PATCH_FAILED with structured evidence.
+        Rejected: CANCELLED.
         """
         if not approved:
             return self._transition(incident, WorkflowState.CANCELLED, "approval.rejected")
@@ -166,15 +170,7 @@ class WorkflowPipeline:
         try:
             execution = self._patch_executor.execute(incident)
         except (SandboxSetupError, WorkspaceIntegrityError) as exc:
-            self._store.add_timeline_event(
-                TimelineEvent(
-                    id=self._store.next_id("tl"),
-                    incident_id=incident.id,
-                    at=datetime.now(UTC),
-                    kind="sandbox_lifecycle",
-                    description=f"Sandbox unavailable; failing closed: {exc}"[:1000],
-                )
-            )
+            self._audit_failure(incident, f"Sandbox unavailable; failing closed: {exc}")
             return self._transition(
                 incident, WorkflowState.PATCH_FAILED, "patch.sandbox_unavailable"
             )
@@ -183,24 +179,58 @@ class WorkflowPipeline:
                 incident, WorkflowState.PATCH_FAILED, "patch.execution_failed"
             )
 
-        plans = self._store.list_plans(incident.id)
-        patch = self._store.add_patch(
-            PatchAttempt(
-                id=self._store.next_id("patch"),
-                incident_id=incident.id,
-                plan_id=plans[-1].id,
-                attempt=len(self._store.list_patches(incident.id)) + 1,
-                diff=execution.unified_diff,
-                files_changed=len(execution.changed_files),
-                lines_changed=execution.total_additions + execution.total_deletions,
-                provider_mode=self._provider_mode,
+        while True:
+            patch = self._record_patch_attempt(incident, execution)
+            incident = self._transition(incident, WorkflowState.VERIFYING, "patch.proposed")
+            try:
+                verification = self._verifier.verify(
+                    incident, execution, patch.id, patch.attempt
+                )
+            except (VerificationSetupError, SandboxSetupError, WorkspaceIntegrityError) as exc:
+                self._audit_failure(
+                    incident, f"Verification unavailable; failing closed: {exc}"
+                )
+                return self._transition(
+                    incident, WorkflowState.PATCH_FAILED, "verification.unavailable"
+                )
+            self._record_verification_run(incident, patch, verification)
+
+            if verification.passed:
+                if verification.risk.blocks_pr:
+                    # Deterministic risk policy: HIGH-risk changes never
+                    # become PR-ready by default (blueprint 21.3).
+                    return self._transition(
+                        incident, WorkflowState.PATCH_FAILED, "risk.blocked"
+                    )
+                return self._transition(
+                    incident, WorkflowState.REVIEW_READY, "verification.passed"
+                )
+
+            repairable = (
+                verification.failure_kind is VerificationFailureKind.PATCH_ISSUE
+                and self._patch_executor.repair_budget_remaining(incident, execution) > 0
             )
-        )
-        incident = self._transition(incident, WorkflowState.VERIFYING, "patch.proposed")
-        verification = self._verify(incident, patch)
-        if verification.passed:
-            return self._transition(incident, WorkflowState.REVIEW_READY, "verification.passed")
-        return self._transition(incident, WorkflowState.PATCH_FAILED, "verification.failed")
+            if not repairable:
+                return self._transition(
+                    incident, WorkflowState.PATCH_FAILED, "verification.failed"
+                )
+
+            incident = self._transition(
+                incident, WorkflowState.PATCHING, "verification.repair"
+            )
+            try:
+                execution = self._patch_executor.repair(
+                    incident, execution, "; ".join(verification.failure_evidence)
+                )
+            except (ApprovalRequiredError, SandboxSetupError, WorkspaceIntegrityError) as exc:
+                self._audit_failure(incident, f"Repair refused; failing closed: {exc}")
+                return self._transition(
+                    incident, WorkflowState.PATCH_FAILED, "patch.repair_refused"
+                )
+            if execution.status is not PatchExecutionStatus.SUCCEEDED:
+                return self._transition(
+                    incident, WorkflowState.PATCH_FAILED, "patch.execution_failed"
+                )
 
     # Internal stages -------------------------------------------------------
 
@@ -396,18 +426,84 @@ class WorkflowPipeline:
             "no approved APPLY_PATCH approval is bound to the current plan artifact"
         )
 
-    def _verify(self, incident: Incident, patch: PatchAttempt) -> VerificationRun:
-        results = self._verifier.verify(incident, patch.diff)
+    def _record_patch_attempt(
+        self, incident: Incident, execution: PatchExecutionArtifact
+    ) -> PatchAttempt:
+        plans = self._store.list_plans(incident.id)
+        return self._store.add_patch(
+            PatchAttempt(
+                id=self._store.next_id("patch"),
+                incident_id=incident.id,
+                plan_id=plans[-1].id,
+                attempt=len(self._store.list_patches(incident.id)) + 1,
+                diff=execution.unified_diff,
+                files_changed=len(execution.changed_files),
+                lines_changed=execution.total_additions + execution.total_deletions,
+                provider_mode=self._provider_mode,
+            )
+        )
+
+    def _record_verification_run(
+        self, incident: Incident, patch: PatchAttempt, artifact: VerificationRunArtifact
+    ) -> VerificationRun:
+        """Project the rich M6 artifact onto the public VerificationRun shape
+        (unchanged contract): one check per executed command plus the
+        regression-test requirement and the deterministic risk decision."""
+        checks = [
+            VerificationCheck(
+                name=f"{result.category}{' (base-state)' if result.baseline else ''}",
+                passed=result.passed,
+                detail=(
+                    f"{result.command}: "
+                    + (
+                        "timed out"
+                        if result.timed_out
+                        else f"spawn failed: {result.spawn_error}"
+                        if result.spawn_error
+                        else f"exit {result.exit_code}"
+                    )
+                ),
+            )
+            for result in artifact.commands
+        ]
+        checks.append(
+            VerificationCheck(
+                name="regression_test",
+                passed=artifact.relevant_regression_test,
+                detail="candidate diff adds a regression test and a test check ran"
+                if artifact.relevant_regression_test
+                else "no relevant regression test in the candidate diff",
+            )
+        )
+        checks.append(
+            VerificationCheck(
+                name="risk_review",
+                passed=not artifact.risk.blocks_pr,
+                detail=(
+                    f"deterministic risk {artifact.risk.risk_level} over "
+                    f"{artifact.risk.files_changed} file(s); "
+                    + ("blocks PR readiness" if artifact.risk.blocks_pr else "allows PR")
+                ),
+            )
+        )
         run = VerificationRun(
             id=self._store.next_id("ver"),
             patch_id=patch.id,
-            passed=all(r.passed for r in results),
-            checks=[
-                VerificationCheck(name=r.name, passed=r.passed, detail=r.detail)
-                for r in results
-            ],
+            passed=artifact.passed and not artifact.risk.blocks_pr,
+            checks=checks,
         )
         return self._store.add_verification(incident.id, run)
+
+    def _audit_failure(self, incident: Incident, description: str) -> None:
+        self._store.add_timeline_event(
+            TimelineEvent(
+                id=self._store.next_id("tl"),
+                incident_id=incident.id,
+                at=datetime.now(UTC),
+                kind="sandbox_lifecycle",
+                description=description[:1000],
+            )
+        )
 
 
 class ChangeBudgetExceededError(Exception):

@@ -23,7 +23,6 @@ from app.providers.base import (
     PlanProposal,
     PullRequestReceipt,
     RawEvidence,
-    VerificationCheckResult,
 )
 
 FIXTURE_SERVICE = "checkout-api"
@@ -300,26 +299,6 @@ class SimulatedInvestigationProvider:
             max_files_changed=2,
             max_lines_changed=40,
         )
-
-
-class SimulatedVerificationRunner:
-    def verify(self, incident: Incident, diff: str) -> list[VerificationCheckResult]:
-        return [
-            VerificationCheckResult(
-                name="unit_tests",
-                passed=True,
-                detail=(
-                    "[SIMULATED] 5 passed in 0.9s (checkout suite incl. new "
-                    "no-discount regression test)"
-                ),
-            ),
-            VerificationCheckResult(
-                name="lint", passed=True, detail="[SIMULATED] eslint: no findings"
-            ),
-            VerificationCheckResult(
-                name="typecheck", passed=True, detail="[SIMULATED] tsc --noEmit: no errors"
-            ),
-        ]
 
 
 class SimulatedPullRequestProvider:

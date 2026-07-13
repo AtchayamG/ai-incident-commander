@@ -17,6 +17,7 @@ from app.domain.enums import Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
 from app.domain.remediation import ApprovalBinding, RemediationPlanArtifact
 from app.domain.sandbox import PatchExecutionArtifact
+from app.domain.verification import VerificationRunArtifact
 
 
 class NotFoundError(Exception):
@@ -90,6 +91,16 @@ class StoreProtocol(Protocol):
     def add_verification(self, incident_id: str, run: VerificationRun) -> VerificationRun: ...
 
     def list_verifications(self, incident_id: str) -> list[VerificationRun]: ...
+
+    def add_verification_artifact(
+        self, artifact: VerificationRunArtifact
+    ) -> VerificationRunArtifact: ...
+
+    def list_verification_artifacts(self, incident_id: str) -> list[VerificationRunArtifact]: ...
+
+    def get_verification_artifact_for_patch(
+        self, patch_id: str
+    ) -> VerificationRunArtifact | None: ...
 
     def add_approval(self, approval: ApprovalRequest) -> ApprovalRequest: ...
 

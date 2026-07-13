@@ -145,6 +145,26 @@ class VerificationRunModel(Base):
     checks: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
 
 
+class VerificationRunArtifactModel(Base):
+    """Immutable M6 deterministic-verification record.
+
+    The full typed artifact is stored as JSON ``document``; scalar columns
+    exist for querying and to make the safety-relevant fields (patch,
+    pass/fail, failure classification) inspectable without deserializing.
+    """
+
+    __tablename__ = "verification_run_artifacts"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), index=True)
+    patch_id: Mapped[str] = mapped_column(ForeignKey("patch_attempts.id"), index=True)
+    passed: Mapped[bool] = mapped_column(Boolean)
+    failure_kind: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    artifact_hash: Mapped[str] = mapped_column(String(100))
+    document: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class ApprovalRequestModel(Base):
     __tablename__ = "approval_requests"
 

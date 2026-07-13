@@ -1,5 +1,6 @@
 """Two fresh app instances must produce identical demo pipeline artifacts."""
 
+import re
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -8,6 +9,11 @@ from app.config import Settings
 from app.main import create_app
 
 SETTINGS = Settings(demo_mode=True, demo_admin_key="test", database_url="sqlite:///:memory:")
+
+# Verification lifecycle events carry real subprocess durations and ephemeral
+# uuid workspace IDs by design (M6); those tokens are provenance, not
+# deterministic content, so they are masked before comparison.
+_VOLATILE_TOKENS = re.compile(r"ws-[0-9a-f]+|\d+ms")
 
 
 def _run_golden_path() -> dict[str, Any]:
@@ -43,12 +49,20 @@ def _run_golden_path() -> dict[str, Any]:
             "timeline": [
                 (t["id"], t["at"], t["kind"], t["description"], t["evidence_id"])
                 for t in client.get("/api/v1/incidents/inc-demo-0001/timeline").json()
-                if t["kind"] != "sandbox_lifecycle"
+                if t["kind"] not in ("sandbox_lifecycle", "verification_lifecycle")
             ],
             "sandbox_lifecycle": [
                 (t["id"], t["kind"], t["description"].split(":", 2)[:2])
                 for t in client.get("/api/v1/incidents/inc-demo-0001/timeline").json()
                 if t["kind"] == "sandbox_lifecycle"
+            ],
+            # M6 verification lifecycle: deterministic order/kind/id and stage
+            # text with volatile durations and workspace IDs masked, proving the
+            # verification sequence is stable without pinning provenance noise.
+            "verification_lifecycle": [
+                (t["id"], t["kind"], _VOLATILE_TOKENS.sub("*", t["description"]))
+                for t in client.get("/api/v1/incidents/inc-demo-0001/timeline").json()
+                if t["kind"] == "verification_lifecycle"
             ],
             "hypotheses": [
                 (h["id"], h["statement"], h["confidence"])
