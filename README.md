@@ -2,7 +2,7 @@
 
 AI incident commander for small engineering teams: evidence-grounded diagnosis, human-approved remediation, verified patches. Blueprint: `docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md`.
 
-**Status: M0 — foundation and contracts.** Deterministic demo mode only; no external credentials required or used.
+**Status: M9 — submission hardening.** M0–M8 are integrated. The deterministic demo completes the two-approval workflow through an explicitly simulated draft-PR package, communications, and an evidence-linked postmortem. No external credentials are required.
 
 ## Layout
 
@@ -36,7 +36,8 @@ make dev-web          # Next.js on :3000 (second terminal)
 ```bash
 make lint             # ruff + next lint + tsc
 make typecheck        # mypy --strict + tsc --noEmit
-make test             # pytest (35 tests) + vitest (contracts + web)
+make test             # backend, shared-contract, and web tests
+make demo-assert      # five complete deterministic demo runs
 ```
 
 CI (`.github/workflows/ci.yml`) enforces all three plus the web build on every push/PR to `main`.
@@ -44,19 +45,31 @@ CI (`.github/workflows/ci.yml`) enforces all three plus the web build on every p
 ## Golden demo (no credentials)
 
 ```bash
-curl -X POST localhost:8000/api/v1/incidents/inc-demo-0001/start
-curl localhost:8000/api/v1/incidents/inc-demo-0001/approvals
-curl -X POST localhost:8000/api/v1/approvals/<approval_id>/decision \
-  -H 'Content-Type: application/json' \
-  -d '{"decision": "approved", "reason": "Bounded patch approved"}'
-curl localhost:8000/api/v1/incidents/inc-demo-0001   # state: REVIEW_READY
+make demo-reset       # verify protected reset and RECEIVED seed state
+make demo-run         # one full run through RESOLUTION_DRAFTED
+make demo-assert      # five consecutive asserted runs
 ```
 
-Reset: `curl -X POST localhost:8000/api/v1/incidents/reset-demo -H 'X-Demo-Admin-Key: demo-admin-key'`
+On Windows hosts without GNU Make, run the underlying command directly:
+
+```powershell
+uv run --project services/api python -m app.demo.runner --runs 5
+```
+
+Every run uses an ephemeral SQLite database, fixture investigation, and the fixture code-agent. It exercises both public approval endpoints and asserts `RESOLUTION_DRAFTED`, simulated provider provenance, communications, and the evidence-linked postmortem. It never contacts OpenAI or GitHub.
 
 See `docs/architecture/demo-architecture.md` for the full walkthrough.
 
-## Principles (enforced from M0)
+## Verified baseline
+
+- Backend: Ruff and strict mypy pass; 149 tests passed before the M9 runner addition.
+- Frontend: lint, strict typecheck, 20 web tests, 6 shared-contract tests, and production build pass.
+- Browser: 20 Chromium scenarios pass, including a real local-API flow through both approvals.
+- Optional live integrations fail closed and never replace deterministic demo mode. Live credentialed proof is documented separately and is not implied by fixture artifacts.
+
+See [task status](docs/project/taskstatus.md), [evidence checklist](docs/submission/evidence-checklist.md), and [demo script](docs/submission/demo-script.md) for current proof and remaining limitations.
+
+## Principles
 
 - Evidence passes a redaction boundary before persistence — raw payloads never do.
 - Workflow state changes only through the deterministic state machine; model output is a typed proposal.

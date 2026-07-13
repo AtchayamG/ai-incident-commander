@@ -8,7 +8,7 @@ else
 PY := services/api/.venv/bin/python
 endif
 
-.PHONY: setup dev dev-api dev-web lint typecheck test docker-up docker-down
+.PHONY: setup dev dev-api dev-web lint typecheck test demo-reset demo-run demo-assert docker-up docker-down
 
 setup:
 	pnpm install
@@ -37,6 +37,15 @@ typecheck:
 test:
 	cd services/api && $(abspath $(PY)) -m pytest
 	pnpm -r run test
+
+demo-reset:
+	cd services/api && $(abspath $(PY)) -m app.demo.runner --reset-only
+
+demo-run:
+	cd services/api && $(abspath $(PY)) -m app.demo.runner --runs 1
+
+demo-assert:
+	cd services/api && $(abspath $(PY)) -m app.demo.runner --runs 5
 
 docker-up:
 	docker compose up -d --build
