@@ -33,5 +33,5 @@
 
 ### If Live Demo fails (or for judge offline viewing):
 - Use the recorded backup screen capture representing the local-API browser scenario.
-- Point to the verified test outputs (`149 backend tests pass`, `20 frontend tests pass`, `6 contract tests pass`, and `20 Chromium Playwright scenarios` passing).
+- Point to the verified test outputs (`156 backend tests pass`, `20 frontend tests pass`, `6 contract tests pass`, `20 Chromium Playwright scenarios`, five complete demo runs, and a clean full-history Gitleaks scan).
 - Navigate the judge to the verified logs under `docs/project/agent-runs/` to inspect the actual test runs and diff outputs, or mark the final recording/evidence bundle pending.

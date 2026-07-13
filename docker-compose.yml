@@ -18,16 +18,18 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://api:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
       api:
         condition: service_healthy
 
-  # Not consumed by the M0 API (in-memory store); provisioned so the M1
-  # persistence milestone lands against the same local contract.
+  # Optional local infrastructure profile. The default deterministic demo
+  # still uses SQLite; enabling this profile does not imply production use.
   postgres:
     image: postgres:16-alpine
     environment:

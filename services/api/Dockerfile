@@ -1,6 +1,12 @@
+FROM node:22-slim AS node-runtime
+
 FROM python:3.12-slim
 
 WORKDIR /srv
+
+# Verification commands are labels pinned to a zero-dependency Node harness;
+# only the Node 22 runtime is needed for native TypeScript type stripping.
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 
 COPY pyproject.toml ./
 COPY app ./app

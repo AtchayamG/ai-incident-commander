@@ -1,0 +1,16 @@
+ROLE: Independent senior frontend, UX, and integration reviewer. Use Ponytail minimal/full discipline.
+
+TASK: Review the current uncommitted M9 diff in this worktree. Do not edit files. Focus on the Next.js workflow-state fetch changes, Docker browser API routing, accessibility/usability, screenshots, and truthful submission wording.
+
+CONTEXT:
+- The reset Docker browser path completed both approvals to RESOLUTION_DRAFTED.
+- Six deterministic checks passed in the API container using Node 22.
+- The fresh browser session reported zero errors and zero warnings.
+- Live integrations and deployment are explicitly not claimed.
+
+REVIEW COMMANDS:
+- git status --short
+- git diff --check
+- git diff
+
+OUTPUT: Return only actionable findings, ranked by severity, with exact file/line references and a concise fix. If no actionable findings remain, say so explicitly. Do not edit, commit, upload, publish, or run external actions.

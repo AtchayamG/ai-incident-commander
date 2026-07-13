@@ -4,6 +4,9 @@ FROM node:22-alpine AS build
 
 RUN corepack enable
 
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/contracts/package.json packages/contracts/
@@ -19,6 +22,7 @@ RUN pnpm --filter @incident-commander/web build
 FROM node:22-alpine
 
 RUN corepack enable
+ENV NEXT_PUBLIC_API_URL=http://localhost:8000
 WORKDIR /repo
 COPY --from=build /repo ./
 

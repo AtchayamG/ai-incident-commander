@@ -63,7 +63,7 @@ See `docs/architecture/demo-architecture.md` for the full walkthrough.
 
 ## Verified baseline
 
-- Backend: Ruff and strict mypy pass; 149 tests passed before the M9 runner addition.
+- Backend: Ruff and strict mypy pass across 46 source files; 156 tests pass.
 - Frontend: lint, strict typecheck, 20 web tests, 6 shared-contract tests, and production build pass.
 - Browser: 20 Chromium scenarios pass, including a real local-API flow through both approvals.
 - Optional live integrations fail closed and never replace deterministic demo mode. Live credentialed proof is documented separately and is not implied by fixture artifacts.

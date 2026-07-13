@@ -14,11 +14,11 @@
     "fresh_migrations": true,
     "demo_reset": true,
     "local_startup": true,
-    "secret_scan": false,
+    "secret_scan": true,
     "approval_boundaries": true,
     "failed_verification_blocks_pr": true,
-    "golden_demo": false,
-    "five_run_reliability": false
+    "golden_demo": true,
+    "five_run_reliability": true
   },
-  "last_updated": "2026-07-13T13:15:00+05:30"
+  "last_updated": "2026-07-13T14:20:00+05:30"
 }

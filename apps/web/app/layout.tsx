@@ -4,6 +4,7 @@ import "./global.css";
 export const metadata: Metadata = {
   title: "Incident Commander AI",
   description: "Dashboard for Incident Commander AI",
+  icons: { icon: "/icon.svg" },
 };
 
 export default function RootLayout({

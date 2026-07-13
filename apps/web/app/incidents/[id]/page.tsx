@@ -37,6 +37,10 @@ import {
   getIncidentCommunications,
   getIncidentPostmortem,
 } from "@/lib/api";
+import type { ApiResult } from "@/lib/api";
+
+const absentArtifact = <T,>(): Promise<ApiResult<T>> =>
+  Promise.resolve({ ok: false, status: 404, error: "Not available in the current workflow state" });
 
 export default function IncidentDetailPage() {
   const params = useParams();
@@ -132,8 +136,45 @@ export default function IncidentDetailPage() {
     
     setErrorMsg(null);
 
+    const incidentRes = await getIncident(incidentId);
+    if (!incidentRes.ok) {
+      setErrorMsg(`Failed to fetch incident details: ${incidentRes.error}`);
+      setLoading(false);
+      setInvestigationLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    const currentState = incidentRes.data.state;
+    const investigationAvailable = ![
+      "RECEIVED",
+      "NORMALIZING",
+      "COLLECTING_EVIDENCE",
+      "EVIDENCE_READY",
+      "NEEDS_INPUT",
+    ].includes(currentState);
+    const planArtifactAvailable = [
+      "WAITING_PATCH_APPROVAL",
+      "PATCHING",
+      "VERIFYING",
+      "PATCH_FAILED",
+      "REVIEW_READY",
+      "WAITING_PR_APPROVAL",
+      "CREATING_PR",
+      "PR_READY",
+      "EXTERNAL_ACTION_FAILED",
+      "RESOLUTION_DRAFTED",
+      "CLOSED",
+    ].includes(currentState);
+    const draftPRAvailable = [
+      "PR_READY",
+      "EXTERNAL_ACTION_FAILED",
+      "RESOLUTION_DRAFTED",
+      "CLOSED",
+    ].includes(currentState);
+    const resolutionAvailable = ["RESOLUTION_DRAFTED", "CLOSED"].includes(currentState);
+
     const [
-      incidentRes,
       evidenceRes,
       timelineRes,
       hypothesesRes,
@@ -147,28 +188,25 @@ export default function IncidentDetailPage() {
       communicationsRes,
       postmortemRes,
     ] = await Promise.all([
-      getIncident(incidentId),
       getIncidentEvidence(incidentId),
       getIncidentTimeline(incidentId),
       getIncidentHypotheses(incidentId),
       getIncidentPlans(incidentId),
-      getIncidentPlanArtifact(incidentId),
+      planArtifactAvailable
+        ? getIncidentPlanArtifact(incidentId)
+        : absentArtifact<RemediationPlanArtifact>(),
       getIncidentPatches(incidentId),
       getIncidentVerifications(incidentId),
       getIncidentApprovals(incidentId),
-      getIncidentInvestigation(incidentId),
-      getIncidentDraftPR(incidentId),
-      getIncidentCommunications(incidentId),
-      getIncidentPostmortem(incidentId),
+      investigationAvailable
+        ? getIncidentInvestigation(incidentId)
+        : absentArtifact<InvestigationReport>(),
+      draftPRAvailable ? getIncidentDraftPR(incidentId) : absentArtifact<DraftPR>(),
+      resolutionAvailable
+        ? getIncidentCommunications(incidentId)
+        : absentArtifact<Communications>(),
+      resolutionAvailable ? getIncidentPostmortem(incidentId) : absentArtifact<Postmortem>(),
     ]);
-
-    if (!incidentRes.ok) {
-      setErrorMsg(`Failed to fetch incident details: ${incidentRes.error}`);
-      setLoading(false);
-      setInvestigationLoading(false);
-      setRefreshing(false);
-      return;
-    }
 
     setIncident(incidentRes.data);
 
