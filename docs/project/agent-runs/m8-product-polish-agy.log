@@ -1,0 +1,35 @@
+﻿I am waiting for the Playwright tests to complete execution in the background before verifying the final state. I will review the results once they finish.
+I have implemented fixes for the mobile overflow by adjusting word breaks and grid dimensions in the new onboarding banner and the incident metrics card. I've also updated the Playwright test assertion to wait for the health-status response correctly (from `CHECKING...` to `ONLINE` or `OFFLINE`).
+
+I'm currently waiting for the Playwright tests to complete running in the background. I'll monitor for the test success and report back when finished!
+I have updated the Playwright config to reuse the existing servers, which resolves the port conflicts from the previous run.
+
+I have started the tests again. Let's see if they pass this time! I'll monitor the results as they finish.
+I've successfully killed the ghost processes that were holding ports 8001 and 3001, reverted the config to let Playwright manage the servers, and restarted the tests. 
+
+I will wait for the test results to arrive.
+I've found the root cause of the horizontal overflow! It was a classic CSS Grid "blowout" issue. 
+
+In CSS Grid, child elements have a default `min-width: auto`, which means they won't shrink smaller than the intrinsic width of their content (in this case, the wide incidents table). This completely bypassed the `overflow-x: auto` on the table's container. By explicitly setting `min-width: 0` on the grid children in `global.css`, the grid layout is allowed to shrink to the viewport size, enabling the table's scroll container to work properly on mobile.
+
+I'm rerunning the accessibility test one more time to confirm.
+I'm happy to report that the mobile overflow issue has been successfully resolved! The CSS grid blowout was fixed by enforcing `min-width: 0` on all grid items in `global.css`, which allows the table's scroll container to work properly on smaller viewports.
+
+Here is a summary of the completed M8 Product Polish work:
+1. **Frontend Enhancements (`apps/web/app/page.tsx`)**:
+   - Implemented a concise **golden-path onboarding banner** that explains simulated data provenance, the two-stage approval gate, and demo reset mechanics without hindering repeat users (uses `localStorage` to persist dismissal).
+   - Surfaced **Incident Metrics** natively on the dashboard (Total Incidents, Active Workflow count, Awaiting Approval count) by deriving the counts strictly from the loaded frontend state.
+   - Polished the **System Health Status** indicator to distinguish between `ONLINE`, `OFFLINE`, and an explicit `CHECKING...` state to ensure we never fabricate health before it's validated.
+   - Refined the dashboard empty state to differentiate between "no incidents found in DB" vs "no incidents match current filters".
+
+2. **Testing (`apps/web/e2e/m8-product-polish.spec.ts`)**:
+   - Added rigorous **browser assertions** checking for zero console errors and successful network responses.
+   - Validated that the onboarding banner can be dismissed and reliably restored.
+   - Verified that the health metrics and simulated badging surface correctly.
+   - Confirmed mobile responsive layouts to prevent horizontal overflow in `<main className="container">`.
+
+3. **Documentation (`docs/`)**:
+   - Authored the QA evaluation document at [`docs/testing/m8-product-polish.md`](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m8-product-polish/docs/testing/m8-product-polish.md) covering the layout verifications.
+   - Created the final project handoff artifact at [`docs/project/agent-runs/M8_PRODUCT_POLISH_FINAL_HANDOFF.md`](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m8-product-polish/docs/project/agent-runs/M8_PRODUCT_POLISH_FINAL_HANDOFF.md) validating that all requirements (including zero backend fabrication) were strictly honored.
+
+All tests (including the stringent accessibility, contrast, and layout audits) are fully passing. The M8 polish is complete! Let me know if you would like me to review or adjust anything else.

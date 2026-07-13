@@ -60,6 +60,9 @@ export default function DashboardPage() {
   const [filterSeverity, setFilterSeverity] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
 
+  // Onboarding
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
   // Manual Intake Modal Form State
   const [showModal, setShowModal] = useState(false);
   const [formTitle, setFormTitle] = useState("");
@@ -148,8 +151,13 @@ export default function DashboardPage() {
         if (parsed.severity) setFilterSeverity(parsed.severity);
         if (parsed.status) setFilterStatus(parsed.status);
       }
+      
+      const onboardingDismissed = localStorage.getItem("incident_commander_onboarding_dismissed");
+      if (!onboardingDismissed) {
+        setShowOnboarding(true);
+      }
     } catch (e) {
-      console.error("Failed to load saved filters", e);
+      console.error("Failed to load saved state", e);
     }
   }, []);
 
@@ -167,10 +175,25 @@ export default function DashboardPage() {
     }
   }, [filterService, filterSeverity, filterStatus]);
 
+  const handleDismissOnboarding = () => {
+    setShowOnboarding(false);
+    try {
+      localStorage.setItem("incident_commander_onboarding_dismissed", "true");
+    } catch {}
+  };
+
+  const handleRestoreOnboarding = () => {
+    setShowOnboarding(true);
+    try {
+      localStorage.removeItem("incident_commander_onboarding_dismissed");
+    } catch {}
+  };
+
   // Fetch initial data
   const fetchData = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
+    setHealth(null); // Reset health before fetching
     
     // Check Health
     const healthRes = await getHealthReady();
@@ -297,8 +320,34 @@ export default function DashboardPage() {
     }
   };
 
+  const activeIncidentsCount = incidents.filter(inc => !["CLOSED", "CANCELLED", "NO_SAFE_REMEDIATION"].includes(inc.state)).length;
+  const waitingApprovalCount = incidents.filter(inc => ["WAITING_PATCH_APPROVAL", "WAITING_PR_APPROVAL"].includes(inc.state)).length;
+
   return (
     <main className="container">
+      {/* Onboarding Banner */}
+      {showOnboarding && (
+        <div data-testid="onboarding-banner" style={{ background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--primary)", borderRadius: "8px", padding: "1.5rem", marginBottom: "2rem", position: "relative", boxSizing: "border-box", overflow: "hidden" }}>
+          <button 
+            onClick={handleDismissOnboarding}
+            aria-label="Dismiss onboarding"
+            style={{ position: "absolute", top: "1rem", right: "1rem", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.2rem", padding: "0.5rem" }}
+          >
+            ✕
+          </button>
+          <h2 style={{ fontSize: "1.25rem", color: "var(--primary-hover)", marginBottom: "0.5rem", paddingRight: "2rem", wordBreak: "break-word" }}>👋 Welcome to Incident Commander AI (Demo)</h2>
+          <p style={{ marginBottom: "1rem", color: "var(--text-main)", maxWidth: "100%", wordBreak: "break-word" }}>
+            This is a <strong>Golden Path</strong> demonstration of autonomous incident resolution. 
+            All telemetry, logs, and evidence are currently <em>simulated fixtures</em> (provenance is explicitly labeled). 
+          </p>
+          <ul style={{ paddingLeft: "1.25rem", color: "var(--text-muted)", marginBottom: "1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem", wordBreak: "break-word" }}>
+            <li><strong>Two Approval Gates:</strong> The AI formulates hypotheses and designs a patch, but it requires human approval to execute the patch and separate approval before creating a draft PR.</li>
+            <li><strong>Reset Behavior:</strong> You can reset the demo store at any time using the &quot;Reset Demo Store&quot; button below. This restores the golden <code style={{ wordBreak: "break-all" }}>inc-demo-0001</code> incident.</li>
+            <li><strong>Simulated Data:</strong> Look for the <span className="badge badge-sev4" style={{ display: "inline-block", background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)", border: "1px solid rgba(245, 158, 11, 0.3)", padding: "2px 6px", fontSize: "0.7rem", verticalAlign: "middle" }}>🤖 SIMULATED</span> badge indicating mock data.</li>
+          </ul>
+        </div>
+      )}
+
       {/* Value Proposition Header */}
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "2.5rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "1.5rem" }}>
         <div>
@@ -427,17 +476,23 @@ export default function DashboardPage() {
               </div>
             ) : incidents.length === 0 ? (
               <div style={{ textAlign: "center", padding: "3rem 1.5rem", color: "var(--text-muted)" }}>
-                <p style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>No incidents match the active filters.</p>
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={() => {
-                    setFilterService("");
-                    setFilterSeverity("");
-                    setFilterStatus("");
-                  }}
-                >
-                  Clear Filters
-                </button>
+                <p style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>
+                  {(filterService || filterSeverity || filterStatus) 
+                    ? "No incidents match the active filters." 
+                    : "No incidents found in the database. Use 'Intake New Incident' or 'Reset Demo Store' to get started."}
+                </p>
+                {(filterService || filterSeverity || filterStatus) && (
+                  <button 
+                    className="btn btn-secondary" 
+                    onClick={() => {
+                      setFilterService("");
+                      setFilterSeverity("");
+                      setFilterStatus("");
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
               </div>
             ) : (
               <div style={{ overflowX: "auto" }}>
@@ -497,14 +552,40 @@ export default function DashboardPage() {
 
         {/* Right Side: Health check and System settings */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          
+          {/* Incident Metrics */}
+          <div className="card">
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>Incident Metrics</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1rem" }}>
+              <div style={{ background: "rgba(0,0,0,0.2)", padding: "1rem", borderRadius: "6px", textAlign: "center" }}>
+                <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--text-main)" }}>
+                  {loading ? "..." : incidents.length}
+                </div>
+                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Total Incidents</div>
+              </div>
+              <div style={{ background: "rgba(0,0,0,0.2)", padding: "1rem", borderRadius: "6px", textAlign: "center" }}>
+                <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--primary-hover)" }}>
+                  {loading ? "..." : activeIncidentsCount}
+                </div>
+                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Active Workflow</div>
+              </div>
+              <div style={{ background: "rgba(0,0,0,0.2)", padding: "1rem", borderRadius: "6px", textAlign: "center" }}>
+                <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--warning)" }}>
+                  {loading ? "..." : waitingApprovalCount}
+                </div>
+                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Awaiting Approval</div>
+              </div>
+            </div>
+          </div>
+
           {/* Health check card */}
           <div className="card">
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>System Health Status</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.5rem" }}>
                 <span style={{ color: "var(--text-muted)" }}>API Connection</span>
-                <span style={{ color: apiDown ? "var(--error)" : "var(--success)", fontWeight: "bold" }}>
-                  {apiDown ? "● OFFLINE" : "● ONLINE"}
+                <span data-testid="health-status" style={{ color: apiDown ? "var(--error)" : (health ? "var(--success)" : "var(--warning)"), fontWeight: "bold" }}>
+                  {apiDown ? "● OFFLINE" : (health ? "● ONLINE" : "● CHECKING...")}
                 </span>
               </div>
               {health && (
@@ -547,6 +628,19 @@ export default function DashboardPage() {
               <li><strong>Human Approval Gate</strong>: Engineers review the patch and approve or reject it.</li>
               <li><strong>Verification</strong>: Tests run to guarantee correctness before closing.</li>
             </ol>
+            
+            {!showOnboarding && (
+              <div style={{ marginTop: "1rem", textAlign: "right" }}>
+                <button 
+                  onClick={handleRestoreOnboarding}
+                  className="btn btn-secondary"
+                  style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem" }}
+                  data-testid="restore-onboarding-btn"
+                >
+                  ℹ️ Show Demo Guide
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

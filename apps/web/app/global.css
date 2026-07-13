@@ -112,6 +112,10 @@ a:hover {
   gap: 1.5rem;
 }
 
+.grid > * {
+  min-width: 0;
+}
+
 .grid-cols-2 {
   grid-template-columns: 1fr;
 }
@@ -136,6 +140,10 @@ a:hover {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
+}
+
+.grid-main-detail > * {
+  min-width: 0;
 }
 
 @media (min-width: 1024px) {

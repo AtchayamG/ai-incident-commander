@@ -1,0 +1,28 @@
+ROLE: Senior hackathon product designer and frontend QA engineer using Ponytail full/minimal discipline.
+OBJECTIVE: Complete the frontend-owned portion of M8 product polish without inventing backend capability.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m8-product-polish
+ALLOWED FILES:
+- apps/web/**
+- docs/testing/m8-product-polish.md
+- docs/project/agent-runs/M8_PRODUCT_POLISH_FINAL_HANDOFF.md
+- package.json and pnpm-lock.yaml only for essential frontend QA tooling
+FORBIDDEN:
+- services/api/**, packages/contracts/**, root status docs, fake metrics/integrations, commits, external actions, deployment, secrets
+REQUIREMENTS:
+- Add concise first-run onboarding that explains the golden path, fixture/simulated provenance, two approval gates, and reset behavior without obstructing repeat users.
+- Surface backend readiness and provider mode from authoritative existing endpoints; never show a healthy integration that was not checked.
+- Add useful incident workflow metrics derivable from loaded incident/timeline data only, with unavailable states instead of fabricated values.
+- Audit and fix loading, empty, error, offline, and insufficient-evidence states across dashboard and incident room.
+- Preserve M1-M6 accessibility, keyboard, responsive, reduced-motion, and non-color cues.
+- Add browser assertions for zero console errors, zero failed same-origin navigation links, onboarding dismissal/restoration, health/provenance visibility, and mobile layout.
+- Run axe checks and Lighthouse if locally available; report real scores/results only.
+- Do not change workflow semantics or add backend calls not already defined.
+- Keep artifacts ignored and Markdown under docs/.
+TESTS:
+- typecheck, lint, Vitest, production build
+- complete Playwright suite plus new M8 scenarios
+- report any Lighthouse limitation honestly
+DELIVERABLE:
+- Polished frontend/tests/docs and docs/project/agent-runs/M8_PRODUCT_POLISH_FINAL_HANDOFF.md with exact evidence.
+STOP IF:
+- Backend/shared contract changes are required, product truth would need fabrication, or changes overlap M5/M7 backend work.
