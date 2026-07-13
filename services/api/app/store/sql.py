@@ -384,6 +384,13 @@ class SqlAlchemyStore(StoreProtocol):
             models = session.scalars(stmt).all()
             return [PatchAttempt.model_validate(m, from_attributes=True) for m in models]
 
+    def get_patch(self, patch_id: str) -> PatchAttempt:
+        with self.SessionLocal() as session:
+            model = session.get(PatchAttemptModel, patch_id)
+            if model is None:
+                raise NotFoundError(f"patch {patch_id!r} not found")
+            return PatchAttempt.model_validate(model, from_attributes=True)
+
     def add_patch_execution(self, artifact: PatchExecutionArtifact) -> PatchExecutionArtifact:
         with self.SessionLocal() as session:
             model = PatchExecutionArtifactModel(

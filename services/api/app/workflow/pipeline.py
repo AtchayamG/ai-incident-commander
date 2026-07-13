@@ -30,6 +30,7 @@ from app.domain.enums import (
     ApprovalStatus,
     ApprovalType,
     ProviderMode,
+    RiskLevel,
     WorkflowState,
 )
 from app.domain.investigation import (
@@ -66,9 +67,18 @@ from app.store.protocol import StoreProtocol
 from app.workflow.investigation_manager import InvestigationManager
 from app.workflow.remediation_planner import RemediationPlanningManager
 
-__all__ = ["ApprovalRequiredError", "ChangeBudgetExceededError", "WorkflowPipeline"]
+__all__ = [
+    "ApprovalRequiredError",
+    "ChangeBudgetExceededError",
+    "PatchRetryRefusedError",
+    "WorkflowPipeline",
+]
 
 APPROVAL_TTL = timedelta(hours=4)
+
+
+class PatchRetryRefusedError(RuntimeError):
+    """A manual retry failed deterministic state, policy, or budget checks."""
 
 # The role an APPLY_PATCH approval is bound to. Demo mode has a single human
 # operator acting in this role; a decision supplying a different role via
@@ -247,6 +257,35 @@ class WorkflowPipeline:
                 return self._transition(
                     incident, WorkflowState.PATCH_FAILED, "patch.execution_failed"
                 )
+
+    def request_patch_retry(self, incident: Incident, patch: PatchAttempt) -> Incident:
+        """Re-open a failed patch behind a fresh approval, without executing it.
+
+        The route identifies the exact latest patch; this method owns workflow,
+        policy, and retry-budget validation and creates a new single-use approval.
+        """
+        if incident.state is not WorkflowState.PATCH_FAILED:
+            raise PatchRetryRefusedError("retry requires PATCH_FAILED state")
+
+        patches = self._store.list_patches(incident.id)
+        if not patches or patches[-1].id != patch.id:
+            raise PatchRetryRefusedError("only the latest patch attempt may be retried")
+
+        artifact = self._store.get_latest_plan_artifact(incident.id)
+        if artifact is None:
+            raise PatchRetryRefusedError("retry requires a current bounded plan artifact")
+        if artifact.network_allowed or artifact.risk_level is RiskLevel.HIGH:
+            raise PatchRetryRefusedError("current plan is blocked by retry policy")
+
+        attempts_used = len(patches)
+        if attempts_used >= artifact.max_attempts:
+            raise PatchRetryRefusedError("patch retry budget is exhausted")
+
+        incident = self._transition(incident, WorkflowState.PLAN_READY, "patch.retry_requested")
+        self._request_patch_approval(incident, artifact)
+        return self._transition(
+            incident, WorkflowState.WAITING_PATCH_APPROVAL, "approval.retry_requested"
+        )
 
     # Internal stages -------------------------------------------------------
 

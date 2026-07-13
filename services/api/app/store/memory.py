@@ -224,6 +224,14 @@ class InMemoryStore:
         with self._lock:
             return list(self._patches.get(incident_id, []))
 
+    def get_patch(self, patch_id: str) -> PatchAttempt:
+        with self._lock:
+            for patches in self._patches.values():
+                for patch in patches:
+                    if patch.id == patch_id:
+                        return patch
+        raise NotFoundError(f"patch {patch_id!r} not found")
+
     def add_patch_execution(self, artifact: PatchExecutionArtifact) -> PatchExecutionArtifact:
         with self._lock:
             self._patch_executions.setdefault(artifact.incident_id, []).append(artifact)

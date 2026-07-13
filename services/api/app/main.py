@@ -12,7 +12,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import approvals, health, incidents
+from app.api.routes import approvals, contract_actions, health, incidents, integrations, patches
 from app.config import Settings
 from app.demo.seed import seed_demo
 from app.domain.enums import ProviderMode
@@ -131,6 +131,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(incidents.router)
+    app.include_router(contract_actions.router)
+    app.include_router(patches.router)
+    app.include_router(integrations.router)
     app.include_router(approvals.router)
 
     seed_demo(store)
