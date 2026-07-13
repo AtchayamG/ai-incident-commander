@@ -1,0 +1,14 @@
+Max effort. Act as principal AI/backend engineer. Claude Fable and Opus were attempted first but the account-wide session limit resets at 4:00 PM IST. Their isolated worktree is clean, so implement the bounded task below from the current main baseline. Apply Ponytail minimal/full discipline.
+
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m9-openai
+BRANCH: agent/m9-openai-integration
+
+Read AGENTS.md, docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md OpenAI/Codex/M9 sections, docs/project/handover.md, existing investigation providers/manager/factories/settings/tests, existing CodexCliGateway/sandbox/tests, the orchestrate-external-coding-agents skill, and Ponytail skill.
+
+Implement the smallest production-quality optional OpenAI Responses API investigation gateway behind the existing protocol. Require strict structured InvestigationDraft output, pass only normalized/cited evidence, never request/persist chain-of-thought, redact inputs/errors, configure model/timeout, and map failures to typed internal provider errors. Fixture mode must remain unconditional in DEMO_MODE/tests. Live OpenAI must be explicit opt-in and fail closed without configuration. Keep InvestigationManager citation/invariant validation authoritative.
+
+Add focused fully mocked tests for request shape, strict parsing, redaction/failure mapping, missing configuration, and demo/live routing. No network calls. Review existing CodexCliGateway/sandbox proof and add only the minimal typed provenance/receipt or mock live-smoke seam needed to truthfully prove actual repository work when explicitly selected; do not weaken sandboxing, approvals, fixed commands, secret stripping, or fixture mode. If the existing gateway is architecturally sufficient, add a focused mock smoke test and document the exact remaining credentialed command instead of redesigning it.
+
+You may edit only services/api/**, .env.example, `docs/project/agent-runs/M9_OPENAI_INTEGRATION_FINAL_HANDOFF.md`, and `docs/testing/m9-openai-integration.md`. Do not touch frontend, root README, submission/status docs, or existing logs. Do not commit.
+
+Run backend ruff, strict mypy, focused tests, and full pytest. Stop rather than guessing if the installed OpenAI SDK cannot support the required Responses structured-output contract or if security/determinism would be weakened. Leave a coherent uncommitted diff and write the exact handoff/results/limitations.

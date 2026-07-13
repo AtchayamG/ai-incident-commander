@@ -1,0 +1,35 @@
+ROLE: Senior product/UI engineer preparing a hackathon judge demo. Apply Ponytail minimal/full discipline: make the smallest coherent change that materially improves the 3-minute demo.
+
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m9-demo-ui
+BRANCH: agent/m9-demo-ui
+
+READ FIRST
+- AGENTS.md
+- docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md sections 5, 6, 14, 33, 34, and M9
+- docs/project/handover.md
+- current apps/web dashboard and incident-room components
+- all Playwright specs, especially M7 and M8
+- C:\Users\Atchayam\.codex\skills\orchestrate-external-coding-agents\SKILL.md
+- C:\Users\Atchayam\.codex\plugins\cache\ponytail\ponytail\4.8.4\skills\ponytail\SKILL.md
+
+OBJECTIVE
+Implement a bounded, judge-friendly M9 demo UX improvement that makes the golden path, human-control gates, simulated/live provenance, reset action, and current workflow progress understandable within seconds. Reuse existing APIs and components. Do not invent capabilities or metrics.
+
+REQUIREMENTS
+- Audit the current dashboard and incident room first; only add what is genuinely missing.
+- Prefer one compact demo control/progress affordance over new pages or abstractions.
+- Preserve all M7 approval safety and M8 onboarding/health behavior.
+- Clearly label fixture/simulated evidence and never imply live OpenAI/Codex use unless the returned artifact/provider proves it.
+- Ensure keyboard accessibility, visible focus, appropriate status semantics, and no horizontal overflow at 375 px.
+- Add focused Vitest or Playwright coverage for the new behavior, including truthful provenance and reset/golden-path access.
+- Run lint, typecheck, web tests, build, and focused Playwright.
+- Write `docs/project/agent-runs/M9_DEMO_UI_FINAL_HANDOFF.md` and `docs/testing/m9-demo-ui.md` with exact results and remaining limitations.
+
+FILE OWNERSHIP
+Edit only apps/web/** and the two M9 docs named above. Do not touch backend, root README, submission assets, status files, or existing logs. Do not commit.
+
+STOP CONDITIONS
+Stop if the improvement requires a new backend capability, changes approval semantics, or would present simulated data as live.
+
+HANDOFF
+Return exact changed files, tests/results, screenshots or observable assertions where useful, and any remaining demo risk. Leave a coherent uncommitted diff.

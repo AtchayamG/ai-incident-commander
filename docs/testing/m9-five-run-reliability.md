@@ -30,7 +30,7 @@ Supporting gates after the runner addition:
 
 ```text
 ruff check services/api                 PASS
-mypy --strict services/api/app          PASS (45 source files)
+mypy --strict services/api/app          PASS (46 source files after OpenAI gateway)
 pytest services/api/tests               PASS
 focused demo-runner tests               PASS (2 tests)
 ```

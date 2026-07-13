@@ -1,0 +1,39 @@
+ROLE: Principal AI/backend engineer. Use Claude Fable 5 reasoning and Ponytail minimal/full discipline.
+
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m9-openai
+BRANCH: agent/m9-openai-integration
+
+OBJECTIVE
+Close the repository's most important M9 technical gap: add meaningful, truthful OpenAI reasoning integration while preserving the deterministic offline demo, and strengthen verifiable Codex repository-work proof using the existing secure CodexCliGateway. This is an implementation task, not a prose-only audit.
+
+READ FIRST
+- AGENTS.md
+- docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md sections on OpenAI Agents/Responses, CodeAgentGateway, M5, M9, tests, and demo readiness
+- docs/project/handover.md and docs/project/CODEX_RESULT.md
+- existing investigation gateway/manager, provider factories, settings, CodexCliGateway, sandbox executor, and their tests
+- C:\Users\Atchayam\.codex\skills\orchestrate-external-coding-agents\SKILL.md
+- C:\Users\Atchayam\.codex\plugins\cache\ponytail\ponytail\4.8.4\skills\ponytail\SKILL.md
+
+REQUIRED OUTCOME
+1. Implement the smallest production-quality OpenAI Responses API investigation gateway behind the existing protocol. It must request strict structured output matching the bounded InvestigationDraft contract, provide only normalized/cited evidence, never request or persist chain-of-thought, redact inputs/errors, configure model/timeout explicitly, and fail closed with a typed internal provider error.
+2. Wire provider selection through settings/factory so fixture mode remains the unconditional default in DEMO_MODE and tests. Live OpenAI is explicit opt-in and must fail closed when credentials/config are absent. Never expose or inspect secret values.
+3. Keep the existing InvestigationManager citation/invariant validation authoritative; do not let model output bypass it.
+4. Add focused mocked tests for request shape, strict structured parsing, redaction/failure mapping, missing configuration, and demo/live routing. No network calls in tests.
+5. Review the existing CodexCliGateway/sandbox proof. Add only the minimal missing typed provenance/receipt or smoke-test seam necessary to truthfully demonstrate actual repository work when live Codex is explicitly selected. Do not weaken sandboxing, approvals, allowed commands, secret stripping, or deterministic fixture behavior. If existing proof is already sufficient architecturally, document that conclusion and add a focused mock smoke test rather than redesigning it.
+6. Add/update .env.example and dependencies only if necessary; model names must be configurable and no unverified model name should be hard-coded as a claim.
+7. Write `docs/project/agent-runs/M9_OPENAI_INTEGRATION_FINAL_HANDOFF.md` and `docs/testing/m9-openai-integration.md` with exact truthful evidence, remaining live-credential proof steps, changed files, and risks.
+
+FILE OWNERSHIP
+You may edit only services/api/**, .env.example, and the two M9 docs named above. Do not edit frontend, root README, submission assets, project status files, or existing agent logs. Do not commit.
+
+QUALITY GATES
+- ruff over services/api
+- strict mypy over services/api/app
+- full backend pytest plus focused new tests
+- no real external calls, no credentials, no production action
+
+STOP CONDITIONS
+Stop and report rather than guessing if the installed OpenAI SDK cannot support strict structured Responses output, if existing contracts require an incompatible redesign, or if you would need to weaken demo determinism/security.
+
+HANDOFF
+Return a concise summary, exact commands/results, changed files, limitations, and recommended live smoke command. Leave the worktree diff coherent and uncommitted.

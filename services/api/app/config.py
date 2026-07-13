@@ -28,6 +28,8 @@ class Settings:
     database_url: str | None = None
     redis_url: str | None = None
     investigation_model: str = "simulated-fixture"
+    investigation_engine: str = "fixture"
+    openai_timeout_seconds: int = 30
     # M5 code-agent gateway selection. "fixture" is the deterministic,
     # explicitly simulated adapter; "codex-cli" drives the locally installed
     # Codex CLI and fails closed when binary/model/credentials are missing.
@@ -57,6 +59,8 @@ class Settings:
             database_url=os.environ.get("DATABASE_URL") or None,
             redis_url=os.environ.get("REDIS_URL") or None,
             investigation_model=os.environ.get("INVESTIGATION_MODEL", "simulated-fixture"),
+            investigation_engine=os.environ.get("INVESTIGATION_ENGINE", "fixture"),
+            openai_timeout_seconds=int(os.environ.get("OPENAI_TIMEOUT_SECONDS", "30")),
             code_agent_engine=os.environ.get("CODE_AGENT_ENGINE", "fixture"),
             codex_model=os.environ.get("CODEX_MODEL", ""),
             codex_binary=os.environ.get("CODEX_BINARY", "codex"),

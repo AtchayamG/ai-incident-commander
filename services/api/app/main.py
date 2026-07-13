@@ -2,8 +2,9 @@
 
 ``create_app`` wires settings, the store, providers, and the workflow
 pipeline. Demo mode (default) binds simulated providers and needs no
-credentials. Live providers are not implemented in M0; constructing the app
-with ``demo_mode=False`` raises rather than silently pretending.
+credentials. The optional OpenAI investigation and GitHub draft-PR adapters
+exist, but full live startup still fails closed until live evidence sources
+are configured rather than silently mixing fixture and production data.
 """
 
 import os
@@ -16,6 +17,7 @@ from app.config import Settings
 from app.demo.seed import seed_demo
 from app.domain.enums import ProviderMode
 from app.providers.code_agent import build_code_agent_gateway
+from app.providers.openai_investigation import build_investigation_gateway
 from app.providers.simulated import (
     SimulatedDeploymentHistoryProvider,
     SimulatedInvestigationProvider,
@@ -26,7 +28,6 @@ from app.providers.simulated import (
 from app.providers.simulated_investigation import (
     FixtureChangeCorrelationSpecialist,
     FixtureCodeMappingSpecialist,
-    FixtureInvestigationGateway,
     FixtureRunbookSpecialist,
     FixtureTelemetrySpecialist,
 )
@@ -44,7 +45,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     if settings.provider_mode is not ProviderMode.SIMULATED:
         raise NotImplementedError(
-            "Live providers arrive in M4-M7; run with DEMO_MODE=true for M0"
+            "Full live evidence providers are not configured; run with DEMO_MODE=true"
         )
 
     store = SqlAlchemyStore(settings.database_url or "sqlite:///demo.db")
@@ -59,7 +60,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             FixtureCodeMappingSpecialist(),
             FixtureRunbookSpecialist(),
         ),
-        gateway=FixtureInvestigationGateway(model_id=settings.investigation_model),
+        gateway=build_investigation_gateway(settings),
     )
     # The planning manager is the single explicit M4 stage: it grounds planner
     # drafts in the investigation's code mapping and applies the deterministic
@@ -114,7 +115,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Incident Commander AI API",
         version="0.1.0",
-        description="M0 foundation: typed contracts, deterministic demo workflow slice",
+        description="Typed, human-approved incident workflow with deterministic demo mode",
     )
     app.state.settings = settings
     app.state.store = store
