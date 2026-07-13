@@ -189,3 +189,59 @@ class HealthDependencies(StrictModel):
 class ResetResult(StrictModel):
     status: str
     seeded_incident_ids: list[str]
+
+
+class ActionItem(StrictModel):
+    description: str
+    priority: str
+    owner: str = "TBD"
+
+
+class Postmortem(StrictModel):
+    id: str
+    incident_id: str
+    summary: str
+    impact: str
+    root_cause: str
+    resolution: str
+    timeline_json: list[dict[str, Any]]
+    action_items_json: list[ActionItem]
+    markdown_content: str
+    markdown_uri: str | None = None
+    created_at: datetime
+
+
+class ExternalAction(StrictModel):
+    id: str
+    incident_id: str
+    action_type: str
+    provider: str
+    idempotency_key: str
+    approval_request_id: str
+    status: str
+    request_json: dict[str, Any]
+    provider_receipt_json: dict[str, Any] | None = None
+    created_at: datetime
+    completed_at: datetime | None = None
+
+
+class DraftPR(StrictModel):
+    id: str
+    incident_id: str
+    status: str
+    url: str | None = None
+    reference: str | None = None
+    provider_mode: ProviderMode
+    idempotency_key: str
+    error_message: str | None = None
+    created_at: datetime
+
+
+class CommunicationUpdate(StrictModel):
+    incident_id: str
+    technical_update: str
+    stakeholder_update: str
+    resolution_note: str
+    created_at: datetime
+
+

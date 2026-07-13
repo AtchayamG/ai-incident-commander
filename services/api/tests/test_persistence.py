@@ -68,7 +68,7 @@ def test_fresh_migration() -> None:
             )
             assert decided.status_code == 200
             final = client.get("/api/v1/incidents/inc-demo-0001").json()
-            assert final["state"] == "REVIEW_READY"
+            assert final["state"] == "WAITING_PR_APPROVAL"
     finally:
         with contextlib.suppress(OSError):
             os.unlink(path)

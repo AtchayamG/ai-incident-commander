@@ -476,7 +476,7 @@ def test_api_golden_approval_runs_sandbox_and_reaches_review_ready(
     assert decision.status_code == 200
 
     incident = client.get("/api/v1/incidents/inc-demo-0001").json()
-    assert incident["state"] == "REVIEW_READY"
+    assert incident["state"] == "WAITING_PR_APPROVAL"
 
     executions = client.get("/api/v1/incidents/inc-demo-0001/patch-executions").json()
     assert len(executions) == 1

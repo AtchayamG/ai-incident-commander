@@ -1,0 +1,6 @@
+﻿I will start by listing the current permissions to see what actions I can perform in this workspace.
+I need to request write and read permission on the worktree folder to modify files and implement the fixes.
+I will list the contents of the worktree directory to locate the key components of the codebase.
+I will explore the `services` directory to find the FastAPI application or backend server.
+I will list the contents of the `services/api` directory.
+I will run pytest in the `services/api` directory to see the status of the current test suite.

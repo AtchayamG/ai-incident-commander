@@ -160,6 +160,6 @@ class ApprovalBinding(StrictModel):
 
     @model_validator(mode="after")
     def _validate_action(self) -> "ApprovalBinding":
-        if self.action is not ApprovalType.APPLY_PATCH:
-            raise ValueError("M4 approval bindings authorize APPLY_PATCH only")
+        if self.action not in (ApprovalType.APPLY_PATCH, ApprovalType.CREATE_DRAFT_PR):
+            raise ValueError("M4 approval bindings authorize APPLY_PATCH or CREATE_DRAFT_PR only")
         return self

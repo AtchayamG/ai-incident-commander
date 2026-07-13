@@ -90,7 +90,7 @@ def test_approve_patch_reaches_review_ready(client: TestClient) -> None:
     assert decision.json()["status"] == "approved"
 
     final = client.get(f"/api/v1/incidents/{incident_id}").json()
-    assert final["state"] == "REVIEW_READY"
+    assert final["state"] == "WAITING_PR_APPROVAL"
 
     patches = client.get(f"/api/v1/incidents/{incident_id}/patches").json()
     assert len(patches) == 1

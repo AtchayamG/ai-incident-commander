@@ -1,0 +1,34 @@
+ROLE: backend security/state-machine/idempotency repair
+OBJECTIVE: Repair the checkpointed M7 backend so the implementation, typed API projections, persistence, retry semantics, and tests satisfy the original contract and all gates truthfully.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m7-resolution-backend
+ALLOWED FILES: same backend/docs files as the original M7 contract; do not touch apps/web, root, project status, or unrelated code.
+INTEGRATOR FINDINGS TO FIX:
+- `ruff check services/api` currently fails on `test_m7_pr_communications.py`; the handoff falsely says it passed. Fix and record reproduced results only.
+- Approval decision must validate exact binding, current incident state, latest patch, passing verification, risk decision, role, and expiry before decision/action. Rejection returns WAITING_PR_APPROVAL -> REVIEW_READY without an external action.
+- On provider failure, persist a redacted failure receipt/error and audit, transition CREATING_PR -> EXTERNAL_ACTION_FAILED -> WAITING_PR_APPROVAL, and create exactly one new pending approval bound to the same current patch/verification. Do not retry directly from EXTERNAL_ACTION_FAILED or reuse an already-decided approval.
+- Derive the stable idempotency key from action type + incident + bound patch + verification artifact hash (not approval ID), so renewed approvals and process restarts reuse the same external-action row/receipt and cannot create duplicates. A failed retry may update the same action row; never violate the unique key or create a second provider call after completion.
+- `POST /draft-pr` must be safe and idempotent: return the existing completed projection when present; otherwise require the latest exact approved approval/current valid state. It must never accept REVIEW_READY, execute from EXTERNAL_ACTION_FAILED, or silently reuse a stale approval. Approval-decision remains the UI-triggered action path.
+- Default simulated actions must be labeled simulated, not provider `github`. Persist provider/action status/request/receipt/idempotency/approval and expose a typed `DraftPR` projection matching the frontend contract: id, incident_id, status, url/reference, provider_mode, idempotency_key, error_message, created_at.
+- Persist communications, including distinct technical_update, stakeholder_update, and resolution_note. GET returns persisted content only after resolution artifacts exist; POST regenerate persists a new deterministic version/audit. Never claim successfully mitigated, closed, deployed, or live when evidence only proves a verified patch and draft-PR artifact.
+- Align postmortem API with the frontend: id, incident_id, summary, impact, root_cause, resolution, `timeline_json` entries including id/at/kind/description/evidence_id, `action_items_json` with description/owner/priority, optional safe `markdown_uri` or inline/export reference, created_at. Timeline must preserve evidence citations; do not hardcode generic facts when persisted incident/evidence facts exist.
+- Make postmortem generation idempotent: a completed action reuse must not insert duplicates. Persist exactly one current artifact per incident or deterministically upsert/version it.
+- The current live GitHub provider is nonfunctional because it references a branch it never creates. Fail closed unless an explicit pre-existing head ref, repository, token, and base are configured. It may create only a draft PR between existing refs; never push/merge. Mock-test request `draft: true`, configured refs, timeout, token redaction, and failure; no network in tests. If a truthful optional adapter cannot be completed, leave it disabled/fail-closed and document the limitation rather than claiming it works.
+- Update the same portable Alembic migration to include communications persistence and uniqueness needed for idempotency/upserts. Use generic SQLAlchemy types and verify fresh SQLite upgrade; keep PostgreSQL portability.
+- Do not mutate API-returned Pydantic objects in place; use model_copy updates. Redact every provider exception before persistence/timeline/API exposure.
+MANDATORY TESTS (add focused cases, not only two broad tests):
+- pending PR approval created once after passing low/medium verification; none for failed/high-risk verification
+- exact binding stale patch/verification, role, expiry, rejection, single-use
+- simulated success/provenance and typed API response
+- duplicate POST/decision and restart persistence reuse completed receipt with one provider call
+- provider failure -> redacted persisted error -> new pending approval -> retry same idempotency row -> success; no duplicates
+- mocked optional GitHub draft/configured refs/redaction/fail-closed, no real network
+- persisted distinct communications/regeneration without false mitigation claims
+- evidence-linked, prioritized postmortem/Markdown and idempotent generation
+- SQL persistence/restart plus fresh migration
+GATES:
+- uv run --project services/api ruff check services/api
+- uv run --project services/api mypy --strict services/api/app
+- uv run --project services/api pytest -q services/api/tests
+- fresh Alembic upgrade from an empty temporary SQLite database, then inspect required tables/indexes
+- git diff --check
+DELIVERABLE: corrected implementation/tests/migration/testing doc/handoff with exact DONE/BLOCKED/RISK/NEXT and no file URI links or unsupported live claims.

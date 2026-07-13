@@ -74,6 +74,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         store=store,
         gateway=build_code_agent_gateway(settings),
     )
+
+    from app.providers.base import PullRequestProvider
+
+    pr_provider: PullRequestProvider
+    if not settings.demo_mode:
+        from app.providers.github import GitHubPullRequestProvider
+
+        pr_provider = GitHubPullRequestProvider(
+            token=settings.github_token,
+            repository=settings.github_repository,
+            head_ref=settings.github_head_ref,
+            base_ref=settings.github_base_ref,
+        )
+    else:
+        from app.providers.simulated import SimulatedPullRequestProvider
+
+        pr_provider = SimulatedPullRequestProvider()
+
     pipeline = WorkflowPipeline(
         store=store,
         telemetry=SimulatedTelemetryProvider(),
@@ -90,6 +108,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # subprocesses can see.
         verifier=DeterministicVerifier(store=store, environ=dict(os.environ)),
         provider_mode=settings.provider_mode,
+        pr_provider=pr_provider,
     )
 
     app = FastAPI(

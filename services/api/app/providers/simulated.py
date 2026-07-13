@@ -306,7 +306,7 @@ class SimulatedPullRequestProvider:
         self, incident: Incident, diff: str, idempotency_key: str
     ) -> PullRequestReceipt:
         return PullRequestReceipt(
-            provider="simulated:github",
+            provider="simulated",
             url=f"https://example.invalid/simulated-pr/{incident.id}",
             simulated=True,
             idempotency_key=idempotency_key,

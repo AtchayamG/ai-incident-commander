@@ -1,14 +1,19 @@
 from datetime import UTC, datetime
+from typing import Any, cast
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from app.domain.contracts import (
+    ActionItem,
     ApprovalRequest,
+    CommunicationUpdate,
     EvidenceItem,
+    ExternalAction,
     Hypothesis,
     Incident,
     PatchAttempt,
+    Postmortem,
     RemediationPlan,
     TimelineEvent,
     VerificationRun,
@@ -23,12 +28,15 @@ from app.store.models import (
     ApprovalBindingModel,
     ApprovalRequestModel,
     Base,
+    CommunicationModel,
     EvidenceItemModel,
+    ExternalActionModel,
     HypothesisModel,
     IncidentModel,
     InvestigationReportModel,
     PatchAttemptModel,
     PatchExecutionArtifactModel,
+    PostmortemModel,
     RemediationPlanArtifactModel,
     RemediationPlanModel,
     TimelineEventModel,
@@ -512,7 +520,7 @@ class SqlAlchemyStore(StoreProtocol):
         with self.SessionLocal() as session:
             stmt = select(ApprovalRequestModel).where(
                 ApprovalRequestModel.incident_id == incident_id
-            )
+            ).order_by(ApprovalRequestModel.requested_at, ApprovalRequestModel.id)
             models = session.scalars(stmt).all()
             return [ApprovalRequest.model_validate(m, from_attributes=True) for m in models]
 
@@ -540,3 +548,176 @@ class SqlAlchemyStore(StoreProtocol):
             if model is None:
                 return None
             return ApprovalBinding.model_validate(model, from_attributes=True)
+
+    def add_external_action(self, action: ExternalAction) -> ExternalAction:
+        with self.SessionLocal() as session:
+            model = ExternalActionModel(
+                id=action.id,
+                incident_id=action.incident_id,
+                action_type=action.action_type,
+                provider=action.provider,
+                idempotency_key=action.idempotency_key,
+                approval_request_id=action.approval_request_id,
+                status=action.status,
+                request_json=action.request_json,
+                provider_receipt_json=action.provider_receipt_json,
+                created_at=action.created_at,
+                completed_at=action.completed_at,
+            )
+            session.add(model)
+            session.commit()
+            return action
+
+    def get_external_action(self, action_id: str) -> ExternalAction:
+        with self.SessionLocal() as session:
+            model = session.get(ExternalActionModel, action_id)
+            if not model:
+                raise NotFoundError(f"external action {action_id} not found")
+            return ExternalAction.model_validate(model, from_attributes=True)
+
+    def get_external_action_by_idempotency_key(
+        self, idempotency_key: str
+    ) -> ExternalAction | None:
+        with self.SessionLocal() as session:
+            stmt = select(ExternalActionModel).where(
+                ExternalActionModel.idempotency_key == idempotency_key
+            )
+            model = session.scalars(stmt).first()
+            if model is None:
+                return None
+            return ExternalAction.model_validate(model, from_attributes=True)
+
+    def update_external_action(self, action: ExternalAction) -> ExternalAction:
+        with self.SessionLocal() as session:
+            model = session.get(ExternalActionModel, action.id)
+            if not model:
+                raise NotFoundError(f"external action {action.id} not found")
+            model.status = action.status
+            model.provider = action.provider
+            model.approval_request_id = action.approval_request_id
+            model.request_json = action.request_json
+            model.provider_receipt_json = action.provider_receipt_json
+            model.created_at = action.created_at
+            model.completed_at = action.completed_at
+            session.commit()
+            return action
+
+    def list_external_actions(self, incident_id: str) -> list[ExternalAction]:
+        with self.SessionLocal() as session:
+            stmt = select(ExternalActionModel).where(
+                ExternalActionModel.incident_id == incident_id
+            ).order_by(ExternalActionModel.created_at, ExternalActionModel.id)
+            models = session.scalars(stmt).all()
+            return [ExternalAction.model_validate(m, from_attributes=True) for m in models]
+
+    def add_postmortem(self, postmortem: Postmortem) -> Postmortem:
+        with self.SessionLocal() as session:
+            stmt = select(PostmortemModel).where(
+                PostmortemModel.incident_id == postmortem.incident_id
+            )
+            model = session.scalars(stmt).first()
+
+            timeline_dump = [
+                t if isinstance(t, dict) else (
+                    t.model_dump(mode="json") if hasattr(t, "model_dump") else t
+                )
+                for t in postmortem.timeline_json
+            ]
+            action_items_dump = cast(
+                list[dict[str, Any]],
+                [
+                    a if isinstance(a, dict) else (
+                        a.model_dump(mode="json") if hasattr(a, "model_dump") else a
+                    )
+                    for a in postmortem.action_items_json
+                ]
+            )
+
+            if model is not None:
+                model.summary = postmortem.summary
+                model.impact = postmortem.impact
+                model.root_cause = postmortem.root_cause
+                model.resolution = postmortem.resolution
+                model.timeline_json = timeline_dump
+                model.action_items_json = action_items_dump
+                model.markdown_content = postmortem.markdown_content
+                model.created_at = postmortem.created_at
+            else:
+                model = PostmortemModel(
+                    id=postmortem.id,
+                    incident_id=postmortem.incident_id,
+                    summary=postmortem.summary,
+                    impact=postmortem.impact,
+                    root_cause=postmortem.root_cause,
+                    resolution=postmortem.resolution,
+                    timeline_json=timeline_dump,
+                    action_items_json=action_items_dump,
+                    markdown_content=postmortem.markdown_content,
+                    created_at=postmortem.created_at,
+                )
+                session.add(model)
+            session.commit()
+            return postmortem
+
+    def get_postmortem(self, incident_id: str) -> Postmortem | None:
+        with self.SessionLocal() as session:
+            stmt = select(PostmortemModel).where(PostmortemModel.incident_id == incident_id)
+            model = session.scalars(stmt).first()
+            if model is None:
+                return None
+            action_items = [
+                ActionItem(**a) if isinstance(a, dict) else a
+                for a in model.action_items_json
+            ]
+            return Postmortem(
+                id=model.id,
+                incident_id=model.incident_id,
+                summary=model.summary,
+                impact=model.impact,
+                root_cause=model.root_cause,
+                resolution=model.resolution,
+                timeline_json=model.timeline_json,
+                action_items_json=action_items,
+                markdown_content=model.markdown_content,
+                markdown_uri=None,
+                created_at=model.created_at,
+            )
+
+    def add_communications(self, comms: CommunicationUpdate) -> CommunicationUpdate:
+        with self.SessionLocal() as session:
+            stmt = select(CommunicationModel).where(
+                CommunicationModel.incident_id == comms.incident_id
+            )
+            model = session.scalars(stmt).first()
+            if model is not None:
+                model.technical_update = comms.technical_update
+                model.stakeholder_update = comms.stakeholder_update
+                model.resolution_note = comms.resolution_note
+                model.created_at = comms.created_at
+            else:
+                model = CommunicationModel(
+                    incident_id=comms.incident_id,
+                    technical_update=comms.technical_update,
+                    stakeholder_update=comms.stakeholder_update,
+                    resolution_note=comms.resolution_note,
+                    created_at=comms.created_at,
+                )
+                session.add(model)
+            session.commit()
+            return comms
+
+    def get_communications(self, incident_id: str) -> CommunicationUpdate | None:
+        with self.SessionLocal() as session:
+            stmt = select(CommunicationModel).where(CommunicationModel.incident_id == incident_id)
+            model = session.scalars(stmt).first()
+            if model is None:
+                return None
+            return CommunicationUpdate(
+                incident_id=model.incident_id,
+                technical_update=model.technical_update,
+                stakeholder_update=model.stakeholder_update,
+                resolution_note=model.resolution_note,
+                created_at=model.created_at,
+            )
+
+

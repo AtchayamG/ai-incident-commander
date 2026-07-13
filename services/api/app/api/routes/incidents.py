@@ -15,19 +15,23 @@ from app.config import Settings
 from app.demo.seed import seed_demo
 from app.domain.contracts import (
     ApprovalRequest,
+    CommunicationUpdate,
+    DraftPR,
     EvidenceItem,
+    ExternalAction,
     Hypothesis,
     Incident,
     IncidentCreate,
     IncidentList,
     PatchAttempt,
+    Postmortem,
     RemediationPlan,
     ResetResult,
     TimelineEvent,
     VerificationRun,
     WorkflowEvent,
 )
-from app.domain.enums import Environment, Severity, WorkflowState
+from app.domain.enums import ApprovalStatus, ApprovalType, Environment, Severity, WorkflowState
 from app.domain.investigation import InvestigationReport
 from app.domain.remediation import RemediationPlanArtifact
 from app.domain.sandbox import PatchExecutionArtifact
@@ -319,3 +323,281 @@ async def stream_workflow_events(
             await asyncio.sleep(0.1)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+def _map_to_draft_pr(action: ExternalAction, incident: Incident) -> DraftPR:
+    url = None
+    reference = None
+    error_message = None
+    if action.provider_receipt_json:
+        url = action.provider_receipt_json.get("url")
+        reference = action.provider_receipt_json.get("reference") or url
+        error_message = action.provider_receipt_json.get("error")
+    return DraftPR(
+        id=action.id,
+        incident_id=action.incident_id,
+        status=action.status,
+        url=url,
+        reference=reference,
+        provider_mode=incident.provider_mode,
+        idempotency_key=action.idempotency_key,
+        error_message=error_message,
+        created_at=action.created_at,
+    )
+
+
+def _generate_comms(store: StoreProtocol, incident: Incident) -> CommunicationUpdate:
+    hypotheses = store.list_hypotheses(incident.id)
+    patches = store.list_patches(incident.id)
+    verifications = store.list_verifications(incident.id)
+    actions = store.list_external_actions(incident.id)
+
+    latest_patch = patches[-1] if patches else None
+    verifications[-1] if verifications else None
+    top_hyp = hypotheses[0] if hypotheses else None
+
+    pr_url = "N/A"
+    if actions:
+        for act in reversed(actions):
+            if act.provider_receipt_json and "url" in act.provider_receipt_json:
+                pr_url = act.provider_receipt_json["url"]
+                break
+
+    # Avoid claiming successfully mitigated/closed/live/deployed when evidence
+    # only proves a verified patch and draft-PR artifact.
+    tech_lines = [
+        f"Incident ID: {incident.id} - Resolution draft created.",
+        f"Service: {incident.service} ({incident.environment.value}) | "
+        f"Severity: {incident.severity.value}",
+        f"Root Cause: {top_hyp.statement if top_hyp else 'Unknown'}",
+        "Remediation: Prepared verified patch (attempt "
+        f"{latest_patch.attempt if latest_patch else 1}).",
+        f"Draft-PR artifact: recorded at {pr_url}."
+    ]
+    tech_update = "\n".join(tech_lines)
+
+    stakeholder_lines = [
+        f"A verified code patch has been prepared for {incident.service} "
+        f"in {incident.environment.value}.",
+        f"A draft-PR artifact is pending review: {pr_url}",
+        "Full postmortem and follow-up action items have been drafted "
+        "and are awaiting sign-off."
+    ]
+    stakeholder_update = "\n".join(stakeholder_lines)
+
+    resolution_lines = [
+        f"Draft-PR artifact {pr_url} recorded with verified patch (attempt "
+        f"{latest_patch.attempt if latest_patch else 1}).",
+        "Verification checks successfully executed. Awaiting command review "
+        "and production deployment."
+    ]
+    resolution_note = "\n".join(resolution_lines)
+
+    return CommunicationUpdate(
+        incident_id=incident.id,
+        technical_update=tech_update,
+        stakeholder_update=stakeholder_update,
+        resolution_note=resolution_note,
+        created_at=datetime.now(UTC),
+    )
+
+
+@router.post("/{incident_id}/draft-pr", response_model=DraftPR)
+def create_draft_pr(
+    incident_id: str,
+    store: Annotated[StoreProtocol, Depends(get_store)],
+    pipeline: Annotated[WorkflowPipeline, Depends(get_pipeline)],
+) -> DraftPR:
+    incident = _get_or_404(store, incident_id)
+
+    # 1. Return existing completed projection when present
+    actions = store.list_external_actions(incident.id)
+    completed_action = next((a for a in actions if a.status == "completed"), None)
+    if completed_action is not None:
+        return _map_to_draft_pr(completed_action, incident)
+
+    # 2. Otherwise require latest exact approved approval/current valid state.
+    # It must never accept REVIEW_READY, execute from EXTERNAL_ACTION_FAILED,
+    # or silently reuse a stale approval.
+    if incident.state == WorkflowState.REVIEW_READY:
+        raise HTTPException(
+            status_code=400,
+            detail="draft PR cannot be requested in REVIEW_READY state",
+        )
+    if incident.state == WorkflowState.EXTERNAL_ACTION_FAILED:
+        raise HTTPException(
+            status_code=400,
+            detail="draft PR cannot be requested directly in EXTERNAL_ACTION_FAILED state",
+        )
+    if incident.state not in (WorkflowState.WAITING_PR_APPROVAL, WorkflowState.CREATING_PR):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"incident is in state {incident.state}; "
+                "draft PR requires WAITING_PR_APPROVAL or CREATING_PR"
+            ),
+        )
+
+    approvals = store.list_approvals(incident.id)
+    latest_approval = approvals[-1] if approvals else None
+    if (
+        latest_approval is None
+        or latest_approval.approval_type != ApprovalType.CREATE_DRAFT_PR
+        or latest_approval.status != ApprovalStatus.APPROVED
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="no approved CREATE_DRAFT_PR approval request found for this incident",
+        )
+
+    # Check if the latest approval is stale
+    binding = store.get_approval_binding(latest_approval.id)
+    if binding is None:
+        raise HTTPException(
+            status_code=400,
+            detail="stale approval: missing binding",
+        )
+
+    patches = store.list_patches(incident.id)
+    latest_patch = patches[-1] if patches else None
+    if latest_patch is None:
+        raise HTTPException(
+            status_code=400,
+            detail="stale approval: no patch attempt found",
+        )
+    latest_verification = store.get_verification_artifact_for_patch(latest_patch.id)
+    if latest_verification is None:
+        raise HTTPException(
+            status_code=400,
+            detail="stale approval: no verification artifact found for latest patch",
+        )
+
+    if (
+        latest_patch.id != binding.plan_id
+        or latest_patch.attempt != binding.plan_version
+        or latest_verification.artifact_hash != binding.plan_hash
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="stale approval: patch or verification has changed",
+        )
+
+    # Do not reuse an already-decided approval if it was already used in an external action.
+    existing_action_for_approval = next(
+        (a for a in actions if a.approval_request_id == latest_approval.id), None
+    )
+    if existing_action_for_approval is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="the approved approval has already been used/decided",
+        )
+
+    pipeline.apply_pr_approval(incident, approved=True, approval_id=latest_approval.id)
+
+    updated_actions = store.list_external_actions(incident.id)
+    if not updated_actions:
+        raise HTTPException(status_code=500, detail="External action was not recorded")
+    return _map_to_draft_pr(updated_actions[-1], incident)
+
+
+@router.get("/{incident_id}/draft-pr", response_model=DraftPR)
+def get_draft_pr(
+    incident_id: str,
+    store: Annotated[StoreProtocol, Depends(get_store)],
+) -> DraftPR:
+    incident = _get_or_404(store, incident_id)
+    actions = store.list_external_actions(incident_id)
+    if not actions:
+        raise HTTPException(
+            status_code=404,
+            detail="no draft PR action has been attempted for this incident",
+        )
+    return _map_to_draft_pr(actions[-1], incident)
+
+
+@router.get("/{incident_id}/communications", response_model=CommunicationUpdate)
+def get_communications(
+    incident_id: str,
+    store: Annotated[StoreProtocol, Depends(get_store)],
+) -> CommunicationUpdate:
+    incident = _get_or_404(store, incident_id)
+
+    # Check if resolution artifacts exist (verified patch and completed draft-PR action)
+    patches = store.list_patches(incident.id)
+    latest_patch = patches[-1] if patches else None
+    latest_verification = (
+        store.get_verification_artifact_for_patch(latest_patch.id)
+        if latest_patch
+        else None
+    )
+
+    actions = store.list_external_actions(incident.id)
+    completed_pr = next((a for a in actions if a.status == "completed"), None)
+
+    if not latest_verification or not latest_verification.passed or not completed_pr:
+        raise HTTPException(
+            status_code=404,
+            detail="no communications found; resolution artifacts must exist first",
+        )
+
+    comms = store.get_communications(incident.id)
+    if comms is None:
+        comms = _generate_comms(store, incident)
+        store.add_communications(comms)
+    return comms
+
+
+@router.post("/{incident_id}/communications/regenerate", response_model=CommunicationUpdate)
+def regenerate_communications(
+    incident_id: str,
+    store: Annotated[StoreProtocol, Depends(get_store)],
+) -> CommunicationUpdate:
+    incident = _get_or_404(store, incident_id)
+
+    # Check if resolution artifacts exist (verified patch and completed draft-PR action)
+    patches = store.list_patches(incident.id)
+    latest_patch = patches[-1] if patches else None
+    latest_verification = (
+        store.get_verification_artifact_for_patch(latest_patch.id)
+        if latest_patch
+        else None
+    )
+
+    actions = store.list_external_actions(incident.id)
+    completed_pr = next((a for a in actions if a.status == "completed"), None)
+
+    if not latest_verification or not latest_verification.passed or not completed_pr:
+        raise HTTPException(
+            status_code=400,
+            detail="cannot regenerate communications; resolution artifacts must exist first",
+        )
+
+    store.add_timeline_event(
+        TimelineEvent(
+            id=store.next_id("tl"),
+            incident_id=incident.id,
+            at=datetime.now(UTC),
+            kind="communications_regenerated",
+            description="Incident updates regenerated.",
+        )
+    )
+    comms = _generate_comms(store, incident)
+    store.add_communications(comms)
+    return comms
+
+
+@router.get("/{incident_id}/postmortem", response_model=Postmortem)
+def get_postmortem(
+    incident_id: str,
+    store: Annotated[StoreProtocol, Depends(get_store)],
+) -> Postmortem:
+    _get_or_404(store, incident_id)
+    postmortem = store.get_postmortem(incident_id)
+    if postmortem is None:
+        raise HTTPException(
+            status_code=404,
+            detail="no postmortem has been drafted or persisted for this incident yet",
+        )
+    return postmortem
+
+

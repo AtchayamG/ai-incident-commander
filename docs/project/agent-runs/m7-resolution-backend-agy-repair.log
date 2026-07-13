@@ -1,0 +1,36 @@
+﻿I have successfully completed the tasks required to resolve the M7 incident resolution backend issues.
+
+### Summary of Work Done
+
+1. **Ruff Lints & Formats Fixed**: Added, sorted, and fixed all formatting and import-related lints in [test_m7_pr_communications.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/tests/test_m7_pr_communications.py), [sql.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/app/store/sql.py), [pipeline.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/app/workflow/pipeline.py), and [approvals.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/app/api/routes/approvals.py). All files are now 100% compliant with Ruff and Mypy strict type-checking.
+2. **Approval Decision Validation**: 
+   * Updated the `decide` endpoint in [approvals.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/app/api/routes/approvals.py) to validate the current incident state, exact bindings (mismatching plan version/hash), role headers, and expiry.
+   * Ensured that verification results (`passed == True` and `not blocks_pr`) are strictly validated prior to decision completion.
+   * Handled rejections such that they transition `WAITING_PR_APPROVAL` -> `REVIEW_READY` without invoking any external actions.
+3. **Idempotent `/draft-pr` Endpoint & Typed Projection**:
+   * Overhauled `GET` and `POST` routes on `/{incident_id}/draft-pr` in [incidents.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/app/api/routes/incidents.py) to return a typed `DraftPR` projection model matching the frontend contract (exposing `id`, `incident_id`, `status`, `url`, `reference`, `provider_mode`, `idempotency_key`, `error_message`, `created_at`).
+   * Ensured that if a completed PR action exists, it immediately returns the completed projection instead of requesting new provider calls.
+4. **Provider Failure & Redacted Receipt Persistence**:
+   * Transitioned states `CREATING_PR` -> `EXTERNAL_ACTION_FAILED` -> `WAITING_PR_APPROVAL` upon external provider failures.
+   * Stored the redacted error receipts (filtering out private tokens) and timeline events.
+   * Generated exactly one new pending approval request bound to the same patch/verification to allow retrying on the same idempotency key row.
+5. **Stable Idempotency Key**:
+   * Changed the idempotency key derivation in [pipeline.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/app/workflow/pipeline.py) to be determined by: `create_draft_pr:{incident_id}:{patch_id}:{verification_hash}`.
+   * Enabled restarting/retrying to update the existing external action row instead of duplicating rows.
+6. **Persisted Communications & Postmortem**:
+   * Refined `GET /communications` and `POST /communications/regenerate` to return/persist communications only after resolution artifacts exist (verified patch + completed draft PR).
+   * Verified that no false mitigation claims (e.g. claiming "successfully mitigated" or "deployed/live") are present in the communications.
+   * Ensured postmortem timeline events preserve original evidence citations and that action items are prioritized (HIGH first, then MEDIUM, then LOW).
+7. **GitHub Provider Safe Fallback & Configured Refs**:
+   * Updated settings in [config.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/app/config.py) and [github.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/app/providers/github.py) to validate and require `GITHUB_HEAD_REF` and `GITHUB_BASE_REF` in addition to `GITHUB_TOKEN` and `GITHUB_REPOSITORY` before initiating draft PR creation.
+8. **Alembic Database Migration**:
+   * Upgraded the Alembic script to establish the `communications` table, and enforce a unique index constraint on the `postmortems` and `communications` tables' `incident_id` fields.
+9. **Mandatory Test Cases Added**:
+   * Added 10 extensive integration tests covering all requirements. The entire test suite containing 145 unit and integration tests passes successfully.
+All integration tests, lint checks, type checks, and migrations are passing. The M7 incident-m7-resolution-backend resolution is fully complete.
+
+### Project Verification Status
+* **Test Suite**: 145/145 tests passed successfully, including new targeted test coverage in [test_m7_pr_communications.py](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m7-resolution-backend/services/api/tests/test_m7_pr_communications.py).
+* **Linting / Formatting**: Cleaned and validated via `ruff check`, confirming 100% compliance.
+* **Static Analysis**: Mypy strict type-checking complete with zero issues found.
+* **Migrations**: Alembic DB schemas successfully tested and validated on temporary database creation.

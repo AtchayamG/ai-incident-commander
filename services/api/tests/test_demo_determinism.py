@@ -80,4 +80,4 @@ def test_golden_path_is_deterministic_across_runs() -> None:
     first = _run_golden_path()
     second = _run_golden_path()
     assert first == second
-    assert first["state"] == "REVIEW_READY"
+    assert first["state"] == "WAITING_PR_APPROVAL"

@@ -455,7 +455,7 @@ def test_golden_verification_persisted_and_exposed_via_api() -> None:
     app = create_app(settings)
     with TestClient(app) as client:
         state = _drive_to_decision(client)
-        assert state == WorkflowState.REVIEW_READY.value
+        assert state == WorkflowState.WAITING_PR_APPROVAL.value
 
         verifs = client.get("/api/v1/incidents/inc-demo-0001/verifications").json()
         assert verifs and verifs[-1]["passed"] is True

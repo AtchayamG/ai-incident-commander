@@ -1,0 +1,35 @@
+ROLE: backend/architecture/security/test
+OBJECTIVE: Implement M7 end to end on the backend: second approval, idempotent draft-PR action, communications, and evidence-based postmortem, preserving all M0-M6 guarantees.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m7-resolution-backend
+ALLOWED FILES:
+- services/api/app/**
+- services/api/tests/**
+- services/api/alembic/**
+- packages/contracts/src/** only if a shared backend response contract is authoritative and absent
+- docs/project/agent-runs/M7_RESOLUTION_BACKEND_FINAL_HANDOFF.md
+- docs/testing/m7-resolution-backend.md
+FORBIDDEN:
+- apps/web/**, root files, production/external writes during tests, uploads, publishing, credentials, commits, unrelated refactors
+REQUIREMENTS:
+- Read AGENTS.md, the authoritative blueprint M7/state-machine/API/data-model/adapter/idempotency sections, current approvals route/pipeline/store/provider contracts, and M6 verification/risk behavior before editing.
+- Use the existing state machine. After a passing low/medium-risk M6 review, create exactly one artifact-bound CREATE_DRAFT_PR approval and transition through REVIEW_READY to WAITING_PR_APPROVAL. Never request or execute PR creation for PATCH_FAILED, failed/incomplete verification, or risk-blocked patches.
+- Approval must bind the exact incident, latest patch, latest passing verification, risk decision, artifact hash/version, approver role, and expiry. Rejection returns safely to REVIEW_READY without an external write.
+- Approval decision drives CREATING_PR. Default demo adapter creates a clearly SIMULATED immutable draft-PR artifact offline. Optional live GitHub mode must create a draft only when explicitly configured and approved, redact credentials, fail closed, and be mock-tested without network. Do not merge, push, or publish.
+- Persist external action request/receipt/status/provider/idempotency key. Derive a stable idempotency key from the approved bounded action; retries must return/reuse the same completed receipt and never create duplicates. Failed external action transitions to EXTERNAL_ACTION_FAILED and has a bounded safe retry/renewed-approval path.
+- Implement blueprint endpoints: POST/GET /api/v1/incidents/{incident_id}/draft-pr; GET /communications; POST /communications/regenerate; GET /postmortem. Reuse existing routes/contracts where possible; no parallel duplicate APIs.
+- Generate deterministic technical and stakeholder updates with distinct audiences from persisted incident/evidence/investigation/patch/verification/PR facts. Never invent live evidence or resolution status.
+- Generate and persist a strict postmortem with summary, impact, root cause, resolution, evidence-backed chronological timeline, and prioritized action items with owner placeholders; provide honest Markdown export content/reference without unsafe file writes.
+- Transition through PR_READY to RESOLUTION_DRAFTED only when the receipt and resolution artifacts persist. Audit every approval, external-action attempt/reuse/failure, generation, and state transition.
+- Add one portable Alembic migration for new persistence. Use generic SQLAlchemy types, support SQLite tests and PostgreSQL target.
+- Reuse code/stdlib before adding abstractions/dependencies. Keep provider SDKs behind adapters. Do not weaken M6 or modify determinism masking without exact justification.
+- Tests: second approval binding/stale/single-use/rejection; failed verification/risk never requests PR; simulated PR success/provenance; idempotent duplicate/retry; mocked live draft flag and redaction/failure; API contracts; technical vs stakeholder updates; postmortem citations/timeline/actions/Markdown; persistence/restart/fresh migration/state transitions.
+- Run exact gates and record exact results plus DONE/BLOCKED/RISK/NEXT in the handoff. Do not claim optional live proof beyond mocked adapter coverage.
+TESTS:
+- uv run --project services/api ruff check services/api
+- uv run --project services/api mypy --strict services/api/app
+- uv run --project services/api pytest -q services/api/tests
+- fresh Alembic upgrade from an empty temporary database
+DELIVERABLE:
+- implementation, focused tests, portable migration, docs/testing/m7-resolution-backend.md, and docs/project/agent-runs/M7_RESOLUTION_BACKEND_FINAL_HANDOFF.md
+STOP IF:
+- a production credential/action, destructive operation, ambiguous approval semantics, or changes outside the allowed files are required

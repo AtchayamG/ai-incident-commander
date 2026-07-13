@@ -37,6 +37,10 @@ class Settings:
     codex_home: str | None = None
     openai_api_key_present: bool = False
     github_token_present: bool = False
+    github_token: str = ""
+    github_repository: str = ""
+    github_head_ref: str = ""
+    github_base_ref: str = ""
 
     @property
     def provider_mode(self) -> ProviderMode:
@@ -59,4 +63,8 @@ class Settings:
             codex_home=os.environ.get("CODEX_HOME") or None,
             openai_api_key_present=bool(os.environ.get("OPENAI_API_KEY")),
             github_token_present=bool(os.environ.get("GITHUB_TOKEN")),
+            github_token=os.environ.get("GITHUB_TOKEN", ""),
+            github_repository=os.environ.get("GITHUB_REPOSITORY", ""),
+            github_head_ref=os.environ.get("GITHUB_HEAD_REF", ""),
+            github_base_ref=os.environ.get("GITHUB_BASE_REF", ""),
         )

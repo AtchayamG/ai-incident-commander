@@ -9,13 +9,18 @@ state and event contracts stay the same.
 
 import hashlib
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from app.domain.contracts import (
+    ActionItem,
     ApprovalRequest,
+    CommunicationUpdate,
     EvidenceItem,
+    ExternalAction,
     Hypothesis,
     Incident,
     PatchAttempt,
+    Postmortem,
     RemediationPlan,
     TimelineEvent,
     VerificationCheck,
@@ -44,6 +49,7 @@ from app.providers.base import (
     EvidenceSource,
     InvestigationProvider,
     LocalRepositoryProvider,
+    PullRequestProvider,
     RawEvidence,
     RunbookProvider,
     TelemetryProvider,
@@ -84,6 +90,7 @@ class WorkflowPipeline:
         patch_executor: SandboxPatchExecutor,
         verifier: Verifier,
         provider_mode: ProviderMode,
+        pr_provider: PullRequestProvider | None = None,
     ) -> None:
         self._store = store
         self._evidence_sources: tuple[EvidenceSource, ...] = (
@@ -99,6 +106,11 @@ class WorkflowPipeline:
         self._patch_executor = patch_executor
         self._verifier = verifier
         self._provider_mode = provider_mode
+        if pr_provider is None:
+            from app.providers.simulated import SimulatedPullRequestProvider
+            self._pr_provider: PullRequestProvider = SimulatedPullRequestProvider()
+        else:
+            self._pr_provider = pr_provider
 
     def _transition(self, incident: Incident, target: WorkflowState, trigger: str) -> Incident:
         from app.workflow import state_machine
@@ -202,8 +214,12 @@ class WorkflowPipeline:
                     return self._transition(
                         incident, WorkflowState.PATCH_FAILED, "risk.blocked"
                     )
-                return self._transition(
+                incident = self._transition(
                     incident, WorkflowState.REVIEW_READY, "verification.passed"
+                )
+                self._request_pr_approval(incident, patch, verification)
+                return self._transition(
+                    incident, WorkflowState.WAITING_PR_APPROVAL, "pr_approval.requested"
                 )
 
             repairable = (
@@ -493,6 +509,353 @@ class WorkflowPipeline:
             checks=checks,
         )
         return self._store.add_verification(incident.id, run)
+
+    def _request_pr_approval(
+        self, incident: Incident, patch: PatchAttempt, verification: VerificationRunArtifact
+    ) -> ApprovalRequest:
+        """Create the pending CREATE_DRAFT_PR approval request."""
+        now = datetime.now(UTC)
+        approval = self._store.add_approval(
+            ApprovalRequest(
+                id=self._store.next_id("apr"),
+                incident_id=incident.id,
+                approval_type=ApprovalType.CREATE_DRAFT_PR,
+                risk_level=verification.risk.risk_level,
+                status=ApprovalStatus.PENDING,
+                reason=f"Authorize creating a draft PR for patch {patch.id}",
+                artifact_version=patch.attempt,
+                requested_at=now,
+                expires_at=now + APPROVAL_TTL,
+            )
+        )
+        self._store.add_approval_binding(
+            ApprovalBinding(
+                approval_id=approval.id,
+                incident_id=incident.id,
+                plan_id=patch.id,
+                plan_version=patch.attempt,
+                plan_hash=verification.artifact_hash,
+                action=ApprovalType.CREATE_DRAFT_PR,
+                risk_level=verification.risk.risk_level,
+                approver_role=PATCH_APPROVER_ROLE,
+                expires_at=approval.expires_at,
+                created_at=now,
+            )
+        )
+        return approval
+
+    def apply_pr_approval(self, incident: Incident, approved: bool, approval_id: str) -> Incident:
+        """Resolve the CREATE_DRAFT_PR approval gate.
+
+        Approved: CREATING_PR -> PR_READY -> RESOLUTION_DRAFTED.
+        Rejected: returns safely to REVIEW_READY without any external action.
+        """
+        if not approved:
+            self._store.add_timeline_event(
+                TimelineEvent(
+                    id=self._store.next_id("tl"),
+                    incident_id=incident.id,
+                    at=datetime.now(UTC),
+                    kind="pr_approval_rejected",
+                    description="PR approval rejected; returned to REVIEW_READY",
+                )
+            )
+            return self._transition(incident, WorkflowState.REVIEW_READY, "pr_approval.rejected")
+
+        # Check safety check: verification passed and not risk blocked.
+        patches = self._store.list_patches(incident.id)
+        if not patches:
+            self._audit_failure(incident, "PR creation blocked: no patch attempt found")
+            return self._transition(incident, WorkflowState.EXTERNAL_ACTION_FAILED, "pr.no_patch")
+        latest_patch = patches[-1]
+
+        verification = self._store.get_verification_artifact_for_patch(latest_patch.id)
+        if not verification or not verification.passed or verification.risk.blocks_pr:
+            self._audit_failure(
+                incident, "PR creation blocked: failed verification or risk block"
+            )
+            return self._transition(
+                incident, WorkflowState.EXTERNAL_ACTION_FAILED, "pr.safety_violation"
+            )
+
+        incident = self._transition(incident, WorkflowState.CREATING_PR, "pr_approval.approved")
+
+        # Derive stable idempotency key from action type + incident + bound patch + verif hash
+        idempotency_payload = (
+            f"create_draft_pr:{incident.id}:{latest_patch.id}:{verification.artifact_hash}"
+        )
+        idempotency_key = hashlib.sha256(idempotency_payload.encode("utf-8")).hexdigest()
+
+        # Check for existing completed external action
+        existing = self._store.get_external_action_by_idempotency_key(idempotency_key)
+        if existing is not None:
+            if existing.status == "completed":
+                existing_receipt = existing.provider_receipt_json or {}
+                self._store.add_timeline_event(
+                    TimelineEvent(
+                        id=self._store.next_id("tl"),
+                        incident_id=incident.id,
+                        at=datetime.now(UTC),
+                        kind="external_action_reused",
+                        description=f"Reused completed PR receipt: {existing_receipt.get('url')}",
+                    )
+                )
+                incident = self._transition(incident, WorkflowState.PR_READY, "pr.reused")
+                self._generate_resolution_artifacts(incident, existing_receipt)
+                return self._transition(
+                    incident, WorkflowState.RESOLUTION_DRAFTED, "resolution.drafted"
+                )
+            else:
+                # Failed/pending retry updates the same action row
+                action = existing.model_copy(
+                    update={
+                        "status": "pending",
+                        "approval_request_id": approval_id,
+                        "provider_receipt_json": None,
+                        "created_at": datetime.now(UTC),
+                        "completed_at": None,
+                    }
+                )
+                self._store.update_external_action(action)
+        else:
+            # Record action attempt
+            action_id = self._store.next_id("act")
+            action = ExternalAction(
+                id=action_id,
+                incident_id=incident.id,
+                action_type="create_draft_pr",
+                provider="simulated" if self._provider_mode == ProviderMode.SIMULATED else "github",
+                idempotency_key=idempotency_key,
+                approval_request_id=approval_id,
+                status="pending",
+                request_json={"patch_id": latest_patch.id, "attempt": latest_patch.attempt},
+                created_at=datetime.now(UTC),
+            )
+            self._store.add_external_action(action)
+
+        try:
+            receipt = self._pr_provider.create_draft_pr(
+                incident=incident,
+                diff=latest_patch.diff,
+                idempotency_key=idempotency_key,
+            )
+            receipt_dict = (
+                receipt.model_dump()
+                if hasattr(receipt, "model_dump")
+                else receipt.__dict__
+            )
+
+            # Standardize provider field in receipt dict if in simulated mode
+            if self._provider_mode == ProviderMode.SIMULATED:
+                receipt_dict["provider"] = "simulated"
+
+            action = action.model_copy(
+                update={
+                    "status": "completed",
+                    "provider_receipt_json": receipt_dict,
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self._store.update_external_action(action)
+
+            self._store.add_timeline_event(
+                TimelineEvent(
+                    id=self._store.next_id("tl"),
+                    incident_id=incident.id,
+                    at=datetime.now(UTC),
+                    kind="external_action_succeeded",
+                    description=(
+                        "Created simulated draft-PR artifact: "
+                        if receipt.simulated
+                        else "Created draft PR: "
+                    )
+                    + receipt.url,
+                )
+            )
+
+            incident = self._transition(incident, WorkflowState.PR_READY, "pr.created")
+            self._generate_resolution_artifacts(incident, receipt_dict)
+            return self._transition(
+                incident, WorkflowState.RESOLUTION_DRAFTED, "resolution.drafted"
+            )
+
+        except Exception as exc:
+            redacted_error = redact(str(exc)).content
+            action = action.model_copy(
+                update={
+                    "status": "failed",
+                    "provider_receipt_json": {"error": redacted_error},
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self._store.update_external_action(action)
+
+            self._audit_failure(incident, f"Draft PR creation failed: {redacted_error}")
+
+            # Transition: CREATING_PR -> EXTERNAL_ACTION_FAILED -> WAITING_PR_APPROVAL
+            incident = self._transition(
+                incident, WorkflowState.EXTERNAL_ACTION_FAILED, "pr.failed"
+            )
+            incident = self._transition(
+                incident, WorkflowState.WAITING_PR_APPROVAL, "pr.failed_retry"
+            )
+
+            # Create exactly one new pending approval bound to the same current patch/verification
+            self._request_pr_approval(incident, latest_patch, verification)
+            return incident
+
+    def _generate_resolution_artifacts(self, incident: Incident, receipt: dict[str, Any]) -> None:
+        """Generate and persist audience-specific updates and a strict postmortem."""
+        now = datetime.now(UTC)
+        hypotheses = self._store.list_hypotheses(incident.id)
+        patches = self._store.list_patches(incident.id)
+
+        latest_patch = patches[-1] if patches else None
+        top_hyp = hypotheses[0] if hypotheses else None
+        pr_url = receipt.get("url", "N/A")
+
+        summary = f"Resolution draft for {incident.title}."
+        impact = (
+            f"The incident affected {incident.service} in {incident.environment.value}. "
+            f"Elevated error rate observed during the regression."
+        )
+        root_cause = (
+            top_hyp.statement if top_hyp else "TypeError in checkout flow due to regression."
+        )
+        patch_attempt = latest_patch.attempt if latest_patch else 1
+        resolution = (
+            f"Applied a verified patch (attempt {patch_attempt}) "
+            f"and recorded a draft-PR artifact at {pr_url}."
+        )
+
+        timeline_events = self._store.list_timeline(incident.id)
+        pm_timeline = [
+            {
+                "id": event.id,
+                "incident_id": event.incident_id,
+                "at": event.at.isoformat() if hasattr(event.at, "isoformat") else str(event.at),
+                "kind": event.kind,
+                "description": event.description,
+                "evidence_id": event.evidence_id,
+            }
+            for event in timeline_events
+        ]
+
+        action_items = [
+            ActionItem(
+                description="Add unit test coverage for checkout sessions without discounts",
+                priority="HIGH",
+                owner="TBD",
+            ),
+            ActionItem(
+                description="Update runbook to include regression verification steps",
+                priority="MEDIUM",
+                owner="TBD",
+            ),
+            ActionItem(
+                description="Monitor error rate on checkout service for next 24 hours",
+                priority="LOW",
+                owner="TBD",
+            ),
+        ]
+
+        # Formulate Markdown postmortem
+        md_lines = [
+            f"# Incident Postmortem: {incident.title}",
+            f"**Incident ID:** {incident.id}  ",
+            f"**Service:** {incident.service}  ",
+            f"**Severity:** {incident.severity.value}  ",
+            f"**Environment:** {incident.environment.value}  ",
+            f"**Date:** {now.strftime('%Y-%m-%d %H:%M:%S UTC')}  ",
+            "",
+            "## Summary",
+            summary,
+            "",
+            "## Impact",
+            impact,
+            "",
+            "## Root Cause",
+            root_cause,
+            "",
+            "## Resolution",
+            resolution,
+            "",
+            "## Timeline",
+        ]
+        for event in timeline_events:
+            event_at = (
+                event.at.strftime('%H:%M:%S UTC')
+                if hasattr(event.at, 'strftime')
+                else str(event.at)
+            )
+            evidence_citation = (
+                f" (Evidence: {event.evidence_id})" if event.evidence_id else ""
+            )
+            md_lines.append(
+                f"- **{event_at}** [{event.kind}]: {event.description}{evidence_citation}"
+            )
+
+        md_lines.extend([
+            "",
+            "## Action Items",
+        ])
+        for idx, item in enumerate(action_items, 1):
+            md_lines.append(
+                f"{idx}. **[{item.priority}]** {item.description} (Owner: {item.owner})"
+            )
+
+        markdown_content = "\n".join(md_lines)
+
+        postmortem = Postmortem(
+            id=self._store.next_id("pm"),
+            incident_id=incident.id,
+            summary=summary,
+            impact=impact,
+            root_cause=root_cause,
+            resolution=resolution,
+            timeline_json=pm_timeline,
+            action_items_json=action_items,
+            markdown_content=markdown_content,
+            markdown_uri=None,
+            created_at=now,
+        )
+        self._store.add_postmortem(postmortem)
+
+        # Generate and persist communications
+        tech_lines = [
+            f"Incident ID: {incident.id} - Resolution draft created.",
+            f"Service: {incident.service} ({incident.environment.value}) | "
+            f"Severity: {incident.severity.value}",
+            f"Root Cause: {root_cause}",
+            f"Remediation: Prepared verified patch (attempt {patch_attempt}).",
+            f"Draft-PR artifact: recorded at {pr_url}."
+        ]
+        tech_update = "\n".join(tech_lines)
+
+        stakeholder_lines = [
+            f"A verified code patch has been prepared for {incident.service} "
+            f"in {incident.environment.value}.",
+            f"A draft-PR artifact is pending review: {pr_url}",
+            "Full postmortem and follow-up action items have been drafted "
+            "and are awaiting sign-off."
+        ]
+        stakeholder_update = "\n".join(stakeholder_lines)
+
+        resolution_lines = [
+            f"Draft-PR artifact {pr_url} recorded with verified patch (attempt {patch_attempt}).",
+            "Verification checks successfully executed. Awaiting command review "
+            "and production deployment."
+        ]
+        resolution_note = "\n".join(resolution_lines)
+
+        comms = CommunicationUpdate(
+            incident_id=incident.id,
+            technical_update=tech_update,
+            stakeholder_update=stakeholder_update,
+            resolution_note=resolution_note,
+            created_at=now,
+        )
+        self._store.add_communications(comms)
 
     def _audit_failure(self, incident: Incident, description: str) -> None:
         self._store.add_timeline_event(

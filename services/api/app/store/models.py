@@ -230,3 +230,46 @@ class WorkflowEventModel(Base):
     to_state: Mapped[str] = mapped_column(String(50))
     trigger: Mapped[str] = mapped_column(String(100))
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ExternalActionModel(Base):
+    __tablename__ = "external_actions"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), index=True)
+    action_type: Mapped[str] = mapped_column(String(50))
+    provider: Mapped[str] = mapped_column(String(100))
+    idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    approval_request_id: Mapped[str] = mapped_column(ForeignKey("approval_requests.id"), index=True)
+    status: Mapped[str] = mapped_column(String(50))
+    request_json: Mapped[dict[str, Any]] = mapped_column(JSON)
+    provider_receipt_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PostmortemModel(Base):
+    __tablename__ = "postmortems"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), index=True, unique=True)
+    summary: Mapped[str] = mapped_column(String)
+    impact: Mapped[str] = mapped_column(String)
+    root_cause: Mapped[str] = mapped_column(String)
+    resolution: Mapped[str] = mapped_column(String)
+    timeline_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+    action_items_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+    markdown_content: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class CommunicationModel(Base):
+    __tablename__ = "communications"
+
+    incident_id: Mapped[str] = mapped_column(ForeignKey("incidents.id"), primary_key=True)
+    technical_update: Mapped[str] = mapped_column(String)
+    stakeholder_update: Mapped[str] = mapped_column(String)
+    resolution_note: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+

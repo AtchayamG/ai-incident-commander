@@ -23,12 +23,15 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-def get_url():
-    url = config.get_main_option("sqlalchemy.url")
-    if url:
-        return url
+
+def get_url() -> str:
     settings = Settings.from_env()
-    return settings.database_url or "sqlite:///demo.db"
+    if settings.database_url:
+        return settings.database_url
+    configured = config.get_main_option("sqlalchemy.url")
+    if configured and not configured.startswith("driver://"):
+        return configured
+    return "sqlite:///demo.db"
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

@@ -4,10 +4,13 @@ from typing import Protocol
 
 from app.domain.contracts import (
     ApprovalRequest,
+    CommunicationUpdate,
     EvidenceItem,
+    ExternalAction,
     Hypothesis,
     Incident,
     PatchAttempt,
+    Postmortem,
     RemediationPlan,
     TimelineEvent,
     VerificationRun,
@@ -113,3 +116,25 @@ class StoreProtocol(Protocol):
     def add_approval_binding(self, binding: ApprovalBinding) -> ApprovalBinding: ...
 
     def get_approval_binding(self, approval_id: str) -> ApprovalBinding | None: ...
+
+    def add_external_action(self, action: ExternalAction) -> ExternalAction: ...
+
+    def get_external_action(self, action_id: str) -> ExternalAction: ...
+
+    def get_external_action_by_idempotency_key(
+        self, idempotency_key: str
+    ) -> ExternalAction | None: ...
+
+    def update_external_action(self, action: ExternalAction) -> ExternalAction: ...
+
+    def list_external_actions(self, incident_id: str) -> list[ExternalAction]: ...
+
+    def add_postmortem(self, postmortem: Postmortem) -> Postmortem: ...
+
+    def get_postmortem(self, incident_id: str) -> Postmortem | None: ...
+
+    def add_communications(self, comms: CommunicationUpdate) -> CommunicationUpdate: ...
+
+    def get_communications(self, incident_id: str) -> CommunicationUpdate | None: ...
+
+

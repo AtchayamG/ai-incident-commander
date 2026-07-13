@@ -10,10 +10,13 @@ from datetime import UTC, datetime
 
 from app.domain.contracts import (
     ApprovalRequest,
+    CommunicationUpdate,
     EvidenceItem,
+    ExternalAction,
     Hypothesis,
     Incident,
     PatchAttempt,
+    Postmortem,
     RemediationPlan,
     TimelineEvent,
     VerificationRun,
@@ -44,6 +47,9 @@ class InMemoryStore:
         self._approvals: dict[str, ApprovalRequest] = {}
         self._approval_bindings: dict[str, ApprovalBinding] = {}
         self._workflow_events: dict[str, list[WorkflowEvent]] = {}
+        self._external_actions: dict[str, ExternalAction] = {}
+        self._postmortems: dict[str, Postmortem] = {}
+        self._communications: dict[str, CommunicationUpdate] = {}
         self._counter = 0
 
     def reset(self) -> None:
@@ -62,6 +68,9 @@ class InMemoryStore:
             self._approvals.clear()
             self._approval_bindings.clear()
             self._workflow_events.clear()
+            self._external_actions.clear()
+            self._postmortems.clear()
+            self._communications.clear()
             self._counter = 0
 
     def next_id(self, prefix: str) -> str:
@@ -287,3 +296,53 @@ class InMemoryStore:
     def get_approval_binding(self, approval_id: str) -> ApprovalBinding | None:
         with self._lock:
             return self._approval_bindings.get(approval_id)
+
+    def add_external_action(self, action: ExternalAction) -> ExternalAction:
+        with self._lock:
+            self._external_actions[action.id] = action
+            return action
+
+    def get_external_action(self, action_id: str) -> ExternalAction:
+        with self._lock:
+            action = self._external_actions.get(action_id)
+            if action is None:
+                raise NotFoundError(f"external action {action_id} not found")
+            return action
+
+    def get_external_action_by_idempotency_key(self, idempotency_key: str) -> ExternalAction | None:
+        with self._lock:
+            for action in self._external_actions.values():
+                if action.idempotency_key == idempotency_key:
+                    return action
+            return None
+
+    def update_external_action(self, action: ExternalAction) -> ExternalAction:
+        with self._lock:
+            if action.id not in self._external_actions:
+                raise NotFoundError(f"external action {action.id} not found")
+            self._external_actions[action.id] = action
+            return action
+
+    def list_external_actions(self, incident_id: str) -> list[ExternalAction]:
+        with self._lock:
+            return [a for a in self._external_actions.values() if a.incident_id == incident_id]
+
+    def add_postmortem(self, postmortem: Postmortem) -> Postmortem:
+        with self._lock:
+            self._postmortems[postmortem.incident_id] = postmortem
+            return postmortem
+
+    def get_postmortem(self, incident_id: str) -> Postmortem | None:
+        with self._lock:
+            return self._postmortems.get(incident_id)
+
+    def add_communications(self, comms: CommunicationUpdate) -> CommunicationUpdate:
+        with self._lock:
+            self._communications[comms.incident_id] = comms
+            return comms
+
+    def get_communications(self, incident_id: str) -> CommunicationUpdate | None:
+        with self._lock:
+            return self._communications.get(incident_id)
+
+
