@@ -37,6 +37,7 @@ make dev-web          # Next.js on :3000 (second terminal)
 make lint             # ruff + next lint + tsc
 make typecheck        # mypy --strict + tsc --noEmit
 make test             # backend, shared-contract, and web tests
+make secret-scan      # Gitleaks over current tree and Git history
 make demo-assert      # five complete deterministic demo runs
 ```
 

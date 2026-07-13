@@ -8,7 +8,7 @@ else
 PY := services/api/.venv/bin/python
 endif
 
-.PHONY: setup dev dev-api dev-web lint typecheck test demo-reset demo-run demo-assert docker-up docker-down
+.PHONY: setup dev dev-api dev-web lint typecheck test secret-scan demo-reset demo-run demo-assert docker-up docker-down
 
 setup:
 	pnpm install
@@ -37,6 +37,9 @@ typecheck:
 test:
 	cd services/api && $(abspath $(PY)) -m pytest
 	pnpm -r run test
+
+secret-scan:
+	gitleaks detect --source . --redact --no-banner --exit-code 1
 
 demo-reset:
 	cd services/api && $(abspath $(PY)) -m app.demo.runner --reset-only

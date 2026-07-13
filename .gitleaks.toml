@@ -1,0 +1,12 @@
+title = "Incident Commander secret scan"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic telemetry line intentionally exercises ingestion redaction"
+condition = "AND"
+regexTarget = "line"
+targetRules = ["generic-api-key"]
+paths = ['''services/api/fixtures/checkout-api/telemetry/error_samples\.log''']
+regexes = ['''debug env dump: STRIPE_API_KEY=''' ]
