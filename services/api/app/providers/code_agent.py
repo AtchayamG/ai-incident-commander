@@ -11,8 +11,7 @@ Two adapters behind the same strict ``CodeAgentGateway`` protocol:
 
 ``CodexCliGateway``
     Real adapter for the locally installed OpenAI Codex CLI, following the
-    ``codex exec`` non-interactive contract discovered on this machine
-    (codex-cli 0.139.0): ``--sandbox workspace-write`` confines writes to the
+    ``codex exec`` non-interactive contract: ``--sandbox workspace-write`` confines writes to the
     workspace, network access stays disabled, the session is ephemeral, and
     the model is configuration-driven. The subprocess environment is built
     from an explicit allowlist so no parent secrets leak. It fails closed —
@@ -20,6 +19,7 @@ Two adapters behind the same strict ``CodeAgentGateway`` protocol:
     mutation; nothing is ever faked as a live call.
 """
 
+import hashlib
 import os
 import shutil
 import subprocess
@@ -106,7 +106,7 @@ CODEX_ENV_ALLOWLIST: tuple[str, ...] = ("PATH", "SYSTEMROOT", "TEMP", "TMP")
 class CodexCliGateway:
     """Live adapter for the locally installed OpenAI Codex CLI.
 
-    Drives ``codex exec`` per the installed CLI contract (0.139.0). Model and
+    Drives ``codex exec`` per the installed CLI contract. Model and
     binary come from configuration; there are no defaults that could silently
     select a wrong runtime. Fails closed when unavailable.
     """
@@ -117,10 +117,20 @@ class CodexCliGateway:
         self._binary = binary
         self._model = model
         self._codex_home = codex_home
+        self._last_receipt: dict[str, object] | None = None
 
     @property
     def engine_id(self) -> str:
         return f"codex-cli:{self._model or 'unconfigured'}"
+
+    @property
+    def last_receipt(self) -> dict[str, object] | None:
+        """Safe proof of the last successful CLI turn.
+
+        The raw JSON event stream may contain code or prompts, so only its
+        digest and event count cross the provider boundary.
+        """
+        return dict(self._last_receipt) if self._last_receipt is not None else None
 
     def availability_errors(self) -> list[str]:
         errors: list[str] = []
@@ -153,9 +163,12 @@ class CodexCliGateway:
         return env
 
     def build_command(self, workspace_root: Path, prompt: str) -> list[str]:
-        """``codex exec`` invocation per the installed 0.139.0 contract:
+        """``codex exec`` invocation per the installed CLI contract:
         workspace-write sandbox, network disabled, no inherited shell
-        environment, ephemeral session, user config ignored."""
+        environment, ephemeral session, user config ignored. The prompt is
+        supplied on stdin because Windows batch shims do not preserve a
+        multiline positional argument reliably."""
+        del prompt
         return [
             self._binary,
             "exec",
@@ -165,6 +178,8 @@ class CodexCliGateway:
             "sandbox_workspace_write.network_access=false",
             "-c",
             "shell_environment_policy.inherit=none",
+            "-c",
+            'approval_policy="never"',
             "--cd",
             str(workspace_root),
             "--skip-git-repo-check",
@@ -175,7 +190,7 @@ class CodexCliGateway:
             "--json",
             "-m",
             self._model,
-            prompt,
+            "-",
         ]
 
     def build_prompt(self, task: PatchTaskContext) -> str:
@@ -194,6 +209,7 @@ class CodexCliGateway:
         )
 
     def apply_patch_turn(self, workspace: SandboxWorkspace, task: PatchTaskContext) -> None:
+        self._last_receipt = None
         errors = self.availability_errors()
         if errors:
             raise CodeAgentUnavailableError(
@@ -205,6 +221,7 @@ class CodexCliGateway:
                 command,
                 cwd=workspace.root,
                 env=self.subprocess_env(),
+                input=self.build_prompt(task),
                 capture_output=True,
                 text=True,
                 timeout=task.timeout_seconds,
@@ -221,6 +238,13 @@ class CodexCliGateway:
             raise GatewayTurnError(
                 f"codex exec exited with {completed.returncode}: {tail}"
             )
+        event_stream = completed.stdout or ""
+        self._last_receipt = {
+            "engine": self.engine_id,
+            "event_count": sum(1 for line in event_stream.splitlines() if line.strip()),
+            "event_stream_sha256": hashlib.sha256(event_stream.encode("utf-8")).hexdigest(),
+            "exit_code": completed.returncode,
+        }
 
 
 def build_code_agent_gateway(settings: Settings) -> FixtureCodexGateway | CodexCliGateway:

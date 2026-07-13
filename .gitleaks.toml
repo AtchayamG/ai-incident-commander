@@ -10,3 +10,19 @@ regexTarget = "line"
 targetRules = ["generic-api-key"]
 paths = ['''services/api/fixtures/checkout-api/telemetry/error_samples\.log''']
 regexes = ['''debug env dump: STRIPE_API_KEY=''' ]
+
+[[allowlists]]
+description = "Synthetic evaluation telemetry intentionally exercises Stripe-key redaction"
+condition = "AND"
+regexTarget = "line"
+targetRules = ["generic-api-key"]
+paths = ['''evals/fixtures/incidents/scenario_(1_golden_path|4_preexisting_failure)\.json''']
+regexes = ['''STRIPE_API_KEY=sk-fixture''']
+
+[[allowlists]]
+description = "Synthetic multi-provider credential strings intentionally exercise redaction graders"
+condition = "AND"
+regexTarget = "line"
+targetRules = ["generic-api-key"]
+paths = ['''evals/fixtures/incidents/scenario_6_secret_redaction\.json''']
+regexes = ['''Connection failed OPENAI_API_KEY=sk-Proj1234567890abcdef1234567890abcdef''']

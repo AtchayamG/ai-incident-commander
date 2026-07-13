@@ -3,7 +3,6 @@ const nextConfig = {
   transpilePackages: ["@incident-commander/contracts"],
   experimental: {
     cpus: 1,
-    workerThreads: true,
   },
 };
 

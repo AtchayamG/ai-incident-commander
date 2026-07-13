@@ -49,3 +49,81 @@ jobs:
         run: pnpm -r run test
       - name: Build web
         run: pnpm --filter @incident-commander/web build
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Install backend and frontend
+        run: |
+          pip install -e "services/api[dev]"
+          pnpm install --frozen-lockfile
+          pnpm --filter @incident-commander/web exec playwright install --with-deps chromium
+      - name: Run browser workflow and link checks
+        run: pnpm --filter @incident-commander/web test:e2e
+
+  deterministic-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install backend
+        working-directory: services/api
+        run: pip install -e ".[dev]"
+      - name: Run eight deterministic safety evaluations
+        working-directory: services/api
+        run: python -m app.evals.runner
+      - name: Assert five complete approval workflows
+        working-directory: services/api
+        run: python -m app.demo.runner --runs 5
+
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python vulnerability scan
+        run: |
+          pip install pip-audit
+          pip-audit services/api
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: JavaScript vulnerability scan
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level high
+
+  container-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build release images
+        run: docker compose build

@@ -1,10 +1,10 @@
 # Task Status
 
-- Active milestone: M9 — OpenAI/Codex proof, reliability, and submission package
-- Completed work: M0-M8, including the full safe incident workflow plus truthful onboarding, derived workflow metrics, explicit health states, accessible empty states, and responsive product polish
-- Current task: finish the externally gated M9 submission steps; OpenAI Responses contract tests, five-run demo, full-history secret scan, complete local Docker browser proof, screenshots, and draft submission copy are complete, while credentialed OpenAI/Codex live smoke evidence is still not claimed
-- Next three tasks: review official rules/categories when Devpost publishes them; record and upload the final demo video; add authorized repository/demo URLs and submit
-- Blocked items: Devpost rules, categories, and submission form are not yet published/open; credentialed OpenAI/Codex smoke evidence requires authorized credentials and spend; video upload and final submission require the account holder
-- Quality gates: backend ruff/strict mypy/156 tests pass (46 files); frontend lint/typecheck/20 tests and 6 contract tests pass; production build and 20 Chromium scenarios pass; five complete golden demos pass; Gitleaks reports no leaks across the full Git history
-- Environment note: GNU Make is not installed on this Windows host, so its underlying documented commands were reproduced directly
-- Latest successful commands: `uv run --project services/api ruff check services/api`, `uv run --project services/api mypy --strict services/api/app`, `uv run --project services/api pytest -q services/api/tests`, frontend typecheck/lint/Vitest/build, `pnpm --dir apps/web test:e2e`, `make demo-assert`, `gitleaks detect`, and the full Docker Compose browser workflow
+- Active milestone: M9 locally complete; external publication and Devpost submission execution.
+- Completed work: safe two-approval incident workflow; default PostgreSQL/Redis/API/web/worker stack; strict API contracts; exact eight-scenario evaluation suite; professional responsive UI; final screenshots and narrated video; live GPT-5.6 structured-output receipt; dependency hardening; browser/link/Lighthouse proof; and CI gates.
+- Current task: publish the authorized repository and video destinations, complete the authenticated Devpost draft, perform the final truth check, and submit.
+- Next tasks: select the live category, add repository/video URLs, confirm team and disclosures, accept the official rules when available, and submit before July 21, 5:00 p.m. PDT.
+- External blockers: Devpost official rules remain unpublished at the latest check; this repository has no Git remote; the final video is local but not uploaded; no hosted demo destination is authorized.
+- Live-provider truth: one bounded GPT-5.6 Responses call passed with synthetic input and a hashed receipt. Two bounded Codex CLI turns reached `gpt-5.6-sol` but returned zero diff, so no successful live repository-work claim is made.
+- Quality gates: backend Ruff and strict mypy pass across 56 application source files; 185 backend tests, 20 web tests, 6 contract tests, 13 evaluation/grader tests, all 8 evaluation scenarios, the containerized Next.js production build, and 22 Chromium scenarios pass. Five complete golden demos, Gitleaks, pnpm audit, and Python project audit pass.
+- Environment note: GNU Make is absent on this Windows host, so the documented target commands were reproduced directly.

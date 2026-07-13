@@ -596,177 +596,8 @@ export default function IncidentDetailPage() {
         </div>
       </header>
 
-      {/* Main Grid: Left Column Timeline & Evidence. Right Column: Hypotheses, Remediation, Approvals */}
-      <div className="grid grid-main-detail">
-        {/* Left Column: Investigation Evidence & Event Log */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          
-          {/* Timeline Event Log */}
-          <div className="card">
-            <h2 style={{ fontSize: "1.25rem", marginBottom: "1.25rem" }}>🕒 Chronological Timeline</h2>
-            
-            {timelineError && (
-              <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
-                <strong>⚠️ Timeline Fetch Error:</strong> {timelineError}
-              </div>
-            )}
-
-            {timeline.length === 0 ? (
-              <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>No events logged in the timeline yet.</p>
-            ) : (
-              <div className="timeline">
-                {[...timeline]
-                  .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
-                  .map((evt) => (
-                    <div key={evt.id} className="timeline-item" aria-label={`Timeline event: ${evt.description} at ${evt.at}`}>
-                      <div className="timeline-time">{new Date(evt.at).toLocaleString()}</div>
-                      <div style={{ fontWeight: "600", fontSize: "0.95rem", color: "#ffffff" }}>{evt.kind.replace(/\./g, " ").toUpperCase()}</div>
-                      <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>{evt.description}</p>
-                      {evt.evidence_id && (
-                        <button
-                           onClick={() => scrollToEvidence(evt.evidence_id!)}
-                           style={{
-                             background: "none",
-                             border: "none",
-                             padding: 0,
-                             fontSize: "0.8rem",
-                             color: "var(--primary-hover)",
-                             textDecoration: "underline",
-                             display: "inline-block",
-                             marginTop: "0.25rem",
-                             cursor: "pointer",
-                             fontFamily: "inherit",
-                             textAlign: "left"
-                           }}
-                           data-testid={`timeline-link-${evt.evidence_id}`}
-                        >
-                          View Supporting Evidence
-                        </button>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-
-          {/* Evidence Panel with Provenance */}
-          <div className="card">
-            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🔍 Telemetry & Evidence Provenance</h2>
-            
-            {evidenceError && (
-              <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
-                <strong>⚠️ Evidence Fetch Error:</strong> {evidenceError}
-              </div>
-            )}
-
-            {evidence.length === 0 ? (
-              <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)" }}>
-                <p>No telemetry or logs gathered yet.</p>
-                <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
-                  Telemetry collection starts automatically once the diagnosing pipeline begins.
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                {evidence.map((item) => {
-                  const isSimulated = item.provenance?.simulated === true || (incident && incident.provider_mode === "simulated");
-                  return (
-                    <div 
-                      key={item.id} 
-                      id={`evidence-${item.id}`} 
-                      tabIndex={-1}
-                      className="evidence-card"
-                      data-testid={`evidence-card-${item.kind}`}
-                      data-evidence-id={item.id}
-                      style={{ border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(0,0,0,0.1)" }}
-                    >
-                      {/* Header bar */}
-                      <div 
-                        onClick={() => toggleEvidence(item.id)}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleEvidence(item.id); } }}
-                        tabIndex={0}
-                        role="button"
-                        data-testid={`evidence-expand-${item.id}`}
-                        aria-expanded={expandedEvidence[item.id] || false}
-                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                          <span className="badge badge-sev3" style={{ background: "rgba(59,130,246,0.15)", color: "var(--info)" }}>
-                            {item.kind}
-                          </span>
-                          
-                          {isSimulated && (
-                            <span className="badge badge-sev4" data-testid="evidence-simulated-label" style={{ background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
-                              🤖 SIMULATED
-                            </span>
-                          )}
-
-                          {item.redaction_applied && (
-                            <span className="badge" data-testid="evidence-redacted-label" style={{ background: "rgba(239,68,68,0.1)", color: "var(--error)", border: "1px solid rgba(239,68,68,0.3)" }}>
-                              🔒 REDACTED
-                            </span>
-                          )}
-
-                          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                            provider: <strong data-testid="evidence-provider">{item.provider}</strong>
-                          </span>
-
-                          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                            source: <strong data-testid="evidence-source">{item.source}</strong>
-                          </span>
-                        </div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                          {expandedEvidence[item.id] ? "Collapse ▲" : "Expand ▼"}
-                        </div>
-                      </div>
-
-                      {/* Summary row */}
-                      <div style={{ padding: "0 1rem 0.75rem 1rem", fontSize: "0.95rem" }}>
-                        <p style={{ fontWeight: "600" }}>{item.summary}</p>
-                      </div>
-
-                      {/* High-density Metadata Row */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.5rem", padding: "0.75rem 1rem", borderTop: "1px dashed var(--border-color)", fontSize: "0.8rem", color: "var(--text-muted)", background: "rgba(0,0,0,0.05)" }}>
-                        <div><strong>Captured:</strong> <span data-testid="evidence-captured-at">{new Date(item.captured_at).toLocaleString()}</span></div>
-                        <div><strong>Ref:</strong> <code data-testid="evidence-display-ref" style={{ color: "var(--text-main)" }}>{item.display_ref || "N/A"}</code></div>
-                        <div><strong>Hash:</strong> <code data-testid="evidence-hash" style={{ color: "var(--text-muted)", fontSize: "0.75rem" }} title={item.content_hash}>{item.content_hash || "N/A"}</code></div>
-                      </div>
-
-                      {/* Collapsible raw content */}
-                      {expandedEvidence[item.id] && (
-                        <div style={{ borderTop: "1px solid var(--border-color)", padding: "1rem", background: "#050811", borderBottomLeftRadius: "8px", borderBottomRightRadius: "8px" }}>
-                          <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontFamily: "var(--font-mono)" }}>
-                            RAW SANITIZED EVIDENCE CONTENT:
-                          </h4>
-                          <pre data-testid="evidence-content" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", overflowX: "auto", whiteSpace: "pre-wrap", color: "#e2e8f0", background: "rgba(0,0,0,0.3)", padding: "0.75rem", borderRadius: "4px", border: "1px solid #101827" }}>
-                            {item.content}
-                          </pre>
-                          
-                          {item.redaction_applied && item.redaction_rules && item.redaction_rules.length > 0 && (
-                            <div style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "var(--error)", background: "rgba(239, 68, 68, 0.05)", padding: "0.5rem", borderRadius: "4px", border: "1px solid rgba(239, 68, 68, 0.15)" }}>
-                              <strong>Applied Redaction Rules:</strong> <span data-testid="evidence-redaction-rules">{item.redaction_rules.join(", ")}</span>
-                            </div>
-                          )}
-                          
-                          <div style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "var(--text-muted)", borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem" }}>
-                            <strong>Provenance Metadata:</strong>
-                            <pre data-testid="evidence-provenance" style={{ marginTop: "0.25rem", color: "#a0aec0", fontSize: "0.75rem", overflowX: "auto", background: "rgba(0,0,0,0.2)", padding: "0.5rem", borderRadius: "4px" }}>
-                              {JSON.stringify(item.provenance, null, 2)}
-                            </pre>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-        </div>
-
-        {/* Right Column: Hypotheses, Remediation Plans, Approval Form */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Restructured staged/full-width workflow content */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", width: "100%" }}>
           {approvalsError && (
             <div role="alert" style={{ background: "#1e131d", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px" }}>
               <strong>⚠️ Approvals Fetch Error:</strong> {approvalsError}
@@ -821,7 +652,7 @@ export default function IncidentDetailPage() {
                       </div>
                       <div>
                         <strong>Hash & Provenance:</strong><br />
-                        <code data-testid="remediation-artifact-hash" style={{ fontSize: "0.75rem", color: "var(--text-main)", overflowWrap: "anywhere" }}>{planArtifact?.artifact_hash ?? "Unavailable"}</code><br />
+                        <code data-testid="remediation-artifact-hash" style={{ fontSize: "0.75rem", color: "var(--text-main)", overflowWrap: "anywhere", wordBreak: "break-all" }}>{planArtifact?.artifact_hash ?? "Unavailable"}</code><br />
                         <span style={{ color: "var(--text-muted)" }}>Artifact: {planArtifact?.id ?? "Unavailable"} · created {planArtifact ? new Date(planArtifact.created_at).toLocaleString() : "N/A"}</span>
                       </div>
                     </div>
@@ -1439,7 +1270,7 @@ export default function IncidentDetailPage() {
                 
                 {draftPR.url && (
                   <div style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
-                    <strong>URL:</strong> <a href={draftPR.url} target="_blank" rel="noreferrer" style={{ color: "var(--primary-hover)", textDecoration: "underline" }}>{draftPR.url}</a>
+                    <strong>URL:</strong> <a href={draftPR.url} target="_blank" rel="noreferrer" style={{ color: "var(--primary-hover)", textDecoration: "underline", wordBreak: "break-all", overflowWrap: "anywhere" }}>{draftPR.url}</a>
                   </div>
                 )}
                 
@@ -1578,7 +1409,175 @@ export default function IncidentDetailPage() {
           )}
 
         </div>
-      </div>
-    </main>
-  );
-}
+
+        {/* Bottom Section: Chronological Timeline & Evidence (Side-by-side balanced bottom section) */}
+        <div className="grid-12" style={{ width: "100%", marginTop: "1rem" }}>
+          {/* Timeline Event Log (span 4 on desktop, full on mobile) */}
+          <div className="col-span-4" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", minWidth: 0 }}>
+            <div className="card" style={{ height: "100%" }}>
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1.25rem" }}>🕒 Chronological Timeline</h2>
+
+              {timelineError && (
+                <div role="alert" style={{ background: "rgba(239, 68, 68, 0.05)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+                  <strong>⚠️ Timeline Fetch Error:</strong> {timelineError}
+                </div>
+              )}
+
+              {timeline.length === 0 ? (
+                <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>No events logged in the timeline yet.</p>
+              ) : (
+                <div className="timeline">
+                  {[...timeline]
+                    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+                    .map((evt) => (
+                      <div key={evt.id} className="timeline-item" aria-label={`Timeline event: ${evt.description} at ${evt.at}`}>
+                        <div className="timeline-time">{new Date(evt.at).toLocaleString()}</div>
+                        <div style={{ fontWeight: "600", fontSize: "0.95rem", color: "#ffffff" }}>{evt.kind.replace(/\./g, " ").toUpperCase()}</div>
+                        <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>{evt.description}</p>
+                        {evt.evidence_id && (
+                          <button
+                             onClick={() => scrollToEvidence(evt.evidence_id!)}
+                             style={{
+                               background: "none",
+                               border: "none",
+                               padding: 0,
+                               fontSize: "0.8rem",
+                               color: "var(--primary-hover)",
+                               textDecoration: "underline",
+                               display: "inline-block",
+                               marginTop: "0.25rem",
+                               cursor: "pointer",
+                               fontFamily: "inherit",
+                               textAlign: "left"
+                             }}
+                             data-testid={`timeline-link-${evt.evidence_id}`}
+                          >
+                            View Supporting Evidence
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Evidence Panel with Provenance (span 8 on desktop, full on mobile) */}
+          <div className="col-span-8" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", minWidth: 0 }}>
+            <div className="card" style={{ height: "100%" }}>
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🔍 Telemetry & Evidence Provenance</h2>
+
+              {evidenceError && (
+                <div role="alert" style={{ background: "rgba(239, 68, 68, 0.05)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+                  <strong>⚠️ Evidence Fetch Error:</strong> {evidenceError}
+                </div>
+              )}
+
+              {evidence.length === 0 ? (
+                <div style={{ padding: "1.5rem 1rem", border: "1px dashed var(--border-color)", borderRadius: "6px", textAlign: "center", color: "var(--text-muted)" }}>
+                  <p>No telemetry or logs gathered yet.</p>
+                  <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                    Telemetry collection starts automatically once the diagnosing pipeline begins.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  {evidence.map((item) => {
+                    const isSimulated = item.provenance?.simulated === true || (incident && incident.provider_mode === "simulated");
+                    return (
+                      <div
+                        key={item.id}
+                        id={`evidence-${item.id}`}
+                        tabIndex={-1}
+                        className="evidence-card"
+                        data-testid={`evidence-card-${item.kind}`}
+                        data-evidence-id={item.id}
+                        style={{ border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(0,0,0,0.1)" }}
+                      >
+                        {/* Header bar */}
+                        <div
+                          onClick={() => toggleEvidence(item.id)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleEvidence(item.id); } }}
+                          tabIndex={0}
+                          role="button"
+                          data-testid={`evidence-expand-${item.id}`}
+                          aria-expanded={expandedEvidence[item.id] || false}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <span className="badge badge-sev3" style={{ background: "rgba(59,130,246,0.15)", color: "var(--info)" }}>
+                              {item.kind}
+                            </span>
+
+                            {isSimulated && (
+                              <span className="badge badge-sev4" data-testid="evidence-simulated-label" style={{ background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                                🤖 SIMULATED
+                              </span>
+                            )}
+
+                            {item.redaction_applied && (
+                              <span className="badge" data-testid="evidence-redacted-label" style={{ background: "rgba(239,68,68,0.1)", color: "var(--error)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                                🔒 REDACTED
+                              </span>
+                            )}
+
+                            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                              provider: <strong data-testid="evidence-provider">{item.provider}</strong>
+                            </span>
+
+                            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                              source: <strong data-testid="evidence-source">{item.source}</strong>
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                            {expandedEvidence[item.id] ? "Collapse ▲" : "Expand ▼"}
+                          </div>
+                        </div>
+
+                        {/* Summary row */}
+                        <div style={{ padding: "0 1rem 0.75rem 1rem", fontSize: "0.95rem" }}>
+                          <p style={{ fontWeight: "600" }}>{item.summary}</p>
+                        </div>
+
+                        {/* High-density Metadata Row */}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.5rem", padding: "0.75rem 1rem", borderTop: "1px dashed var(--border-color)", fontSize: "0.8rem", color: "var(--text-muted)", background: "rgba(0,0,0,0.05)" }}>
+                          <div><strong>Captured:</strong> <span data-testid="evidence-captured-at">{new Date(item.captured_at).toLocaleString()}</span></div>
+                          <div><strong>Ref:</strong> <code data-testid="evidence-display-ref" style={{ color: "var(--text-main)", wordBreak: "break-all", overflowWrap: "anywhere" }}>{item.display_ref || "N/A"}</code></div>
+                          <div><strong>Hash:</strong> <code data-testid="evidence-hash" style={{ color: "var(--text-muted)", fontSize: "0.75rem", wordBreak: "break-all", overflowWrap: "anywhere" }} title={item.content_hash}>{item.content_hash || "N/A"}</code></div>
+                        </div>
+
+                        {/* Collapsible raw content */}
+                        {expandedEvidence[item.id] && (
+                          <div style={{ borderTop: "1px solid var(--border-color)", padding: "1rem", background: "#050811", borderBottomLeftRadius: "8px", borderBottomRightRadius: "8px" }}>
+                            <h4 style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontFamily: "var(--font-mono)" }}>
+                              RAW SANITIZED EVIDENCE CONTENT:
+                            </h4>
+                            <pre data-testid="evidence-content" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all", overflowWrap: "anywhere", color: "#e2e8f0", background: "rgba(0,0,0,0.3)", padding: "0.75rem", borderRadius: "4px", border: "1px solid #101827" }}>
+                              {item.content}
+                            </pre>
+
+                            {item.redaction_applied && item.redaction_rules && item.redaction_rules.length > 0 && (
+                              <div style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "var(--error)", background: "rgba(239, 68, 68, 0.05)", padding: "0.5rem", borderRadius: "4px", border: "1px solid rgba(239, 68, 68, 0.15)" }}>
+                                <strong>Applied Redaction Rules:</strong> <span data-testid="evidence-redaction-rules">{item.redaction_rules.join(", ")}</span>
+                              </div>
+                            )}
+
+                            <div style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "var(--text-muted)", borderTop: "1px dashed var(--border-color)", paddingTop: "0.5rem" }}>
+                              <strong>Provenance Metadata:</strong>
+                              <pre data-testid="evidence-provenance" style={{ marginTop: "0.25rem", color: "#a0aec0", fontSize: "0.75rem", overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all", overflowWrap: "anywhere", background: "rgba(0,0,0,0.2)", padding: "0.5rem", borderRadius: "4px" }}>
+                                {JSON.stringify(item.provenance, null, 2)}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }

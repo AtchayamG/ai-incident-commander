@@ -29,6 +29,7 @@ from app.domain.verification import (
 )
 from app.main import create_app
 from app.providers.base import PullRequestReceipt
+from app.providers.code_agent import FixtureCodexGateway
 from app.providers.github import GitHubPullRequestProvider
 from app.providers.simulated import (
     SimulatedDeploymentHistoryProvider,
@@ -43,8 +44,8 @@ from app.sandbox.verifier import DeterministicVerifier
 from app.store.memory import InMemoryStore
 from app.workflow.pipeline import WorkflowPipeline
 from app.workflow.remediation_planner import RemediationPlanningManager
-from tests.test_remediation import _fixture_manager, _seeded_incident
-from tests.test_sandbox_executor import FixtureCodexGateway
+from tests.test_investigation import _fixture_manager
+from tests.test_remediation import _seeded_incident
 
 
 class CountingPullRequestProvider:
@@ -539,6 +540,7 @@ def test_duplicate_post_decision_restart_reuse() -> None:
     )
     store.add_verification_artifact(artifact)
     verif = store.get_verification_artifact_for_patch(patch.id)
+    assert verif is not None
 
     approval = pipeline._request_pr_approval(incident, patch, verif)
 
@@ -655,6 +657,7 @@ def test_provider_failure_redacted_error_new_approval_retry_success() -> None:
     )
     store.add_verification_artifact(artifact)
     verif = store.get_verification_artifact_for_patch(patch.id)
+    assert verif is not None
 
     approval = pipeline._request_pr_approval(incident, patch, verif)
 
@@ -670,6 +673,7 @@ def test_provider_failure_redacted_error_new_approval_retry_success() -> None:
     assert len(actions) == 1
     action = actions[0]
     assert action.status == "failed"
+    assert action.provider_receipt_json is not None
     assert "ghp_secret" not in action.provider_receipt_json["error"]
     assert "[REDACTED" in action.provider_receipt_json["error"]
 
@@ -930,6 +934,7 @@ def test_sql_persistence_restart_plus_fresh_migration() -> None:
         store.add_postmortem(pm_update)
 
         pm_read_2 = store.get_postmortem("inc-sql-test")
+        assert pm_read_2 is not None
         assert pm_read_2.summary == "PM Summary Updated"
 
         # Test communications persistence
@@ -952,6 +957,7 @@ def test_sql_persistence_restart_plus_fresh_migration() -> None:
         store.add_communications(comms_update)
 
         comms_read_2 = store.get_communications("inc-sql-test")
+        assert comms_read_2 is not None
         assert comms_read_2.technical_update == "Tech Update Updated"
 
     finally:

@@ -8,7 +8,9 @@ else
 PY := services/api/.venv/bin/python
 endif
 
-.PHONY: setup dev dev-api dev-web lint typecheck test secret-scan demo-reset demo-run demo-assert docker-up docker-down
+.PHONY: bootstrap setup dev dev-api dev-web lint typecheck test eval secret-scan demo-reset demo-run demo-assert openai-smoke docker-up docker-down
+
+bootstrap: setup
 
 setup:
 	pnpm install
@@ -24,7 +26,7 @@ dev-web:
 	pnpm --filter @incident-commander/web dev
 
 dev:
-	@echo "Run 'make dev-api' and 'make dev-web' in two terminals, or 'make docker-up'."
+	docker compose up --build
 
 lint:
 	cd services/api && $(abspath $(PY)) -m ruff check .
@@ -38,6 +40,9 @@ test:
 	cd services/api && $(abspath $(PY)) -m pytest
 	pnpm -r run test
 
+eval:
+	cd services/api && $(abspath $(PY)) -m app.evals.runner
+
 secret-scan:
 	gitleaks detect --source . --redact --no-banner --exit-code 1
 
@@ -49,6 +54,9 @@ demo-run:
 
 demo-assert:
 	cd services/api && $(abspath $(PY)) -m app.demo.runner --runs 5
+
+openai-smoke:
+	cd services/api && $(abspath $(PY)) -m app.demo.openai_smoke --model gpt-5.6
 
 docker-up:
 	docker compose up -d --build

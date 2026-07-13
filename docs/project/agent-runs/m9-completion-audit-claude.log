@@ -1,0 +1,51 @@
+﻿Audit complete. Plan file written: `C:\Users\Atchayam\.claude\plans\role-principal-architecture-backend-expressive-flask.md`. (ExitPlanMode tool unavailable in this session — audit delivered here; no repo files touched.)
+
+# M9 Completion Audit — Blueprint vs Repo
+
+## DONE (proven, not prose)
+
+- **M0–M8 golden path**: two approvals through public API, simulated draft-PR, evidence-linked postmortem — `services/api/app/demo/runner.py` asserts `RESOLUTION_DRAFTED`, provider_mode `simulated`, 2 approvals, postmortem timeline.
+- **§23.4 golden gate mechanics**: `Makefile` `demo-reset/run/assert` (5 runs), `tests/test_demo_runner.py`, `test_demo_determinism.py:79`.
+- **Top hypothesis + no unsupported claims**: `tests/test_investigation.py:212, 313` (ungrounded hypothesis rejected, downgrades to insufficient).
+- **Safety core**: redaction (`app/security/redaction.py` + 2 test files), sandbox path policy/change budget/oversized-write denial (`test_sandbox_workspace.py`, `test_sandbox_executor.py`), deterministic verification + high-risk block (`test_verification.py`), approval replay/version-mismatch protection (`test_incidents_api.py:119,134`).
+- **Fail-closed live adapters (mock-tested)**: OpenAI Responses gateway (`app/providers/openai_investigation.py`), Codex CLI gateway with env allowlist (`app/providers/code_agent.py`).
+- **E2E §24.4**: all 8 steps incl. reset across 9 Playwright specs (`apps/web/e2e/`).
+- **Submission scaffolding**: `LICENSE` (MIT, root), mermaid architecture diagrams (`docs/architecture/system-context.md` +2), ADRs 001–008 covering all seven §39 decisions, screenshots ×4, demo script/storyboard/Devpost copy/evidence checklist (`docs/submission/`), `.gitleaks.toml` + `make secret-scan`, migrations + fresh-DB test (`test_persistence.py:16`), SSE test (`:128`).
+- **CI partial**: backend ruff/strict-mypy/pytest, frontend lint/typecheck/test/build (`.github/workflows/ci.yml`).
+
+## MISSING (in-repo, no credentials needed)
+
+1. **Eight eval incidents + graders (§23.1/23.3, explicit P0)** — `evals/fixtures/` holds only `checkout-api/{README.md,golden_patch.diff}`. No incidents 1–8, no grader runner. Biggest open gap.
+2. **Prompt-injection fixture/test (§23.1 #7, §24.5)** — zero matches anywhere in tests or fixtures.
+3. **Performance tests (§24.6)** — none (no concurrent reads, large-log ingestion, SSE reconnect, sandbox-timeout perf).
+4. **CI gates (§37)** — missing: secret scan job, Docker image builds, dependency vuln scan, demo smoke, and all nightly/manual jobs. Playwright never runs in CI.
+5. **`make bootstrap` (§36)** — repo has `setup` only.
+6. **`make dev` starts nothing** — echoes instructions (`Makefile:26-27`).
+7. **`DEMO_AUTO_APPROVE` (§36)** — absent; runner always auto-approves.
+8. **`demo-assert` skips top-hypothesis assertion (§23.4)** — only pytest asserts it.
+
+## WEAK / DEVIATION
+
+- **No worker; PostgreSQL/Redis unused** — SQLite store, in-process pipeline; Compose gates postgres/redis behind `profiles: ["persistence"]` with nothing connected. Honest in `handover.md` but contradicts §29 M0 gate + §36. Needs ADR-009 recording deviation.
+- **Agent traces (§41)** — workflow events + rejected-claims exist; no trace view. Borderline.
+- **Webhook signature** — demo mode exempt (`test_persistence.py:119`); live signature/replay tests thin.
+- **E2E evidence** — 20 Chromium scenarios pass locally only; CI never proves it.
+- **Contract tests** — type mirror + 6 Vitest tests; no OpenAPI/SSE schema diff.
+
+## EXTERNAL (correctly tracked in `docs/submission/submission-checklist.md`)
+
+Live OpenAI receipt, live Codex diff/receipt (key + spend), demo URL/credentials, video record/upload, Devpost rules/category/submission (rules unpublished), public repo URL. No in-repo action possible.
+
+## NEXT (priority order, Ponytail minimal)
+
+1. `evals/fixtures/incident-01..08/` + one `evals/run_evals.py` deterministic grader + `make evals` — reuse fixture-gateway patterns, no framework.
+2. Prompt-injection fixture + test (doubles as eval incident #7).
+3. CI: gitleaks job, `pip-audit`/`pnpm audit`, `docker compose build`, demo smoke (`--runs 1`), Playwright job; `workflow_dispatch` live-smoke that hard-skips without secret.
+4. Makefile: `bootstrap: setup` alias; `dev` → compose up or documented deviation; `evals` target.
+5. Add hypothesis assertion to `run_once`.
+6. `DEMO_AUTO_APPROVE` flag in runner/config.
+7. One minimal perf test module (threaded 50-read, large-log bound, sandbox timeout).
+8. ADR-009: SQLite/in-process deviation (worker/PG/Redis).
+9. Sync `taskstatus.md`, `evidence-checklist.md`, README after 1–8.
+
+Status docs are notably truthful — no inflated claims found; main risk is unimplemented blueprint P0s (evals, CI gates), not honesty.

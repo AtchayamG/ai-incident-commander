@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -77,7 +77,7 @@ def test_openai_gateway_requests_strict_parsed_output_and_redacts_payload() -> N
     )
     responses = _FakeResponses(parsed=draft)
     gateway = OpenAIInvestigationGateway(
-        model_id="configured-model", client=_FakeClient(responses), timeout_seconds=17
+        model_id="configured-model", client=cast(Any, _FakeClient(responses)), timeout_seconds=17
     )
 
     result = gateway.synthesize(_incident(), [_evidence()], [])
@@ -85,6 +85,8 @@ def test_openai_gateway_requests_strict_parsed_output_and_redacts_payload() -> N
     assert result is draft
     assert responses.kwargs["model"] == "configured-model"
     assert responses.kwargs["text_format"] is InvestigationDraft
+    assert responses.kwargs["reasoning"] == {"effort": "low"}
+    assert responses.kwargs["store"] is False
     assert responses.kwargs["timeout"] == 17
     request_text = str(responses.kwargs["input"])
     assert "super-secret-value" not in request_text
@@ -95,7 +97,7 @@ def test_openai_gateway_requests_strict_parsed_output_and_redacts_payload() -> N
 
 def test_openai_gateway_rejects_unparsed_response() -> None:
     gateway = OpenAIInvestigationGateway(
-        model_id="configured-model", client=_FakeClient(_FakeResponses(parsed={}))
+        model_id="configured-model", client=cast(Any, _FakeClient(_FakeResponses(parsed={})))
     )
     with pytest.raises(InvestigationProviderResponseError, match="schema-valid"):
         gateway.synthesize(_incident(), [_evidence()], [])
@@ -104,7 +106,7 @@ def test_openai_gateway_rejects_unparsed_response() -> None:
 def test_openai_gateway_redacts_provider_failure() -> None:
     responses = _FakeResponses(error=RuntimeError("api_key=sk-abcdefghijklmnop"))
     gateway = OpenAIInvestigationGateway(
-        model_id="configured-model", client=_FakeClient(responses)
+        model_id="configured-model", client=cast(Any, _FakeClient(responses))
     )
     with pytest.raises(InvestigationProviderUnavailableError) as caught:
         gateway.synthesize(_incident(), [_evidence()], [])

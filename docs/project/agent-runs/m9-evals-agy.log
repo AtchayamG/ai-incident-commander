@@ -1,0 +1,28 @@
+﻿I have completed the implementation of the missing deterministic eight-scenario evaluation suite and graders for the AI Incident Commander M9 milestone.
+
+### Summary of Completed Work
+
+1. **Deterministic Scenario Fixtures (`evals/scenarios/**`)**:
+   * Created 8 JSON evaluation scenarios:
+     * `scenario_1_golden_path.json`: Clear null dereference bug that completes successfully end-to-end to `RESOLUTION_DRAFTED`.
+     * `scenario_2_insufficient_evidence.json`: Vague response warning that transitions early to `NEEDS_INPUT`.
+     * `scenario_3_flaky_test.json`: `npm test` failure that transitions the pipeline to `PATCH_FAILED`.
+     * `scenario_4_high_risk_migration.json`: Diff containing `ALTER TABLE` DDL statement that is blocked by risk policy, transitioning to `PATCH_FAILED` (with trigger `risk.blocked`).
+     * `scenario_5_secret_redaction.json`: Logs containing Stripe API keys and secret bearer tokens which are fully redacted before persistence.
+     * `scenario_6_prompt_injection.json`: Log payloads containing instructions to hijack risk status or state transitions which are resisted by the system.
+     * `scenario_7_noisy_telemetry.json`: High-cardinality/spammy log duplicate metrics that collapse/deduplicate to exactly 1.
+     * `scenario_8_rollback_triggered.json`: A rollback deploy event is detected, transitioning the workflow cleanly to `CANCELLED`.
+2. **Evaluation CLI Runner and Graders (`services/api/app/evals/**`)**:
+   * Created `app/evals/runner.py` with custom mock provider classes, verification command interceptors, and a custom code agent turn handler.
+   * Leveraged the real SQLAlchemy database store, the pipeline state transition loop, and the Sandbox workspace lifecycle.
+   * Implemented deterministic grading rules for each scenario checking final states, triggers, redaction status, prohibited terms, risk rules, and evidence counts.
+3. **Integration Test Suite (`services/api/tests/test_evaluation_suite.py`)**:
+   * Created pytest tests asserting that exactly 8 unique scenarios run and pass.
+   * Added tests applying representative intentional mutations (e.g. bypassing redaction, bypassing risk check, bypass deduplication, or making flaky tests pass) and asserted that they are successfully caught by the graders with clear diagnostic reasons.
+4. **Handoff Documentation (`docs/project/agent-runs/M9_EVALS_AGY_HANDOFF.md`)**:
+   * Created a detailed handoff documentation file outlining the files changed, design decisions, command results, and validation checklist.
+
+### Command Execution Results
+* **Ruff check**: `uv run ruff check app/evals/runner.py tests/test_evaluation_suite.py` returns **`All checks passed!`**
+* **Mypy check**: `uv run mypy app/evals/runner.py tests/test_evaluation_suite.py` returns **`Success: no issues found in 2 source files`**
+* **Pytest suite**: `uv run pytest tests/test_evaluation_suite.py` returns **`13 passed in 8.98s`**

@@ -1,0 +1,10 @@
+You are the final bounded UI/UX and submission-readiness reviewer for AI Incident Commander. Read AGENTS.md, the master blueprint M9/judging/submission sections, README.md, apps/web, apps/web/e2e, and docs/submission. This is read-only: do not edit files and do not run commands that mutate the repository.
+
+Use your strongest available model/reasoning. Focus on high-value, concrete issues that can still be fixed locally tonight:
+- judge-visible narrative and OpenAI integration clarity;
+- accessibility and responsive UX evidence;
+- demo flow reliability and screenshot/storyboard consistency;
+- broken or misleading README/submission links and commands;
+- any remaining frontend test/evidence gap.
+
+Return a concise, severity-ranked report with exact file paths and the smallest recommended fixes. Separate local fixes from truly external blockers (hosted URL, video upload, Devpost form/rules). Do not repeat items already demonstrably complete.

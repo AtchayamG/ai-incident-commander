@@ -1,0 +1,20 @@
+ROLE: Principal architecture, backend, security, and hackathon-completion reviewer using the configured Claude Fable model.
+OBJECTIVE: Produce a requirement-by-requirement audit of the authoritative blueprint against the current clean repository, identifying every missing or weakly proven P0/Definition-of-Done item and the smallest truthful implementation sequence.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\AI INCIDENT COMMANDER
+ALLOWED FILES:
+- Read-only review of the entire repository.
+FORBIDDEN:
+- Any file edits, commits, uploads, publishing, credentials, external writes, production actions, or speculative claims.
+REQUIREMENTS:
+- Treat docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md as authoritative.
+- Inspect source, tests, CI, evals, Docker, README, ADRs, status, and submission artifacts; do not rely on status prose alone.
+- Cover sections 23, 24, 29 M0-M9, 36, 37, and 41 explicitly.
+- Separate: proven complete, missing in-repo work, weak/indirect evidence, optional/P1, and external human/platform blockers.
+- Pay special attention to eight required eval incidents, security/performance tests, worker/PostgreSQL/Redis expectations, live Codex/OpenAI proof, CI, license, architecture diagram, demo URL/credentials, and video.
+- Recommend only changes that move the actual Definition of Done forward; use Ponytail minimal discipline.
+TESTS:
+- Read-only commands only: git status --short, rg, and existing file inspection.
+DELIVERABLE:
+- Return a concise audit with DONE / MISSING / WEAK / EXTERNAL / NEXT, exact file references, and a prioritized implementation checklist.
+STOP IF:
+- A conclusion requires secrets, account certification, production data, payment, or irreversible external action; mark it EXTERNAL instead.

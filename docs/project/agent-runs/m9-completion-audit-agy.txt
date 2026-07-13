@@ -1,0 +1,18 @@
+ROLE: Senior product, frontend, accessibility, demo, and Devpost submission reviewer.
+OBJECTIVE: Audit the judge-facing product and M8/M9 submission package against the authoritative blueprint and current implementation, identifying the smallest set of concrete changes needed for a fresh reviewer to understand and run it.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\AI INCIDENT COMMANDER
+ALLOWED FILES:
+- Read-only review of apps/web, README.md, docs/architecture, docs/submission, docs/project, tests, and repository root.
+FORBIDDEN:
+- Any edits, uploads, publishing, account actions, credentials, external writes, or invented proof.
+REQUIREMENTS:
+- Inspect blueprint M8, M9, demo script, judging mapping, and Definition of Done.
+- Verify architecture diagram, broken links, license/public-repo readiness, clean-machine quickstart, demo credentials, screenshots, video plan, accessibility/Lighthouse evidence, and visible simulated/live disclosures.
+- Distinguish implemented proof from draft prose and external blockers.
+- Use Ponytail minimal discipline and rank only actionable findings.
+TESTS:
+- Read-only commands only: git status --short, rg, and file inspection.
+DELIVERABLE:
+- Return DONE / MISSING / WEAK / EXTERNAL / NEXT with exact file references and prioritized fixes.
+STOP IF:
+- A conclusion requires account access, final submission, identity/terms acceptance, or publishing; mark it EXTERNAL instead.

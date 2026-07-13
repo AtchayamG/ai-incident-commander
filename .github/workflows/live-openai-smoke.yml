@@ -1,0 +1,21 @@
+name: Live OpenAI smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gpt56-structured-output:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend
+        working-directory: services/api
+        run: pip install -e ".[dev]"
+      - name: Run bounded GPT-5.6 smoke
+        working-directory: services/api
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python -m app.demo.openai_smoke --model gpt-5.6

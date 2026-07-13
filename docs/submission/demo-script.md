@@ -4,7 +4,7 @@
 **Objective:** Guide a Devpost judge through a step-by-step walkthrough of Incident Commander AI resolving a production regression in the `checkout-api` service.
 
 > [!IMPORTANT]
-> **Simulated vs. Live Honesty Policy:** M0–M8 are integrated and verified locally through `RESOLUTION_DRAFTED`. Investigation and code generation use explicitly simulated fixtures in deterministic demo mode. Optional live OpenAI/Codex proof, Docker/PostgreSQL validation, five-run reliability, secret scan, and final submission proof remain pending M9.
+> **Simulated vs. Live Honesty Policy:** The golden workflow is verified locally through `RESOLUTION_DRAFTED` and uses explicitly simulated fixtures for investigation, code generation, and the draft PR. A separate credentialed GPT-5.6 Responses proof passed; Codex CLI repository-work proof, final PostgreSQL/worker validation, and external submission actions are never implied by the offline demo.
 
 ---
 
@@ -33,5 +33,5 @@
 
 ### If Live Demo fails (or for judge offline viewing):
 - Use the recorded backup screen capture representing the local-API browser scenario.
-- Point to the verified test outputs (`156 backend tests pass`, `20 frontend tests pass`, `6 contract tests pass`, `20 Chromium Playwright scenarios`, five complete demo runs, and a clean full-history Gitleaks scan).
+- Point to the verified test outputs (`185 backend tests pass`, `20 frontend tests pass`, `6 contract tests pass`, `22 Chromium Playwright scenarios`, five complete demo runs, and a clean full-history Gitleaks scan).
 - Navigate the judge to the verified logs under `docs/project/agent-runs/` to inspect the actual test runs and diff outputs, or mark the final recording/evidence bundle pending.

@@ -189,6 +189,7 @@ def test_command_runner_refuses_shell_metacharacters_and_relative_exe() -> None:
 
 @pytest.mark.skipif(NODE is None, reason="node toolchain required")
 def test_command_runner_enforces_timeout() -> None:
+    assert NODE is not None
     runner = CommandRunner(environ=dict(os.environ))
     result = runner.run((NODE, "-e", "while(true){}"), Path.cwd(), 0.5)
     assert result.timed_out is True
@@ -197,6 +198,7 @@ def test_command_runner_enforces_timeout() -> None:
 
 @pytest.mark.skipif(NODE is None, reason="node toolchain required")
 def test_command_runner_bounds_output() -> None:
+    assert NODE is not None
     runner = CommandRunner(environ=dict(os.environ), output_limit_bytes=1024)
     result = runner.run(
         (NODE, "-e", "process.stdout.write('x'.repeat(50000))"), Path.cwd(), 30.0

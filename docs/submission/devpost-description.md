@@ -1,9 +1,9 @@
 # Devpost Submission Draft
 
-Last refreshed: 2026-07-13 (IST). The live Devpost page still says submissions
-open soon and the official rules are not yet posted. India is listed among
-eligible territories. Recheck the live rules, categories, and form before
-submission.
+Last refreshed: 2026-07-13 (IST). The live Devpost schedule says submissions
+open July 13 at 9:00 a.m. PDT and close July 21 at 5:00 p.m. PDT. The official
+rules are still not posted. India is listed among eligible territories. Recheck
+the live rules, categories, and form after opening and before submission.
 
 ## Project name
 
@@ -55,15 +55,20 @@ Incident Commander AI provides one incident room for that chain:
 
 ## How we built it
 
-- Next.js 14 and strict TypeScript for the operator dashboard and incident room.
+- Next.js 15 and strict TypeScript for the operator dashboard and incident room.
 - FastAPI, Pydantic v2, strict mypy, SQLAlchemy, and Alembic for typed workflow
   contracts and persistence.
 - OpenAI Responses API adapter using Pydantic structured outputs for bounded
-  investigation synthesis; model choice and timeout are configuration, not
-  hard-coded claims.
+  investigation synthesis. A retained credentialed smoke receipt proves that
+  the `gpt-5.6` request returned `gpt-5.6-sol`, parsed into the strict schema,
+  used `store=false`, and safely returned `insufficient_evidence` for sparse
+  synthetic evidence.
 - A secure Codex CLI gateway behind `CodeAgentGateway` with workspace-write
   confinement, network denial, secret-free environment, fixed invocation, and
   explicit engine provenance.
+- The product and repository were developed side-by-side with Codex during
+  Build Week, with agent handoffs and verification receipts retained under
+  `docs/project/agent-runs/`.
 - Deterministic fixture providers for a reliable offline demo that never
   silently becomes live when credentials are present.
 - Separate approval bindings for patch execution and draft-PR creation,
@@ -82,9 +87,12 @@ action.
 ## Accomplishments
 
 - Full two-approval golden path reaches `RESOLUTION_DRAFTED`.
-- 156 backend tests, 20 web tests, and 6 shared-contract tests pass.
-- 20 Chromium scenarios pass, including the real local-API resolution flow,
-  accessibility checks, and 375 px layout coverage.
+- 185 backend tests, 20 web tests, and 6 shared-contract tests pass.
+- 22 Chromium scenarios pass, including the real local-API resolution flow,
+  accessibility checks, and overflow assertions at 375, 768, 1440, and 1920 px.
+- Eight deterministic evaluation scenarios cover the golden path, insufficient
+  evidence, flaky tests, risky migrations, redaction, prompt injection, noisy
+  telemetry, and rollback cancellation.
 - Five consecutive complete CLI demos pass against fresh ephemeral databases.
 - Gitleaks reports no leaks across the full Git history after a narrowly documented
   synthetic-fixture exception.
@@ -99,8 +107,8 @@ state machine decides what is grounded, approved, verified, and safe to expose.
 
 ## What is next
 
-- Capture an explicitly approved credentialed OpenAI and Codex smoke receipt
-  without making the offline demo depend on either service.
+- Diagnose the bounded Codex CLI zero-diff behavior and capture repository-work
+  proof without making the offline demo depend on a live service.
 - Add production evidence providers and PostgreSQL deployment proof.
 - Add optional Slack delivery and a real draft-only GitHub integration for teams
   that enable those credentials and approval policies.
@@ -110,5 +118,6 @@ state machine decides what is grounded, approved, verified, and safe to expose.
 The recorded golden demo must use deterministic fixture evidence and the
 fixture code-agent unless the screen visibly shows a separately verified live
 provider receipt. The default draft PR is a simulated offline artifact. No live
-GitHub write, production deployment, or credentialed OpenAI/Codex call is
-claimed by the current evidence package.
+GitHub write, production deployment, or credentialed Codex call is claimed by
+the current evidence package. One bounded GPT-5.6 Responses call is proven by a
+safe hashed receipt and is separate from the offline golden demo.

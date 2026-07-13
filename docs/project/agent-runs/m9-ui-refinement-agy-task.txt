@@ -1,0 +1,42 @@
+You are the bounded UI/UX implementation worker for the AI Incident Commander submission. Work only in the supplied clean non-main worktree. Use your strongest available design/reasoning model. Do not edit dependencies or backend code.
+
+Read AGENTS.md, README.md, the M8/M9 and screenshot/judging sections of the blueprint, the current incident-room page and global CSS, existing accessibility/product-polish E2E tests, and docs/submission/screenshots/README.md.
+
+The user has identified concrete defects visible in the current full-page screenshots:
+- the two-column incident room is badly height-imbalanced, leaving a huge empty left side while the right column continues for many screens;
+- important cards are effectively absent from useful screenshot crops;
+- SHA/content hashes and provenance strings overflow card boundaries;
+- the dark navy/purple/neon palette looks like generic AI-generated UI rather than a professional incident-operations console.
+
+Design direction, based on professional product design systems:
+- GitLab Pajamas: use predictable semantic tokens, neutral surfaces, WCAG AA contrast, and never color alone for meaning.
+- GitLab dashboard guidance: one clear purpose per panel, minimize cognitive overload, keep panels responsive/reorderable.
+- Atlassian elevation: default flat surfaces plus borders; reserve raised/shadowed surfaces for genuine emphasis and avoid excessive elevation.
+- Atlassian visualization color: neutral structure, one restrained brand accent, semantic success/warning/danger/info only when the data carries that meaning; preserve labels/icons alongside color.
+
+Target visual character: calm, high-trust SRE/operations console. Use a near-neutral graphite/slate foundation, one restrained cool blue/teal brand accent, warm amber only for approvals/warnings, red only for destructive/critical states, and green only for verified success. Remove gratuitous glow, gradients, excessive purple, and decorative saturation. Keep dark mode, strong hierarchy, readable density, and existing truthful simulated/live labels.
+
+Exclusive writable ownership:
+- apps/web/app/**
+- apps/web/e2e/m9-ui-refinement.spec.ts
+- docs/testing/m9-ui-refinement.md
+- docs/submission/screenshots/01-dashboard.png
+- docs/submission/screenshots/02-investigation-approval.png
+- docs/submission/screenshots/03-review-approval.png
+- docs/submission/screenshots/04-resolution-package.png
+- docs/submission/screenshots/README.md
+- docs/project/agent-runs/M9_UI_REFINEMENT_AGY_HANDOFF.md
+
+Do not edit any other file. Do not commit.
+
+Required outcomes:
+1. Rework desktop layout into a balanced, intentional reading flow. Prefer staged full-width sections and/or a 12-column grid with explicit spans; do not use a masonry trick that breaks DOM/keyboard reading order. At 1440 and 1920 widths there must be no large orphaned blank column while content continues on the other side.
+2. Make high-priority cards (incident summary, current approval/action, investigation, evidence, remediation/verification, resolution) visible in a coherent sequence suitable for screenshots. Do not hide evidence or safety disclosures just to shorten the page.
+3. Every grid/flex child must use `min-width: 0` where needed. SHA-256, refs, URLs, code, and provenance must stay inside cards using a deliberate combination of wrapping, line clamping/short display plus full `title`/accessible value, and scroll only for true code blocks. No horizontal page overflow at 375, 768, 1440, or 1920 px.
+4. Apply the restrained tokenized palette and surface/elevation direction consistently. Remove one-off inline status colors where practical, but preserve semantic clarity and WCAG AA.
+5. Keep current behavior, API contracts, approval safety, simulated labels, accessibility, focus order, and reduced-motion support intact.
+6. Add focused Playwright assertions for viewport overflow, long-hash containment, key-card visibility/order, and representative screenshots at desktop and mobile sizes. Re-run existing unit, typecheck, lint, accessibility, product-polish, and golden-flow tests.
+7. Refresh the four committed submission screenshots only after the relevant real local-API state is reached and the UI is verified. Capture at a judge-readable desktop viewport; do not fabricate state or claim live providers.
+8. Write the QA document and handoff with before/after rationale, changed files, exact commands/results, screenshot dimensions, accessibility evidence, and any remaining limitation.
+
+Use Ponytail discipline: the smallest coherent CSS/layout refactor that meets these outcomes; no new UI framework or icon package.

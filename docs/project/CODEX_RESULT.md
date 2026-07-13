@@ -1,22 +1,9 @@
 # Codex Result
 
-Build is in progress at M9. M0-M8 are integrated and independently verified:
-evidence-backed investigation and planning, two single-use artifact-bound approval
-boundaries, isolated deterministic candidate patching, exact-diff subprocess
-verification, bounded repair/failure classification, risk blocking, idempotent
-simulated resolution drafting, communications, postmortem, persistence, cleanup,
-truthful onboarding and health, derived metrics, accessible empty states, and
-responsive product polish.
+M0-M9 are locally complete. The product delivers an evidence-backed incident workflow with redaction before persistence, typed investigation proposals, artifact-bound approvals, isolated bounded patching, exact-diff verification, deterministic risk review, idempotent simulated resolution artifacts, communications, and an evidence-linked postmortem.
 
-Current integrated evidence: backend ruff and strict mypy pass, 156 backend
-tests pass, 20 frontend tests pass, production build passes, and all 20
-Chromium scenarios pass. A real local-API browser scenario proves patch approval
-through six deterministic checks, a separate PR approval, and RESOLUTION_DRAFTED.
-Five consecutive complete demo runs and a full-history Gitleaks scan pass. The
-optional OpenAI Responses gateway is implemented against the official Pydantic
-structured-output pattern and mock-tested, but no credentialed provider call is
-claimed. Both production images build and the local Compose browser path
-completes both approval gates to `RESOLUTION_DRAFTED` with zero console errors.
-Completion is not yet claimed: credentialed OpenAI/Codex smoke evidence, final
-recording, Devpost's unpublished rules/form, and authorized submission remain.
-Optional GitHub behavior is mocked only; no live external write is claimed.
+Verification is current: Ruff and strict mypy pass across 56 backend application source files; 185 backend tests, 20 web tests, 6 shared-contract tests, and 13 evaluation/grader tests pass. All eight deterministic evaluation scenarios pass. The containerized Next.js 15 production build and all 22 Chromium scenarios pass, including the full two-approval local API flow, same-origin link checks, and overflow checks at four viewport widths. Five consecutive golden demos reach `RESOLUTION_DRAFTED`. The default Compose stack reports PostgreSQL, Redis, store, API, web, and worker healthy. Gitleaks, pnpm audit, and the Python project dependency audit report no findings.
+
+A bounded credentialed Responses call proves `gpt-5.6` routing to `gpt-5.6-sol`, strict Pydantic parsing, `store=false`, and safe `insufficient_evidence` behavior on sparse synthetic input. Separate Codex CLI attempts reached the model but returned zero diff; they are documented as unsuccessful and are not presented as repository-work proof. The default golden demo remains offline and explicitly simulated, including its draft PR.
+
+Remaining work is external or account-holder gated: Devpost's official rules, public repository and hosted demo destinations, local video upload, and final form confirmation/submission. An authenticated Devpost draft exists, but no Git remote is configured and no deploy, push, live GitHub write, video upload, or final Devpost submission has been performed.

@@ -32,7 +32,7 @@ This checklist audits every product capability claimed in the **Demo Script** an
 * **Technical Artifacts:**
   - Schema definition: [investigation.py](../../services/api/app/domain/investigation.py)
   - Unit tests: [test_investigation.py](../../services/api/tests/test_investigation.py)
-* **Verification Status:** **CURRENTLY PROVEN** in deterministic fixture mode. The optional OpenAI Responses structured-output gateway is implemented and mock-tested; a credentialed live response remains pending and is not claimed.
+* **Verification Status:** **CURRENTLY PROVEN** in deterministic fixture mode. The optional OpenAI Responses structured-output gateway is implemented, mock-tested, and separately proven by one bounded credentialed GPT-5.6 receipt using sparse synthetic input and `store=false`.
 
 ### 1.5 Approval Gate 1: Plan Approval (M4)
 * **Claim:** Blocking workspace creation and patching until the human reviews and approves the remediation plan.
@@ -97,7 +97,7 @@ This checklist audits every product capability claimed in the **Demo Script** an
 
 The following metrics are extracted directly from the verified test runs in the current workspace:
 
-* **Backend Unit & Integration Tests:** 156 passing
+* **Backend Unit & Integration Tests:** 185 passing
 * **Backend Coverage & Code Standards:** Ruff check pass, Strict `mypy` pass (46 app files)
 * **Frontend Component Tests:** 20 passing
 * **Shared contract tests:** 6 passing

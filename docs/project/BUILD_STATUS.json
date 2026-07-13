@@ -1,6 +1,6 @@
 {
   "active_milestone": "M9",
-  "status": "in_progress",
+  "status": "local_complete_external_submission_pending",
   "gates": {
     "frontend_lint": true,
     "frontend_typecheck": true,
@@ -10,15 +10,23 @@
     "unit_tests": true,
     "integration_tests": true,
     "contract_tests": true,
+    "evaluation_suite": true,
     "e2e_tests": true,
     "fresh_migrations": true,
     "demo_reset": true,
     "local_startup": true,
     "secret_scan": true,
+    "dependency_audit": true,
     "approval_boundaries": true,
     "failed_verification_blocks_pr": true,
     "golden_demo": true,
-    "five_run_reliability": true
+    "five_run_reliability": true,
+    "gpt_5_6_live_structured_output": true,
+    "codex_cli_live_repository_diff": false,
+    "public_repository_url": false,
+    "hosted_demo_url": false,
+    "demo_video_url": false,
+    "devpost_submission": false
   },
-  "last_updated": "2026-07-13T14:20:00+05:30"
+  "last_updated": "2026-07-13T22:01:00+05:30"
 }

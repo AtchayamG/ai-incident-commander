@@ -100,6 +100,6 @@ This shot-by-shot storyboard is optimized for Devpost judging, demonstrating our
 ### Shot 10: Technical Architecture Close (Architecture Close)
 * **Visual Representation:**
   - A system context diagram showing Next.js, FastAPI, SQLAlchemy persistence, deterministic fixture gateways, and optional live OpenAI/Codex adapters pending final proof.
-  - An engineering evidence badge: **156 Backend Tests | Ruff & Strict Mypy (46 Files) | 20 Web + 6 Contract Tests | 20 Playwright Scenarios | 5 Demo Runs | Clean Secret Scan**.
+  - An engineering evidence badge: **185 Backend Tests | Ruff & Strict Mypy (56 App Files) | 20 Web + 6 Contract Tests | 22 Playwright Scenarios | 5 Demo Runs | Clean Secret Scan**.
 * **Narration Hook:** *"Incident Commander AI turns a confusing production alert into a verified, human-approved fix and a complete audit trail—keeping the team in control every step of the way."*
 * **Core Message:** Robust local validation and structured architecture.

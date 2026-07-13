@@ -1,28 +1,34 @@
-# Security Model (M0)
+# Security Model
 
-Blueprint source: section 21. M0 implements the foundations; sandbox and auth arrive with later milestones.
+## Enforced boundaries
 
-## Boundaries implemented in M0
-
-| Boundary | Implementation | Test |
+| Boundary | Current enforcement | Evidence |
 |---|---|---|
-| Redaction | `app/security/redaction.py`; pipeline redacts every provider payload before persistence; evidence records `redaction_applied` | `tests/test_redaction.py`, planted fixture secret asserted in `tests/test_incidents_api.py` |
-| Human approval | Approval-gated state transitions; server checks pending/unexpired/artifact-version before effect; decisions immutable | `tests/test_incidents_api.py` approval cases |
-| Deterministic policy around models | Providers return proposals; pipeline validates (change budget) and owns state | `tests/test_providers.py`, `tests/test_state_machine.py` |
-| Demo admin | `reset-demo` requires `X-Demo-Admin-Key` = `DEMO_ADMIN_KEY`, demo mode only | `test_reset_demo_requires_admin_key` |
-| CORS | Web origin only; GET/POST; minimal headers | wired in `app/main.py` |
+| Redaction before persistence/model use | Stable rules for keys, tokens, private keys, URL credentials and email | `test_redaction.py`, `test_redaction_persistence.py` |
+| Patch approval | Single-use, expiring, role- and artifact-bound decision before workspace write | `test_remediation.py`, `test_sandbox_executor.py` |
+| PR approval | Separate binding to the passing patch/verification artifacts | `test_m7_pr_communications.py` |
+| Workspace confinement | Checksum-pinned fixture copy, guarded relative paths, file/line budgets, cleanup proof | `test_sandbox_workspace.py`, `test_sandbox_executor.py` |
+| Command confinement | Exact command-to-argv manifest, no shell, bounded time/output/environment | `test_verification.py` |
+| Risk blocking | Auth, payment, migrations, infrastructure, cryptography, secret material and oversized diffs block PR | `workflow/risk.py`, `test_verification.py` |
+| Demo truthfulness | Simulated provenance on evidence, code-agent and PR artifacts; live configuration cannot silently replace demo providers | provider and browser tests |
+| Secret scanning | Gitleaks scans staged changes and full Git history | `docs/testing/m9-secret-scan.md` |
 
-## Redaction rules
+## Trust boundaries
 
-private key blocks, `sk-*` keys, AWS access keys, GitHub tokens, bearer tokens, credentials embedded in URLs, `key=value` assigned secrets (key name preserved, value redacted), email addresses. Placeholders are stable (`[REDACTED:<rule>]`) to keep the demo deterministic.
+- The browser never receives provider credentials.
+- External evidence is treated as untrusted data, redacted, bounded, and cited;
+  it is never executed as instructions.
+- The code-agent may edit only its ephemeral workspace after approval. It does
+  not decide state transitions, verification results, risk, or PR authority.
+- Verification reconstructs the stored diff in a separate fresh workspace.
+- Automated tests and demo runs never perform live external actions.
 
-## Defaults
+## Honest limitations
 
-- No endpoint ever returns credentials.
-- Simulated data is labelled simulated (`provenance.simulated`, `[SIMULATED]` prefixes) — never presented as live.
-- Live mode without implemented providers is a startup error, not a silent fallback.
-- `.env` is gitignored; `.env.example` contains no real secrets.
-
-## Deferred (with landing milestone)
-
-Sandbox allowlist execution (M4), webhook signature verification (M1-M2 with webhook intake), authn/z and tenancy (P1), rate limiting (P1), audit_events table (M1 persistence).
+- Demo reset is protected by a shared demo admin key, not production identity.
+- Authn/z, multi-tenancy, webhook signatures/replay protection, rate limiting,
+  and OS-level egress isolation are not implemented and are not claimed.
+- The offline harness enforces network denial by exposing no network command;
+  it is not an OS network namespace.
+- Optional OpenAI, Codex CLI, and GitHub integrations are mock-tested or
+  fail-closed. Credentialed smoke receipts remain external evidence work.

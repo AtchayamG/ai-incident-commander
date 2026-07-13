@@ -122,6 +122,8 @@ class OpenAIInvestigationGateway:
                     {"role": "user", "content": json.dumps(payload, sort_keys=True)},
                 ],
                 text_format=InvestigationDraft,
+                reasoning={"effort": "low"},
+                store=False,
                 timeout=self._timeout_seconds,
             )
         except Exception as exc:

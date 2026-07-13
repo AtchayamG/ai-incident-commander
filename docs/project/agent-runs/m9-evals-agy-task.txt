@@ -1,0 +1,26 @@
+You are the bounded implementation worker for the AI Incident Commander M9 evaluation suite. Work only in the supplied non-main Git worktree. Use your strongest reasoning model and Ponytail full discipline: reuse existing code, keep the solution minimal, deterministic, typed, and dependency-free.
+
+Read AGENTS.md and docs/AI_INCIDENT_COMMANDER_MASTER_BLUEPRINT_v1.md sections 23, 24, 35, 36, 37, and milestone M9 before editing.
+
+Objective: implement the missing deterministic eight-scenario evaluation suite and graders required by blueprint section 23, using real application policy/redaction/risk/demo code wherever feasible. No network calls, no live-provider claims, and no static self-affirming grader whose result merely repeats an expected field.
+
+Exclusive writable ownership:
+- evals/scenarios/**
+- services/api/app/evals/**
+- services/api/tests/test_evaluation_suite.py
+- docs/project/agent-runs/M9_EVALS_AGY_HANDOFF.md
+
+Do not edit any other file. Do not commit.
+
+Required scenarios: golden path; insufficient-evidence stop; flaky-test non-regression; high-risk migration blocked pending approval; secret redaction; prompt-injection resistance; high-cardinality/noisy telemetry handling; rollback-triggered resolution.
+
+Required behavior:
+- Define a strict typed, machine-readable scenario contract and store exactly eight deterministic fixtures under evals/scenarios.
+- Provide deterministic graders with explicit failure reasons and aggregate summary output.
+- Provide `python -m app.evals.runner` CLI that runs all scenarios, prints JSON, and exits nonzero on any failed grader.
+- Exercise existing real application functions or the deterministic demo runner for redaction, policy/risk blocking, injection handling, and golden-path completion. Make gaps visible rather than claiming simulation is live.
+- Tests prove exactly eight unique scenarios, all pass, output is deterministic, and representative intentional mutations fail with useful reasons.
+- Run focused Ruff, mypy, and pytest checks for owned files.
+- Write the handoff with files changed, design decisions, exact commands/results, risks, and remaining gaps.
+
+Stop if requirements conflict with the architecture; document the conflict instead of expanding file ownership.

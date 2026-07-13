@@ -1,0 +1,42 @@
+﻿### Review Audit Report: M8/M9 Submission Package
+
+**DONE** (Verified and correct)
+* **Accessibility Evidence:** Covered via Playwright Axe Core audits (`apps/web/e2e/accessibility.spec.ts`) and 375px mobile viewport tests.
+* **Simulated vs. Live Disclosures:** Transparently and explicitly documented in `docs/submission/devpost-description.md`, `docs/submission/demo-script.md`, and `docs/submission/evidence-checklist.md`.
+* **Video Plan & Screenshots:** Solid `demo-script.md` (2:30 runtime) and `demo-storyboard.md` exist alongside verified build screenshots in `docs/submission/screenshots/`.
+* **Demo Credentials:** `README.md` successfully isolates the deterministic mock environment, explicitly stating no credentials are required for the golden path.
+* **Broken Links:** Crucial internal submission links in `README.md` and `docs/submission/evidence-checklist.md` resolve correctly to their targets (e.g., `apps/web/e2e` and `docs/testing`).
+
+---
+
+**MISSING** (Must fix for Devpost judging/public repository)
+1. **Repository License:** 
+   * **Location:** Repository root.
+   * **Fix:** Add a standard `LICENSE` file (e.g., MIT or Apache 2.0). A "public repository" for a hackathon submission requires an explicit open-source license.
+
+---
+
+**WEAK** (Prioritized fixes for fresh reviewer friction)
+1. **Clean-Machine Quickstart (Windows/Make dependency):**
+   * **Location:** `README.md` (Quick start section).
+   * **Issue:** Relies entirely on `make` (`make setup`, `make dev-api`). As noted in your `docs/project/taskstatus.md`, Windows hosts often lack GNU Make. Judges testing on Windows will fail at step one.
+   * **Fix:** Explicitly document the underlying platform-agnostic commands alongside Make (`pnpm install`, `uv run --project services/api uvicorn app.main:app`, etc.).
+2. **Architecture Diagrams are stale (M0 vs. M9):**
+   * **Location:** `docs/architecture/system-context.md` and `docs/architecture/demo-architecture.md`.
+   * **Issue:** Labeled as `(M0)` and explicitly claim an `InMemoryStore` is used without database/persistence. However, the current M9 implementation relies on a generated SQLite database (`demo.db`) built via SQLAlchemy and Alembic. 
+   * **Fix:** Update the text/diagram to reflect the M8/M9 reality of SQLite persistence and remove the "M0" boundary labels.
+
+---
+
+**EXTERNAL** (Blocked by platform/account limits; stop here)
+* **Final Submission & Live Credentialed Proof:** 
+  * Capturing the live OpenAI/Codex proof receipt requires authorized spend/credentials. 
+  * Final Devpost rules, category selection, video upload, and repository publication require the primary account holder. 
+  * *No action required by code-agent.*
+
+---
+
+**NEXT** (Action Plan)
+1. Add a `LICENSE` file to the root.
+2. Update `README.md` Quick Start with raw `uv` and `pnpm` commands for Windows reviewers.
+3. Update `docs/architecture/*` to reflect SQLite/Alembic persistence instead of `InMemoryStore`.

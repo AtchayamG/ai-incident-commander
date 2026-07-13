@@ -21,7 +21,10 @@ After the fix:
 docker compose config             PASS
 docker compose up -d --build      PASS
 API image build                   PASS (OpenAI SDK 2.45.0 installed)
-Web production build              PASS (Next.js 14.2.35)
+Web production build              PASS (Next.js 15.5.18)
+PostgreSQL 16 container           healthy; all 7 Alembic revisions applied
+Redis 7 container                healthy; dependency probe connected
+Workflow worker                  ready; fresh Redis heartbeat observed
 API container                     healthy
 API verifier runtime              Node v22.23.1
 GET http://localhost:8000/health/ready
@@ -31,10 +34,14 @@ fresh browser console             0 errors, 0 warnings
 approval gate 1                   PASS; six verification checks pass
 approval gate 2                   PASS; simulated draft PR only
 terminal workflow state           RESOLUTION_DRAFTED
+GET /health/dependencies          store/database/redis connected
+GET /health/workers               workflow ready
 docker compose down               PASS; containers/network removed
 ```
 
 Screenshots from this exact run are retained under
-`docs/submission/screenshots/`. This is local container-build and complete demo
-proof only. It is not a deployment, production-readiness, live provider, or
-PostgreSQL claim; the Compose demo uses SQLite and simulated providers.
+`docs/submission/screenshots/`. This proves the local container build,
+PostgreSQL migrations/connectivity, Redis connectivity, worker heartbeat, and
+complete simulated demo only. It is not a hosted deployment, production-scale
+durability claim, live provider claim, or evidence that the heartbeat worker
+consumes workflow jobs.

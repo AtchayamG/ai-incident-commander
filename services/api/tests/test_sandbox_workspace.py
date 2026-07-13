@@ -7,6 +7,7 @@ the Codex CLI adapter's fail-closed availability, sanitized environment, and
 sandboxed command contract.
 """
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -243,11 +244,43 @@ def test_codex_cli_command_denies_network_and_confines_writes(tmp_path: Path) ->
     assert command[2:4] == ["--sandbox", "workspace-write"]
     assert "sandbox_workspace_write.network_access=false" in command
     assert "shell_environment_policy.inherit=none" in command
+    assert 'approval_policy="never"' in command
     assert str(tmp_path) in command
     assert "--skip-git-repo-check" in command
     assert "--ephemeral" in command
     assert "--ignore-user-config" in command
     assert command[command.index("-m") + 1] == "test-model"
+    assert command[-1] == "-"
+
+
+def test_codex_cli_receipt_hashes_event_stream(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "auth.json").write_text("{}", encoding="utf-8")
+    gateway = CodexCliGateway(binary="codex", model="test-model", codex_home=str(tmp_path))
+    workspace = _workspace(tmp_path)
+    workspace.enable_write()
+
+    class Completed:
+        returncode = 0
+        stdout = '{"type":"thread.started","thread_id":"secret"}\n'
+        stderr = ""
+
+    monkeypatch.setattr("app.providers.code_agent.shutil.which", lambda _binary: "codex")
+    monkeypatch.setattr(
+        "app.providers.code_agent.subprocess.run", lambda *args, **kwargs: Completed()
+    )
+    try:
+        gateway.apply_patch_turn(workspace, _task())
+        assert gateway.last_receipt == {
+            "engine": "codex-cli:test-model",
+            "event_count": 1,
+            "event_stream_sha256": hashlib.sha256(Completed.stdout.encode()).hexdigest(),
+            "exit_code": 0,
+        }
+        assert "secret" not in str(gateway.last_receipt)
+    finally:
+        workspace.destroy()
 
 
 def test_codex_cli_fails_closed_without_binary_or_credentials(tmp_path: Path) -> None:
