@@ -77,10 +77,10 @@ test.describe('M6 Review Package UX', () => {
     await page.goto('/incidents/test-inc');
     
     // Expect the unmet prerequisite warning
-    await expect(page.getByText('Prerequisite Unmet: Cannot approve PR creation because verification checks have not passed or are missing.')).toBeVisible();
+    await expect(page.getByText('Cannot approve PR creation because verification checks have not passed or incident is not in WAITING_PR_APPROVAL state.')).toBeVisible();
     
     // Expect the approve button to be disabled
-    const approveBtn = page.getByRole('button', { name: 'Approve & Create PR' });
+    const approveBtn = page.getByRole('button', { name: '✓ Approve & Create PR' });
     await expect(approveBtn).toBeDisabled();
     
     // Expect verification status to be pending
@@ -161,10 +161,10 @@ test.describe('M6 Review Package UX', () => {
     await page.goto('/incidents/test-inc');
     
     // Expect the unmet prerequisite warning
-    await expect(page.getByText('Prerequisite Unmet: Cannot approve PR creation because verification checks have not passed or are missing.')).toBeVisible();
+    await expect(page.getByText('Cannot approve PR creation because verification checks have not passed or incident is not in WAITING_PR_APPROVAL state.')).toBeVisible();
     
     // Expect the approve button to be disabled
-    const approveBtn = page.getByRole('button', { name: 'Approve & Create PR' });
+    const approveBtn = page.getByRole('button', { name: '✓ Approve & Create PR' });
     await expect(approveBtn).toBeDisabled();
     
     // Expect verification status to be failed

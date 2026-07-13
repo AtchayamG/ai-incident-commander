@@ -1,0 +1,32 @@
+ROLE: frontend/UI integration/test
+OBJECTIVE: Implement the M7 incident-room frontend for human-approved draft PR creation, communication artifacts, and an evidence-based postmortem using only blueprint-defined contracts.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m7-resolution-ui
+ALLOWED FILES:
+- apps/web/app/incidents/[id]/**
+- apps/web/lib/**
+- apps/web/e2e/m7-resolution.spec.ts
+- packages/contracts/src/** only when a shared M7 response type is absent and the blueprint defines it
+- docs/project/agent-runs/M7_RESOLUTION_UI_FINAL_HANDOFF.md
+- docs/testing/m7-resolution-ui.md
+FORBIDDEN:
+- services/**, root files, production actions, uploads, publishing, credentials, commits, unrelated dashboard redesign
+REQUIREMENTS:
+- Read AGENTS.md, the M7 blueprint section, API sections 17.6-17.7, existing incident-room code, API client, contracts, and M6 review UI before editing.
+- Use the Ponytail minimal-implementation ladder: reuse current cards, badges, API helpers, approval components, and CSS before adding code or dependencies.
+- Add the second explicit approval UI for draft-PR creation. It must remain disabled unless the incident is REVIEW_READY, the exact patch has passing verification, and a pending PR approval exists.
+- Render provider mode/provenance, draft status, URL/reference when returned, and idempotent/retry state from backend responses. Never claim a GitHub write occurred unless the API returns live provider evidence.
+- Render technical update, stakeholder update, and postmortem sections from GET /incidents/{incident_id}/communications and GET /incidents/{incident_id}/postmortem. Do not fabricate fallback content.
+- Show honest loading, unavailable, empty, failure, and retry states. Treat intercepted Playwright responses as frontend contract evidence only.
+- Add focused Playwright coverage for blocked approval, successful simulated draft artifact display, failed external action/retry without duplicate UI artifacts, communication rendering, postmortem evidence/timeline/action items, accessibility, and 375px overflow.
+- Do not change existing tests to weaken assertions. Do not invent undocumented endpoints. Do not add a live network dependency.
+- Run and report exact commands; write the handoff using DONE/BLOCKED/RISK/NEXT.
+TESTS:
+- pnpm --dir apps/web lint
+- pnpm --dir apps/web typecheck
+- pnpm --dir apps/web test
+- pnpm --dir apps/web build
+- pnpm --dir apps/web exec playwright test e2e/m7-resolution.spec.ts
+DELIVERABLE:
+- implementation, focused tests, docs/testing/m7-resolution-ui.md, and docs/project/agent-runs/M7_RESOLUTION_UI_FINAL_HANDOFF.md
+STOP IF:
+- the blueprint contract conflicts with existing shared contracts, a production credential/action is required, or work must overlap backend files

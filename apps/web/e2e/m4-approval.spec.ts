@@ -75,7 +75,7 @@ test.describe.serial('M4 Approval UI', () => {
     await page.getByRole('button', { name: /Approve & Execute Patch/ }).click();
     
     // 10. Verify state progresses
-    await expect(page.locator('.badge-state:has-text("State: PATCHING")').or(page.locator('.badge-state:has-text("State: VERIFYING")')).or(page.locator('.badge-state:has-text("State: REVIEW READY")'))).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('.badge-state:has-text("State: PATCHING")').or(page.locator('.badge-state:has-text("State: VERIFYING")')).or(page.locator('.badge-state:has-text("State: REVIEW READY")')).or(page.locator('.badge-state:has-text("State: WAITING PR APPROVAL")'))).toBeVisible({ timeout: 20000 });
   });
 
   test('should support rejection of the bounded remediation artifact', async ({ page }) => {

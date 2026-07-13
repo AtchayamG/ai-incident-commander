@@ -22,6 +22,9 @@ import type {
   PatchAttempt,
   VerificationRun,
   InvestigationReport,
+  DraftPR,
+  Communications,
+  Postmortem,
 } from "@incident-commander/contracts";
 
 export type ApiResult<T> =
@@ -171,5 +174,23 @@ export function getIncidentVerifications(
   return request<VerificationRun[]>(
     `api/v1/incidents/${encodeURIComponent(incidentId)}/verifications`,
   );
+}
+
+export function getIncidentDraftPR(incidentId: string): Promise<ApiResult<DraftPR>> {
+  return request<DraftPR>(`api/v1/incidents/${encodeURIComponent(incidentId)}/draft-pr`);
+}
+
+export function requestDraftPR(incidentId: string): Promise<ApiResult<DraftPR>> {
+  return request<DraftPR>(`api/v1/incidents/${encodeURIComponent(incidentId)}/draft-pr`, {
+    method: "POST",
+  });
+}
+
+export function getIncidentCommunications(incidentId: string): Promise<ApiResult<Communications>> {
+  return request<Communications>(`api/v1/incidents/${encodeURIComponent(incidentId)}/communications`);
+}
+
+export function getIncidentPostmortem(incidentId: string): Promise<ApiResult<Postmortem>> {
+  return request<Postmortem>(`api/v1/incidents/${encodeURIComponent(incidentId)}/postmortem`);
 }
 

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('real local API reaches REVIEW_READY only after deterministic verification passes', async ({ page, request }) => {
+test('real local API requests PR approval only after deterministic verification passes', async ({ page, request }) => {
   page.on('dialog', dialog => dialog.accept());
   page.on('response', response => expect(response.status()).not.toBe(500));
 
@@ -14,7 +14,7 @@ test('real local API reaches REVIEW_READY only after deterministic verification 
   await page.locator('#reason-input').fill('Approve the exact bounded patch for deterministic verification.');
   await page.getByRole('button', { name: /Approve & Execute Patch/ }).click();
 
-  await expect(page.locator('.badge-state', { hasText: 'State: REVIEW READY' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.badge-state', { hasText: 'State: WAITING PR APPROVAL' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('✅ Verification Passed', { exact: true })).toBeVisible();
 
   const response = await request.get('http://127.0.0.1:8001/api/v1/incidents/inc-demo-0001/verifications');

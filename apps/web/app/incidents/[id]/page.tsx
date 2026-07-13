@@ -15,6 +15,9 @@ import type {
   Severity,
   InvestigationReport,
   VerificationRun,
+  DraftPR,
+  Communications,
+  Postmortem,
 } from "@incident-commander/contracts";
 import {
   getIncident,
@@ -30,6 +33,9 @@ import {
   decideApproval,
   getIncidentInvestigation,
   getIncidentVerifications,
+  getIncidentDraftPR,
+  getIncidentCommunications,
+  getIncidentPostmortem,
 } from "@/lib/api";
 
 export default function IncidentDetailPage() {
@@ -58,6 +64,10 @@ export default function IncidentDetailPage() {
   const [investigationLoading, setInvestigationLoading] = useState<boolean>(true);
   const [verificationRuns, setVerificationRuns] = useState<VerificationRun[]>([]);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+
+  const [draftPR, setDraftPR] = useState<DraftPR | null>(null);
+  const [communications, setCommunications] = useState<Communications | null>(null);
+  const [postmortem, setPostmortem] = useState<Postmortem | null>(null);
 
   // Interactive UI States
   const [expandedEvidence, setExpandedEvidence] = useState<Record<string, boolean>>({});
@@ -133,6 +143,9 @@ export default function IncidentDetailPage() {
       verificationsRes,
       approvalsRes,
       investigationRes,
+      draftPRRes,
+      communicationsRes,
+      postmortemRes,
     ] = await Promise.all([
       getIncident(incidentId),
       getIncidentEvidence(incidentId),
@@ -144,6 +157,9 @@ export default function IncidentDetailPage() {
       getIncidentVerifications(incidentId),
       getIncidentApprovals(incidentId),
       getIncidentInvestigation(incidentId),
+      getIncidentDraftPR(incidentId),
+      getIncidentCommunications(incidentId),
+      getIncidentPostmortem(incidentId),
     ]);
 
     if (!incidentRes.ok) {
@@ -222,6 +238,24 @@ export default function IncidentDetailPage() {
       setInvestigation(null);
       setInvestigationStatus(investigationRes.status);
       setInvestigationError(investigationRes.error || "Failed to fetch investigation");
+    }
+
+    if (draftPRRes.ok) {
+      setDraftPR(draftPRRes.data);
+    } else {
+      setDraftPR(null);
+    }
+
+    if (communicationsRes.ok) {
+      setCommunications(communicationsRes.data);
+    } else {
+      setCommunications(null);
+    }
+
+    if (postmortemRes.ok) {
+      setPostmortem(postmortemRes.data);
+    } else {
+      setPostmortem(null);
     }
 
     setLoading(false);
@@ -519,7 +553,7 @@ export default function IncidentDetailPage() {
         )}
 
         <div style={{ marginTop: "1rem", background: "rgba(0,0,0,0.15)", padding: "1rem", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
-          <h3 style={{ fontSize: "0.95rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>Intake Description Summary:</h3>
+          <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "0.25rem" }}>Intake Description Summary:</p>
           <p style={{ fontSize: "0.95rem", whiteSpace: "pre-wrap" }}>{incident.summary}</p>
         </div>
       </header>
@@ -721,7 +755,7 @@ export default function IncidentDetailPage() {
                   : undefined;
                 const isPRApproval = approval.approval_type === "CREATE_DRAFT_PR";
                 const verifPassed = verifRun?.passed === true;
-                const blockPRApproval = isPRApproval && !verifPassed;
+                const blockPRApproval = isPRApproval && (incident?.state !== "WAITING_PR_APPROVAL" || !verifPassed);
 
                 return (
                 <div key={approval.id} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -806,7 +840,7 @@ export default function IncidentDetailPage() {
                   <div style={{ display: "flex", gap: "0.75rem", flexDirection: "column" }}>
                     {blockPRApproval && (
                       <div style={{ fontSize: "0.85rem", color: "var(--warning)", background: "rgba(245, 158, 11, 0.1)", padding: "0.75rem", borderRadius: "4px", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
-                        <strong>⚠️ Prerequisite Unmet:</strong> Cannot approve PR creation because verification checks have not passed or are missing.
+                        <strong>⚠️ Prerequisite Unmet:</strong> Cannot approve PR creation because verification checks have not passed or incident is not in WAITING_PR_APPROVAL state.
                       </div>
                     )}
                     <div style={{ display: "flex", gap: "0.75rem" }}>
@@ -1340,6 +1374,170 @@ export default function IncidentDetailPage() {
               </div>
             )}
           </div>
+
+          {/* M7 Draft PR Section */}
+          {draftPR && (
+            <div className="card">
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🚀 Pull Request Status</h2>
+              <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                  <span style={{ fontSize: "1rem", fontWeight: "600" }}>Draft PR Integration</span>
+                  <span className={`badge ${draftPR.status === "created" ? "badge-success" : draftPR.status === "failed" ? "badge-error" : "badge-sev3"}`}>
+                    {draftPR.status.toUpperCase()}
+                  </span>
+                </div>
+                
+                {draftPR.provider_mode === "simulated" && (
+                  <div style={{ marginBottom: "0.5rem" }}>
+                    <span className="badge badge-sev4" style={{ background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                      🤖 SIMULATED PROVIDER
+                    </span>
+                  </div>
+                )}
+                
+                <div style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
+                  <strong>ID:</strong> {draftPR.id}
+                </div>
+                
+                {draftPR.url && (
+                  <div style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+                    <strong>URL:</strong> <a href={draftPR.url} target="_blank" rel="noreferrer" style={{ color: "var(--primary-hover)", textDecoration: "underline" }}>{draftPR.url}</a>
+                  </div>
+                )}
+                
+                {draftPR.reference && (
+                  <div style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+                    <strong>Reference:</strong> {draftPR.reference}
+                  </div>
+                )}
+
+                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
+                  Idempotency Key: {draftPR.idempotency_key || "N/A"}
+                </div>
+                
+                {draftPR.error_message && (
+                  <div style={{ marginTop: "0.75rem", padding: "0.5rem", background: "var(--error-light)", color: "var(--error)", borderRadius: "4px", fontSize: "0.85rem" }}>
+                    {draftPR.error_message}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* M7 Communications Section */}
+          {communications && (
+            <div className="card">
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>📢 Communications</h2>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                  <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Technical Update</h3>
+                  <p style={{ fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{communications.technical_update}</p>
+                </div>
+                
+                <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                  <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Stakeholder Update</h3>
+                  <p style={{ fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{communications.stakeholder_update}</p>
+                </div>
+                
+                {communications.resolution_note && (
+                  <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                    <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Resolution Note</h3>
+                    <p style={{ fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{communications.resolution_note}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* M7 Postmortem Section */}
+          {postmortem && (
+            <div className="card">
+              <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>📄 Postmortem Report</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                
+                <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                  <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Executive Summary</h3>
+                  <p style={{ fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{postmortem.summary}</p>
+                </div>
+
+                <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                  <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Impact</h3>
+                  <p style={{ fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{postmortem.impact}</p>
+                </div>
+
+                <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                  <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Root Cause</h3>
+                  <p style={{ fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{postmortem.root_cause}</p>
+                </div>
+
+                <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                  <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Resolution</h3>
+                  <p style={{ fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{postmortem.resolution}</p>
+                </div>
+
+                {postmortem.timeline_json && postmortem.timeline_json.length > 0 && (
+                  <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                    <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Timeline Evidence</h3>
+                    <div className="timeline" style={{ marginTop: "1rem" }}>
+                      {postmortem.timeline_json.map((evt) => (
+                        <div key={evt.id} className="timeline-item" style={{ paddingLeft: "1.5rem", paddingBottom: "1.5rem" }}>
+                          <div className="timeline-time" style={{ fontSize: "0.8rem" }}>{new Date(evt.at).toLocaleString()}</div>
+                          <div style={{ fontWeight: "600", fontSize: "0.9rem", color: "#ffffff" }}>{evt.kind.replace(/\./g, " ").toUpperCase()}</div>
+                          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>{evt.description}</p>
+                          {evt.evidence_id && (
+                            <button
+                               onClick={() => scrollToEvidence(evt.evidence_id!)}
+                               style={{
+                                 background: "none",
+                                 border: "none",
+                                 padding: 0,
+                                 fontSize: "0.75rem",
+                                 color: "var(--primary-hover)",
+                                 textDecoration: "underline",
+                                 display: "inline-block",
+                                 marginTop: "0.25rem",
+                                 cursor: "pointer",
+                                 fontFamily: "inherit",
+                                 textAlign: "left"
+                               }}
+                            >
+                              View Evidence
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {postmortem.action_items_json && postmortem.action_items_json.length > 0 && (
+                  <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                    <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Action Items</h3>
+                    <ul style={{ paddingLeft: "1.25rem", color: "var(--text-muted)" }}>
+                      {postmortem.action_items_json.map((action, idx) => (
+                        <li key={idx} style={{ marginBottom: "0.5rem" }}>
+                          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                            <span className={`badge ${action.priority.toLowerCase() === "high" ? "badge-sev1" : action.priority.toLowerCase() === "medium" ? "badge-sev2" : "badge-sev3"}`}>{action.priority}</span>
+                            <strong>{action.owner}</strong>
+                          </div>
+                          <p style={{ fontSize: "0.9rem", marginTop: "0.25rem", color: "var(--text-main)" }}>{action.description}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {postmortem.markdown_uri && (
+                  <div style={{ padding: "1rem", border: "1px solid var(--border-color)", borderRadius: "8px", background: "rgba(255,255,255,0.01)" }}>
+                    <h3 style={{ fontSize: "1rem", color: "var(--primary-hover)", marginBottom: "0.5rem" }}>Document Link</h3>
+                    <a href={postmortem.markdown_uri} target="_blank" rel="noreferrer" style={{ color: "var(--primary-hover)", textDecoration: "underline", fontSize: "0.9rem" }}>View Markdown Postmortem</a>
+                  </div>
+                )}
+                
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

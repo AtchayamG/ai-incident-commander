@@ -344,3 +344,40 @@ export interface InvestigationReport {
   created_at: string;
 }
 
+export interface DraftPR {
+  id: string;
+  incident_id: string;
+  status: string;
+  url?: string;
+  reference?: string;
+  provider_mode: ProviderMode;
+  idempotency_key?: string;
+  error_message?: string;
+  created_at: string;
+}
+
+export interface Communications {
+  technical_update: string;
+  stakeholder_update: string;
+  resolution_note: string;
+}
+
+export interface PostmortemActionItem {
+  description: string;
+  owner: string;
+  priority: string;
+}
+
+export interface Postmortem {
+  id: string;
+  incident_id: string;
+  summary: string;
+  impact: string;
+  root_cause: string;
+  resolution: string;
+  timeline_json: TimelineEvent[];
+  action_items_json: PostmortemActionItem[];
+  markdown_uri?: string;
+  created_at: string;
+}
+

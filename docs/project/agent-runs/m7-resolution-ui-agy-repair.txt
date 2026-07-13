@@ -1,0 +1,37 @@
+ROLE: frontend repair/test
+OBJECTIVE: Repair the partial M7 resolution UI at commit fad762a and leave it fully verified; do not restart or expand scope.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m7-resolution-ui
+ALLOWED FILES:
+- apps/web/app/incidents/[id]/page.tsx
+- apps/web/lib/api.ts
+- apps/web/e2e/m7-resolution.spec.ts
+- packages/contracts/src/index.ts
+- docs/project/agent-runs/M7_RESOLUTION_UI_FINAL_HANDOFF.md
+- docs/testing/m7-resolution-ui.md
+FORBIDDEN:
+- services/**, root files, production/external actions, credentials, commits, dependencies, unrelated UI changes
+REQUIREMENTS:
+- Read AGENTS.md, the state machine, existing M6 review tests, the partial handoff, and Playwright config before editing.
+- Fix the PR gate: a pending CREATE_DRAFT_PR approval is actionable only in WAITING_PR_APPROVAL with the exact patch's latest verification passing. Do not require the impossible REVIEW_READY + pending-approval combination.
+- Keep approval through the existing decideApproval flow. Do not auto-call POST /draft-pr or perform an external action from page load.
+- Render draft PR provider/provenance and status honestly. A simulated artifact must never imply a real GitHub write. Render no duplicate artifacts during failed/retry fixture states.
+- Render honest loading/not-yet-available/error states for M7 artifacts without fabricating content or cluttering pre-M7 incidents.
+- Render the evidence-based postmortem timeline, action items, and Markdown link only when returned.
+- Rewrite the focused tests with explicit complete route fixtures that actually intercept every request. Use existing m6-review.spec.ts patterns. Cover: blocked approval; enabled WAITING_PR_APPROVAL + pass state; simulated artifact; failed/retry state with one artifact; technical/stakeholder updates; postmortem timeline/actions; axe scan; 375px document overflow.
+- Tests must state they are frontend intercepted contract coverage only. Do not claim backend E2E proof.
+- Run every command below after ensuring locked dependencies are present. Record exact results and remaining risks in the handoff using DONE/BLOCKED/RISK/NEXT.
+KNOWN EVIDENCE:
+- lint, typecheck, and 20 Vitest tests pass at fad762a.
+- focused Playwright: 3 failed because **/api/v1/incidents/* did not intercept any requests.
+- current page incorrectly checks incident.state !== REVIEW_READY.
+TESTS:
+- pnpm --dir apps/web lint
+- pnpm --dir apps/web typecheck
+- pnpm --dir apps/web test
+- pnpm --dir apps/web build
+- pnpm --dir apps/web exec playwright test e2e/m7-resolution.spec.ts
+- pnpm --dir apps/web test:e2e
+DELIVERABLE:
+- corrected implementation/tests and updated final handoff/testing report
+STOP IF:
+- backend contract cannot be represented without inventing behavior or a production action/credential is required
