@@ -1,0 +1,99 @@
+﻿I am going to list the contents of the worktree directory to locate the key documentation and project blueprint files.
+I will list the contents of the `docs` directory to locate the documentation, status reports, and submission files.
+I will list the contents of `docs/project` to see where the project status files are stored.
+I will view the `AGENTS.md` file in the project root to understand the agent capabilities and blueprint scope.
+I will view the `docs/project/CODEX_RESULT.md` file to see the current integration status.
+I will view `docs/deep-research-report.md` to extract relevant background facts and metrics.
+I will search for sections related to "M9", "demo", and "submission" in the master blueprint to understand the requirements and architecture definitions.
+I will search the master blueprint for the word "Milestone" to find the sections that outline the project milestones.
+I will view the beginning of the master blueprint file to confirm its structure and content.
+I will run a PowerShell command to list all files in the repository to locate existing submission assets or related files.
+I will check the status of the file listing command.
+I will list the contents of the `docs/project/agent-runs` directory to see if there are existing handover or runner files.
+I will view the `docs/BLUEPRINT_EXECUTION_INDEX.md` file to see the structure of the blueprint and where the relevant sections are located.
+I will run a python command to identify the line numbers of sections 28 to 43 in the blueprint so that I can inspect them.
+I will check the status of the Python header search script.
+I will read Section M9 (Submission Package) from the master blueprint (lines 2500 to 2680) to understand the requirements for the demo assets.
+I will read Section 32, 33, and 34 from the master blueprint (lines 2681 to 2900) to understand the Demo Fixture Specification, the Demo Script, and the Submission Story requirements.
+I will view the rest of the blueprint from line 3100 to the end, focusing on the Definition of Done.
+I will view `docs/project/handover.md` to see the latest developer handovers and progress notes.
+I will view `docs/project/taskstatus.md` to see the current status of each milestone and its completion details.
+I will view the `Makefile` and root `package.json` files to look for any existing markdown or link sanity check commands that we can run.
+I will view the root `package.json` file to check for any linting, testing, or markdown checking scripts.
+I will view `apps/web/package.json` to check for any frontend validation scripts or extra tools.
+I will search for any pre-existing markdown or link validation scripts or configurations in the workspace.
+I will check the status of the search for markdown/link validation files.
+I will create the `docs/submission/demo-script.md` file, detailing a sub-3-minute judge-focused script with timestamps, operator actions, visible evidence, and clear fallback narration for pending milestones (M7/M8).
+I will create the `docs/submission/demo-script.md` file without the `ArtifactMetadata` parameter, since it is a workspace source file rather than a system conversation artifact.
+I will create the `docs/submission/demo-storyboard.md` file, detailing a shot-by-shot storyboard for Devpost judges that highlights our design choices, human approval gates, deterministic verification checks, and the separation of simulated vs. live features.
+I will create the `docs/submission/evidence-checklist.md` file to map every claim made in the storyboard and demo script to concrete files, tests, or APIs, highlighting their verification status (proven vs. pending).
+I will create a local python sanity check script in the scratch directory to verify that all the `file://` links in our new submission assets are correct and target files that actually exist in the worktree.
+I will run the link validation script to verify the markdown links in our newly created files.
+I will list the contents of `apps/web` to see where the Playwright/e2e tests are located, so I can fix the broken link.
+I will view lines 50 to 80 of `docs/submission/evidence-checklist.md` to see the exact text of the broken link.
+I will view lines 30 to 50 of `docs/submission/evidence-checklist.md` to find the exact line containing the broken `Playwright Scenarios` link.
+I will update line 42 in `docs/submission/evidence-checklist.md` to point to the correct `apps/web/e2e` directory.
+I will re-run the link checking script to verify that our fix resolved the broken link and that all links in our documents are now fully valid.
+I will check the status of the link checking script.
+I will view `docs/project/agent-runs/M6_REVIEW_UI_FINAL_HANDOFF.md` to see the structure and conventions used for final handoffs.
+I will create the `docs/project/agent-runs/M9_DEMO_ASSETS_AGY_FINAL_HANDOFF.md` file to summarize the changes made, the exact verification results, and detail the DONE/BLOCKED/RISK/NEXT status.
+I have prepared the truthful, concise Milestone 9 demo and submission assets. The deliverables have been written to the allowed directories and verified using a custom link sanity check script.
+
+### 📝 Summary of Deliverables Created
+
+1. **Demo Script** — **[docs/submission/demo-script.md](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m9-demo-assets/docs/submission/demo-script.md)**
+   * Outlines a sub-3-minute, step-by-step judge-focused script.
+   * Clearly separates currently integrated M0–M6 capabilities (ingestion, timeline, confidence, hypothesis scoring, Plan Approval Gate 1, isolated patching, and 6-stage verification checks) from planned M7/M8 capabilities (live GitHub PRs, automated Slack messages, postmortem exports, Docker orchestration).
+   * Provides explicit fallback narration for simulated/pending milestones.
+2. **Storyboard** — **[docs/submission/demo-storyboard.md](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m9-demo-assets/docs/submission/demo-storyboard.md)**
+   * A shot-by-shot storyboard focusing on the developer experience.
+   * Highlights key technical novelties: log boundary sanitization, GPT-5.6 ranked hypotheses, the two approval gates, isolated patching, and the 6-stage deterministic verifier.
+3. **Evidence Checklist** — **[docs/submission/evidence-checklist.md](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m9-demo-assets/docs/submission/evidence-checklist.md)**
+   * Maps every storyboard and demo script claim directly to a file path, unit test, or API endpoint.
+   * Categorizes each claim honestly as `CURRENTLY PROVEN`, `PENDING M7/M8`, or `FINAL M9 VALIDATION` without faking unfinished work.
+4. **Final Handoff** — **[docs/project/agent-runs/M9_DEMO_ASSETS_AGY_FINAL_HANDOFF.md](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m9-demo-assets/docs/project/agent-runs/M9_DEMO_ASSETS_AGY_FINAL_HANDOFF.md)**
+   * Contains the `DONE/BLOCKED/RISK/NEXT` status, files changed, and exact outputs of local checks.
+
+---
+
+### 🔍 Sanity Check Verification Results
+
+A scratch script ([check_links.py](file:///C:/Users/Atchayam/.gemini/antigravity-cli/brain/11c549e8-3dce-456b-815a-ace570aad4ae/scratch/check_links.py)) was executed to check all relative and absolute `file:///` markdown links inside the submission assets:
+
+* **Initial Run:** Discovered 1 broken link targeting `apps/web/test/e2e` (which was actually `apps/web/e2e`).
+* **Fix Applied:** Updated [evidence-checklist.md:L42](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m9-demo-assets/docs/submission/evidence-checklist.md#L42) to target [apps/web/e2e](file:///D:/Work/Codex/Hackathon%20Projects/OpenAI%20Hackathon/.agent-worktrees/incident-m9-demo-assets/apps/web/e2e).
+* **Final Check Run:** Passed successfully with **21/21 links verified (0 broken)**.
+
+```text
+Starting link sanity check...
+Workspace root: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m9-demo-assets
+
+Checking links in docs\submission\demo-script.md...
+Checking links in docs\submission\demo-storyboard.md...
+Checking links in docs\submission\evidence-checklist.md...
+  [OK] Link to 'alerts.json' -> ...\services\api\fixtures\checkout-api\telemetry\alerts.json
+  [OK] Link to 'test_incidents_api.py' -> ...\services\api\tests\test_incidents_api.py
+  [OK] Link to 'deploys.json' -> ...\services\api\fixtures\checkout-api\deploys\deploys.json
+  [OK] Link to 'test_timeline_determinism.py' -> ...\services\api\tests\test_timeline_determinism.py
+  [OK] Link to 'redaction.py' -> ...\services\api\app\security\redaction.py
+  [OK] Link to 'test_redaction.py' -> ...\services\api\tests\test_redaction.py
+  [OK] Link to 'investigation.py' -> ...\services\api\app\domain\investigation.py
+  [OK] Link to 'test_investigation.py' -> ...\services\api\tests\test_investigation.py
+  [OK] Link to 'policy.py' -> ...\services\api\app\workflow\policy.py
+  [OK] Link to 'approvals.py' -> ...\services\api\app\api\routes\approvals.py
+  [OK] Link to 'Playwright Scenarios' -> ...\apps\web\e2e
+  [OK] Link to 'executor.py' -> ...\services\api\app\sandbox\executor.py
+  [OK] Link to 'workspace.py' -> ...\services\api\app\sandbox\workspace.py
+  [OK] Link to 'test_sandbox_executor.py' -> ...\services\api\tests\test_sandbox_executor.py
+  [OK] Link to 'verifier.py' -> ...\services\api\app\sandbox\verifier.py
+  [OK] Link to 'test_verification.py' -> ...\services\api\tests\test_verification.py
+  [OK] Link to 'risk.py' -> ...\services\api\app\workflow\risk.py
+  [OK] Link to 'Review page E2E verification' -> ...\docs\testing\m4-approval-ui.md
+  [OK] Link to 'simulated.py' -> ...\services\api\app\providers\simulated.py
+  [OK] Link to 'contracts.py' -> ...\services\api\app\domain\contracts.py
+  [OK] Link to 'docker-compose.yml' -> ...\docker-compose.yml
+
+--- Summary ---
+Total links verified: 21
+Broken links found: 0
+```

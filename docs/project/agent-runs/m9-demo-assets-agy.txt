@@ -1,0 +1,22 @@
+ROLE: product storytelling / UX demo / submission evidence
+OBJECTIVE: Prepare truthful, concise M9 demo and submission assets from the blueprint and the currently integrated M0-M6 product, without claiming unfinished M7/M8 functionality.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m9-demo-assets
+ALLOWED FILES:
+- docs/submission/demo-script.md
+- docs/submission/demo-storyboard.md
+- docs/submission/evidence-checklist.md
+- docs/project/agent-runs/M9_DEMO_ASSETS_AGY_FINAL_HANDOFF.md
+FORBIDDEN:
+- source code, tests, root files, authoritative project-status files, deployment, publishing, screenshots that fabricate unavailable UI, external writes, commits, unrelated docs
+REQUIREMENTS:
+- Read AGENTS.md, the master blueprint M9/submission/demo sections, docs/deep-research-report.md, current docs/project status/handover/CODEX_RESULT, and existing docs/submission files before editing.
+- Create or refine a sub-3-minute judge-focused demo script with timestamps, exact operator actions, expected visible evidence, and fallback narration. Clearly label capabilities that require M7/M8 integration as pending placeholders.
+- Create a shot-by-shot storyboard optimized for Devpost judging: problem, novelty, two human approval gates, bounded deterministic patching, verification/risk review, simulated-vs-live honesty, resolution artifacts, measurable proof, and architecture close.
+- Create an evidence checklist mapping every spoken claim to a screen/API/test/log artifact and marking CURRENTLY PROVEN, PENDING M7, PENDING M8, or FINAL M9 VALIDATION. Never convert planned evidence into proven evidence.
+- Keep prose concise and presentation-ready. Reuse existing facts; do not invent metrics, customers, live integrations, competition rules, or validation results.
+- Keep all durable output under docs/. Do not duplicate existing documentation unnecessarily.
+- Run markdown/link sanity checks available locally and record exact results.
+DELIVERABLE:
+- the three submission assets and docs/project/agent-runs/M9_DEMO_ASSETS_AGY_FINAL_HANDOFF.md with DONE/BLOCKED/RISK/NEXT, files changed, and exact checks
+STOP IF:
+- completion requires a live submission, deployment, credential, fabricated proof, source-code change, or edits outside allowed files

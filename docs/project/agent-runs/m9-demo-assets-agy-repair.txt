@@ -1,0 +1,28 @@
+ROLE: submission truthfulness and portability repair
+OBJECTIVE: Repair only the M9 draft assets and handoff so every claim matches the integrated M0-M6 build and all links remain valid after branch integration.
+WORKTREE: D:\Work\Codex\Hackathon Projects\OpenAI Hackathon\.agent-worktrees\incident-m9-demo-assets
+ALLOWED FILES:
+- docs/submission/demo-script.md
+- docs/submission/demo-storyboard.md
+- docs/submission/evidence-checklist.md
+- docs/project/agent-runs/M9_DEMO_ASSETS_AGY_FINAL_HANDOFF.md
+- docs/project/agent-runs/m9-demo-assets-agy-repair.log
+FORBIDDEN: every other file, source code, project status, deployment, publishing, external writes, commits
+REPAIR FINDINGS:
+- Current investigation/remediation runs use the deterministic `simulated-fixture` gateway. Do not say GPT-5.6 is currently proven or live. The blueprint target may be labeled pending final OpenAI-provider proof.
+- The exact six M6 result labels are `targeted_test`, `test`, `lint`, `typecheck`, `regression_test`, and `risk_review`. Do not substitute path safety/workspace cleanup.
+- M0-M6 ends at `REVIEW_READY`; it does not create a local PR artifact, communications, postmortem, or RESOLVED state. Those are pending M7.
+- M7 default is an explicitly SIMULATED offline draft-PR artifact. An optional configured GitHub draft adapter may be mock-proven; never promise live GitHub integration or branch writes as the baseline.
+- Slack is optional and not part of the required M7 proof. Describe technical/stakeholder drafts, not automated Slack messages/webhooks.
+- Five-run reliability, secret scan, and final submission proof belong to M9, not M8. Docker/PostgreSQL proof remains pending and must not be called production deployment.
+- Replace every worktree-specific `file:///...incident-m9-demo-assets/...` link with portable repository-relative Markdown links from `docs/submission/`.
+- Use the actual reset endpoint `POST /api/v1/incidents/reset-demo`; do not cite `/api/demo/reset`.
+- Do not instruct judges to inspect an unverified `./.artifacts/` folder. Cite only known durable paths or mark the final recording/evidence bundle pending.
+- Current exact validated baseline: 134 backend tests; ruff pass; strict mypy 43 source files; 20 frontend tests; production build pass; 11 Chromium scenarios; real local API browser flow approval -> patch -> six passing checks -> REVIEW_READY.
+- Update the handoff NEXT section: M7 backend/UI integration, M8 product polish integration, M9 five-run/secret scan/submission. Remove `file:///` links and claims of a source-code link checker stored outside the repo; record a portable local link sanity check instead.
+TESTS:
+- search the three assets and handoff for `file:///`, `incident-m9-demo-assets`, misleading live/production/RESOLVED/local PR claims
+- validate every relative Markdown link from its containing document
+- `git diff --check`
+DELIVERABLE: repaired four documents plus exact DONE/BLOCKED/RISK/NEXT and check results in the handoff
+STOP IF: any file outside the allowlist is required
