@@ -1,0 +1,11 @@
+{
+  "scenario_id": "scenario-2",
+  "name": "missing_environment_variable",
+  "description": "A missing runtime environment variable requires configuration restoration, not a code patch.",
+  "incident": {"id":"inc-eval-0002","title":"Checkout startup failure","service":"checkout-api","environment":"production","severity":"SEV2","summary":"New replicas fail startup."},
+  "evidence": [
+    {"kind":"log","provider":"fixture-telemetry","source":"simulated:logs","summary":"[SIMULATED] Startup validation reports missing CHECKOUT_REGION","content":"ConfigurationError: required environment variable CHECKOUT_REGION is missing","display_ref":"simulated://checkout-api/telemetry/startup.log","observed_at":"2026-07-13T10:06:12Z"},
+    {"kind":"config","provider":"fixture-local-repo","source":"simulated:repo","summary":"[SIMULATED] Deployment manifest references CHECKOUT_REGION from runtime configuration","content":"CHECKOUT_REGION: valueFrom: runtime-config","display_ref":"simulated://checkout-api/repo/deployment.yaml","observed_at":"2026-07-13T10:07:00Z"}
+  ],
+  "grader_rules": {"expected_final_state":"NEEDS_INPUT","expected_investigation_status":"insufficient_evidence","no_plans_generated":true,"no_patch_attempted":true,"prohibited_claims":["code defect"]}
+}

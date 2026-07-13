@@ -1,0 +1,11 @@
+{
+  "scenario_id": "scenario-3",
+  "name": "dependency_timeout_mitigation",
+  "description": "An upstream timeout calls for bounded mitigation and dependency escalation, not a speculative code fix.",
+  "incident": {"id":"inc-eval-0003","title":"Payment dependency timeout","service":"checkout-api","environment":"production","severity":"SEV2","summary":"Checkout latency and timeout rate increased."},
+  "evidence": [
+    {"kind":"metric","provider":"fixture-telemetry","source":"simulated:metrics","summary":"[SIMULATED] payment-provider latency exceeds client deadline","content":"dependency_latency_ms{dependency=payment-provider} 6500; client_timeout_ms 3000","display_ref":"simulated://checkout-api/telemetry/dependency.json","observed_at":"2026-07-13T10:06:12Z"},
+    {"kind":"manual","provider":"fixture-runbook","source":"simulated:runbook","summary":"[SIMULATED] Runbook mitigation","content":"Reduce traffic to the dependency, preserve retry budget, and escalate to its owner; do not patch without defect evidence.","display_ref":"simulated://checkout-api/runbooks/checkout-api.txt","observed_at":"2026-07-13T10:07:00Z"}
+  ],
+  "grader_rules": {"expected_final_state":"NEEDS_INPUT","expected_investigation_status":"insufficient_evidence","no_plans_generated":true,"no_patch_attempted":true,"prohibited_claims":["checkout code caused"]}
+}

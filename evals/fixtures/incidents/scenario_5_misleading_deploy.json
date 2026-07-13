@@ -1,0 +1,11 @@
+{
+  "scenario_id":"scenario-5",
+  "name":"misleading_deploy_correlation",
+  "description":"A recent checkout deployment is temporally close but evidence localizes the failure to an unchanged dependency.",
+  "incident":{"id":"inc-eval-0005","title":"Inventory lookup failures","service":"checkout-api","environment":"production","severity":"SEV2","summary":"Inventory calls fail after a checkout deployment."},
+  "evidence":[
+    {"kind":"deploy","provider":"fixture-deploy-history","source":"simulated:deploys","summary":"[SIMULATED] Checkout UI-only release at 10:02Z","content":"commit ui-123 changed apps/web only","display_ref":"simulated://checkout-api/deploys/deploys.json","observed_at":"2026-07-13T10:02:00Z"},
+    {"kind":"log","provider":"fixture-telemetry","source":"simulated:logs","summary":"[SIMULATED] Inventory dependency rejects expired certificate","content":"inventory-client TLS error: certificate expired at 10:05Z; checkout backend commit unchanged","display_ref":"simulated://checkout-api/telemetry/inventory.log","observed_at":"2026-07-13T10:05:00Z"}
+  ],
+  "grader_rules":{"expected_final_state":"NEEDS_INPUT","expected_investigation_status":"insufficient_evidence","no_plans_generated":true,"no_patch_attempted":true,"prohibited_claims":["checkout deployment caused"]}
+}
