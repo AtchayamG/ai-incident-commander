@@ -1,0 +1,30 @@
+1
+00:00:00,000 --> 00:00:12,470
+Production incidents force small teams to assemble evidence, diagnose risk,
+and coordinate a safe fix. Incident Commander AI makes that work auditable.
+
+2
+00:00:12,470 --> 00:00:31,440
+The verified local demo starts with simulated checkout telemetry. Evidence gets
+stable provenance, and secret-shaped values are redacted before investigation.
+
+3
+00:00:31,440 --> 00:00:55,940
+The investigation correlates deployment, stack trace, and commit evidence.
+Every claim is cited. A human must approve the bounded two-file plan.
+
+4
+00:00:55,940 --> 00:01:24,570
+An explicitly simulated fixture code agent works in an isolated workspace.
+Deterministic tests, type checks, risk review, and a second approval follow.
+
+5
+00:01:24,570 --> 00:01:47,470
+The local result is RESOLUTION_DRAFTED: two approvals, a simulated draft-PR
+artifact, audience-specific updates, and an evidence-linked postmortem.
+
+6
+00:01:47,470 --> 00:02:12,410
+The fixture workflow is backed by tests, browser automation, repeated demo
+runs, and a secret scan. A separate GPT-5.6 structured-output smoke test passed.
+
