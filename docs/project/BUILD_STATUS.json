@@ -1,5 +1,5 @@
 {
-  "active_milestone": "M7",
+  "active_milestone": "M8",
   "status": "in_progress",
   "gates": {
     "frontend_lint": true,
@@ -20,5 +20,5 @@
     "golden_demo": false,
     "five_run_reliability": false
   },
-  "last_updated": "2026-07-13T11:45:55+05:30"
+  "last_updated": "2026-07-13T12:30:00+05:30"
 }
