@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import sessionmaker
 
 from app.domain.contracts import (
@@ -63,6 +63,14 @@ class SqlAlchemyStore(StoreProtocol):
         Base.metadata.create_all(bind=self.engine)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         self._counter = 0
+
+    def ping(self) -> bool:
+        try:
+            with self.engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            return True
+        except Exception:
+            return False
 
     def reset(self) -> None:
         # Preserve the schema so concurrent dashboard reads never observe the

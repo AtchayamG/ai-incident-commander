@@ -8,11 +8,28 @@ services:
       DEMO_MODE: "true"
       DEMO_ADMIN_KEY: ${DEMO_ADMIN_KEY:-demo-admin-key}
       CORS_ORIGINS: http://localhost:3000
+      DATABASE_URL: postgresql+psycopg://incident:incident-local@postgres:5432/incident_commander
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
+      test: ["CMD", "python", "-c", "import json,urllib.request; assert json.load(urllib.request.urlopen('http://localhost:8000/health/dependencies'))['status'] == 'ok'"]
       interval: 10s
       timeout: 3s
       retries: 5
+
+  worker:
+    build:
+      context: ./services/api
+    command: ["python", "-m", "app.worker"]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
 
   web:
     build:
@@ -28,8 +45,6 @@ services:
       api:
         condition: service_healthy
 
-  # Optional local infrastructure profile. The default deterministic demo
-  # still uses SQLite; enabling this profile does not imply production use.
   postgres:
     image: postgres:16-alpine
     environment:
@@ -40,13 +55,21 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    profiles: ["persistence"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U incident -d incident_commander"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-    profiles: ["persistence"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
   pgdata:

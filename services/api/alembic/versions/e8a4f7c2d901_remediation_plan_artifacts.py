@@ -14,8 +14,6 @@ Create Date: 2026-07-12 16:00:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from sqlalchemy.dialects import sqlite
-
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -34,7 +32,7 @@ def upgrade() -> None:
         sa.Column('version', sa.Integer(), nullable=False),
         sa.Column('artifact_hash', sa.String(length=100), nullable=False),
         sa.Column('risk_level', sa.String(length=50), nullable=False),
-        sa.Column('document', sqlite.JSON(), nullable=False),
+        sa.Column('document', sa.JSON(), nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
         sa.PrimaryKeyConstraint('id'),

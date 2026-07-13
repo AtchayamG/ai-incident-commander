@@ -8,8 +8,6 @@ Create Date: 2026-07-12 01:36:51.872045
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from sqlalchemy.dialects import sqlite
-
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -64,7 +62,7 @@ def upgrade() -> None:
     sa.Column('summary', sa.String(length=1000), nullable=False),
     sa.Column('content', sa.String(), nullable=False),
     sa.Column('redaction_applied', sa.Boolean(), nullable=False),
-    sa.Column('provenance', sqlite.JSON(), nullable=False),
+    sa.Column('provenance', sa.JSON(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -80,9 +78,9 @@ def upgrade() -> None:
     sa.Column('incident_id', sa.String(length=100), nullable=False),
     sa.Column('statement', sa.String(), nullable=False),
     sa.Column('confidence', sa.Float(), nullable=False),
-    sa.Column('supporting_evidence_ids', sqlite.JSON(), nullable=False),
-    sa.Column('contradictions', sqlite.JSON(), nullable=False),
-    sa.Column('unknowns', sqlite.JSON(), nullable=False),
+    sa.Column('supporting_evidence_ids', sa.JSON(), nullable=False),
+    sa.Column('contradictions', sa.JSON(), nullable=False),
+    sa.Column('unknowns', sa.JSON(), nullable=False),
     sa.ForeignKeyConstraint(['incident_id'], ['incidents.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -114,7 +112,7 @@ def upgrade() -> None:
     sa.Column('incident_id', sa.String(length=100), nullable=False),
     sa.Column('hypothesis_id', sa.String(length=100), nullable=False),
     sa.Column('summary', sa.String(), nullable=False),
-    sa.Column('steps', sqlite.JSON(), nullable=False),
+    sa.Column('steps', sa.JSON(), nullable=False),
     sa.Column('risk_level', sa.String(length=50), nullable=False),
     sa.Column('max_files_changed', sa.Integer(), nullable=False),
     sa.Column('max_lines_changed', sa.Integer(), nullable=False),
@@ -168,7 +166,7 @@ def upgrade() -> None:
     sa.Column('id', sa.String(length=100), nullable=False),
     sa.Column('patch_id', sa.String(length=100), nullable=False),
     sa.Column('passed', sa.Boolean(), nullable=False),
-    sa.Column('checks', sqlite.JSON(), nullable=False),
+    sa.Column('checks', sa.JSON(), nullable=False),
     sa.ForeignKeyConstraint(['patch_id'], ['patch_attempts.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

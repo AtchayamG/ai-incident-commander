@@ -6,7 +6,7 @@ Request models forbid unknown fields so contract drift fails loudly.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -178,12 +178,23 @@ class HealthReady(StrictModel):
 
 class DependencyStatus(StrictModel):
     name: str
-    status: str
+    status: Literal["connected", "configured", "simulated", "not_configured", "unavailable"]
 
 
 class HealthDependencies(StrictModel):
-    status: str
+    status: Literal["ok", "degraded"]
     dependencies: list[DependencyStatus]
+
+
+class WorkerStatus(StrictModel):
+    name: str
+    status: Literal["ready", "not_configured", "unavailable"]
+    last_heartbeat_at: datetime | None = None
+
+
+class HealthWorkers(StrictModel):
+    status: Literal["ok", "degraded"]
+    workers: list[WorkerStatus]
 
 
 class ResetResult(StrictModel):
