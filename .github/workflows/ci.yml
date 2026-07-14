@@ -62,7 +62,8 @@ jobs:
           cache: pnpm
       - name: Install backend and frontend
         run: |
-          pip install -e "services/api[dev]"
+          python -m venv services/api/.venv
+          services/api/.venv/bin/python -m pip install -e "services/api[dev]"
           pnpm install --frozen-lockfile
           pnpm --filter @incident-commander/web exec playwright install --with-deps chromium
       - name: Run browser workflow and link checks
