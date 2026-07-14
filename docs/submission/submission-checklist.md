@@ -1,6 +1,6 @@
 # Submission Checklist
 
-## Live competition state (2026-07-13 IST)
+## Live competition state (2026-07-14 IST)
 
 - [x] Event dates confirmed: July 13–21, 2026.
 - [x] Exact submission window confirmed: July 13 at 9:00 a.m. PDT through
@@ -8,10 +8,11 @@
 - [x] India appears in the live eligible-territory list.
 - [x] Published judging criteria captured: GPT-5.6 implementation, design,
   potential impact, and quality of idea.
-- [ ] Official rules published and reviewed. Devpost still says pending.
+- [x] Official rules published and reviewed through the authenticated Devpost
+  plugin on 2026-07-14.
 - [x] Authenticated submission workflow opened; draft `1078762` created.
 - [x] Four prize tracks published and reviewed.
-- [ ] Category selected after publication.
+- [x] Primary category selected: Work & Productivity.
 
 ## Product and repository
 
@@ -50,8 +51,9 @@
 - [x] Project name, tagline, short pitch, and long description drafted.
 - [x] Inspiration, implementation, challenges, accomplishments, learnings, and
   next steps drafted.
-- [ ] Final category selected from the live form.
-- [ ] Technologies/tags matched to the live form.
+- [x] Final category answer prepared from the live form: Work & Productivity.
+- [x] Technologies/tags saved to the live Devpost project.
+- [x] Complete project story saved to the live Devpost project.
 - [ ] Repository, demo, and video URLs filled in.
 - [ ] Team members confirmed.
 - [ ] All third-party assets/dependencies disclosed if requested.

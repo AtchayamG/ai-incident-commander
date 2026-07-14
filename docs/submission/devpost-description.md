@@ -1,9 +1,13 @@
 # Devpost Submission Draft
 
-Last refreshed: 2026-07-13 (IST). The live Devpost schedule says submissions
+Last refreshed: 2026-07-14 (IST). The live Devpost schedule says submissions
 open July 13 at 9:00 a.m. PDT and close July 21 at 5:00 p.m. PDT. The official
-rules are still not posted. India is listed among eligible territories. Recheck
-the live rules, categories, and form after opening and before submission.
+rules are now published and were reviewed through the authenticated Devpost
+plugin. India is supported, subject to the entrant's personal eligibility and
+conflict-of-interest certifications. Recheck the live form before submission.
+
+Live Devpost project `1326935` was updated on 2026-07-14 with the complete
+story and technology stack. Primary category: **Work & Productivity**.
 
 ## Project name
 
