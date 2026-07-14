@@ -41,8 +41,8 @@
 - [x] Shot-by-shot storyboard.
 - [x] Four final screenshots captured from the verified Compose build.
 - [x] Final 2:12 narrated 1080p demo video captured and decode-verified locally.
-- [ ] Final video uploaded and URL attached to Devpost; YouTube visibility must
-  still be changed from Private to Public and verified logged out.
+- [x] Final video published publicly, independently resolved through YouTube
+  oEmbed, attached to Devpost, and showing published automatic English captions.
 - [x] Credentialed GPT-5.6 Responses receipt captured with synthetic input,
   strict schema validation, `store=false`, and a hashed response ID.
 - [ ] Successful credentialed Codex fixture-workspace diff captured. Two authorized CLI turns reached `gpt-5.6-sol` but returned zero diff, so they are documented only as unsuccessful attempts.

@@ -25,8 +25,8 @@
     "codex_cli_live_repository_diff": false,
     "public_repository_url": false,
     "hosted_demo_url": false,
-    "demo_video_url": false,
+    "demo_video_url": true,
     "devpost_submission": false
   },
-  "last_updated": "2026-07-14T10:45:00+05:30"
+  "last_updated": "2026-07-14T11:05:00+05:30"
 }

@@ -50,5 +50,8 @@ OpenAI Build Week 2026
 
 - URL: https://youtu.be/-8zRF8RCuc8
 - Devpost project: attached on 2026-07-14
-- Current verification: YouTube Studio screenshot shows the upload saved as
-  private; change visibility to Public and publish before final submission.
+- Current verification: Public playback metadata independently resolved through
+  YouTube oEmbed on 2026-07-14; YouTube Studio shows automatic English captions
+  published.
+- Caption source: YouTube automatic captions. The retained `.srt` remains an
+  optional correction source and is not required for Devpost.
