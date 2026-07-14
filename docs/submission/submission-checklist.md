@@ -50,6 +50,8 @@
 
 ## Devpost form
 
+- [ ] Live Devpost submission workflow currently shows 2/5 steps complete; do
+  not describe the five-step submission as complete until Devpost reports it.
 - [x] Project name, tagline, short pitch, and long description drafted.
 - [x] Inspiration, implementation, challenges, accomplishments, learnings, and
   next steps drafted.
@@ -64,6 +66,9 @@
   submission.
 - [ ] Official rules accepted by the authorized account holder.
 - [ ] Submission performed by the authorized account holder before the deadline.
+
+Exact prepared answers and the remaining personal certification are recorded in
+`docs/submission/devpost-final-answers.md`.
 
 ## Mandatory final truth check
 
