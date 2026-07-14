@@ -46,7 +46,9 @@ OpenAI Build Week 2026
 - Captions: `docs/submission/incident-commander-demo-captions.srt`
 - License: Standard YouTube License
 
-## Pending
+## Uploaded video
 
-Add the resulting public YouTube URL here and to the Devpost project before
-final submission.
+- URL: https://youtu.be/-8zRF8RCuc8
+- Devpost project: attached on 2026-07-14
+- Current verification: YouTube Studio screenshot shows the upload saved as
+  private; change visibility to Public and publish before final submission.
