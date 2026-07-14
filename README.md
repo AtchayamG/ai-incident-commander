@@ -4,13 +4,14 @@ AI incident commander for small engineering teams: evidence-grounded diagnosis, 
 
 Built side-by-side with Codex for OpenAI Build Week. The optional live investigation adapter targets GPT-5.6 through the Responses API when explicitly configured; the reproducible judging demo remains credential-free and clearly labelled simulated.
 
-**Status: M0-M9 complete; final Devpost submission in progress.** The deterministic demo completes the two-approval workflow through an explicitly simulated draft-PR package, communications, and an evidence-linked postmortem. No external credentials are required; remaining submission steps are tracked in `docs/project/taskstatus.md`.
+**Status: M0-M9 complete and submitted to OpenAI Build Week.** The deterministic demo completes the two-approval workflow through an explicitly simulated draft-PR package, communications, and an evidence-linked postmortem. No external credentials are required.
 
 ## Public submission artifacts
 
 - Demo video: https://youtu.be/-8zRF8RCuc8
 - Devpost project: https://devpost.com/software/incident-commander-ai
 - Source repository: https://github.com/AtchayamG/ai-incident-commander
+- Final submission receipt: [docs/submission/final-submission-receipt.md](docs/submission/final-submission-receipt.md)
 
 ## Layout
 

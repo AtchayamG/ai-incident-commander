@@ -43,7 +43,7 @@ This checklist audits every product capability claimed in the **Demo Script** an
 * **Verification Status:** **CURRENTLY PROVEN**
 
 ### 1.6 Bounded Codex Patching (M5)
-* **Claim:** In deterministic demo mode, an explicitly simulated fixture code-agent operates in an isolated temporary workspace, applying the expected minimal patch and regression test. A live Codex adapter exists but final live proof remains pending M9.
+* **Claim:** In deterministic demo mode, an explicitly simulated fixture code-agent operates in an isolated temporary workspace, applying the expected minimal patch and regression test. A live Codex adapter exists, but two credentialed attempts returned zero diff and are not presented as successful live repository-work proof.
 * **Technical Artifacts:**
   - Sandbox executor: [executor.py](../../services/api/app/sandbox/executor.py)
   - Sandbox workspace: [workspace.py](../../services/api/app/sandbox/workspace.py)
@@ -89,7 +89,7 @@ This checklist audits every product capability claimed in the **Demo Script** an
 
 ### 1.12 Multi-Run Reliability, Secret Scan & Submission (M9)
 * **Claim:** Safe execution across five consecutive E2E runs without latency spikes or flakiness, repo secret scanning, and final submission packaging.
-* **Verification Status:** **CURRENTLY PROVEN** for five consecutive deterministic CLI runs, the full-history secret scan, and one complete containerized browser run. Final recording and credentialed OpenAI/Codex smoke proof remain pending.
+* **Verification Status:** **PROVEN** for five consecutive deterministic CLI runs, the full-history secret scan, the complete containerized browser path, the public narrated recording, and the credentialed GPT-5.6 structured-output smoke receipt. Credentialed Codex zero-diff attempts remain disclosed as unsuccessful rather than being promoted to proof.
 
 ---
 

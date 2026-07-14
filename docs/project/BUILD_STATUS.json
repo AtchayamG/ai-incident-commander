@@ -1,6 +1,6 @@
 {
   "active_milestone": "M9",
-  "status": "local_complete_external_submission_pending",
+  "status": "complete_and_submitted",
   "gates": {
     "frontend_lint": true,
     "frontend_typecheck": true,
@@ -26,7 +26,7 @@
     "public_repository_url": true,
     "hosted_demo_url": false,
     "demo_video_url": true,
-    "devpost_submission": false
+    "devpost_submission": true
   },
-  "last_updated": "2026-07-14T11:20:00+05:30"
+  "last_updated": "2026-07-14T11:31:00+05:30"
 }

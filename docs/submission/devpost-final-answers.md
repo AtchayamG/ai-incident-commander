@@ -8,8 +8,8 @@ Live project: https://devpost.com/software/incident-commander-ai
 
 | Field ID | Question | Prepared answer | Status |
 |---|---|---|---|
-| 27945 | Submitter Type | Individual | Awaiting account-holder confirmation |
-| 27946 | Country of Residence | India | Awaiting account-holder confirmation |
+| 27945 | Submitter Type | Individual | Confirmed and submitted |
+| 27946 | Country of Residence | India | Confirmed and submitted |
 | 27947 | Category | Work & Productivity | Ready |
 | 27948 | Code repository | https://github.com/AtchayamG/ai-incident-commander | Attached and publicly verified |
 | 27950 | `/feedback` Session ID | `019f5282-7c6f-76d1-888e-ffb0c25de3c8` | Ready |
@@ -35,8 +35,8 @@ is deterministic and offline.
 
 ## Final personal certification required
 
-Before the final submit action, the account holder must confirm all of the
-following are true:
+Before the final submit action, the account holder confirmed all of the
+following were true:
 
 - the entrant is submitting as an individual;
 - the entrant's country of residence is India;
@@ -44,4 +44,5 @@ following are true:
 - none of the official-rules exclusions or conflicts of interest applies; and
 - the entrant has reviewed and accepts the official rules.
 
-These facts must not be inferred from account metadata or timezone.
+These facts were explicitly confirmed in the build task and were not inferred
+from account metadata or timezone. Devpost accepted submission `1078762`.

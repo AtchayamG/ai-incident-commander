@@ -30,7 +30,7 @@ This shot-by-shot storyboard is optimized for Devpost judging, demonstrating our
   - The "Ranked Hypotheses" tab.
   - Top card: *"Unsafe direct property access on session.discount.code"* with **94% confidence**.
   - A clickable link icon next to the hypothesis that draws a connecting line back to the timeline log trace and commit.
-* **Narration Hook:** *"Our investigation engine generates and ranks root-cause hypotheses using structured outputs. Hallucinations are prevented: every claim must cite exact timeline evidence. (The engine currently runs on a deterministic simulated-fixture gateway; final OpenAI-provider integration is pending)."*
+* **Narration Hook:** *"Our investigation engine generates and ranks root-cause hypotheses using structured outputs. Every material claim must cite exact timeline evidence. The recorded path uses the deterministic fixture gateway; a separate credentialed GPT-5.6 structured-output receipt proves the optional OpenAI boundary."*
 * **Core Message:** Rationale over speculation. The system separates facts from inferences.
 
 ---
@@ -99,7 +99,7 @@ This shot-by-shot storyboard is optimized for Devpost judging, demonstrating our
 
 ### Shot 10: Technical Architecture Close (Architecture Close)
 * **Visual Representation:**
-  - A system context diagram showing Next.js, FastAPI, SQLAlchemy persistence, deterministic fixture gateways, and optional live OpenAI/Codex adapters pending final proof.
+  - A system context diagram showing Next.js, FastAPI, SQLAlchemy persistence, deterministic fixture gateways, the separately proven GPT-5.6 boundary, and the optional Codex adapter whose zero-diff attempts are disclosed without a live-work claim.
   - An engineering evidence badge: **185 Backend Tests | Ruff & Strict Mypy (56 App Files) | 20 Web + 6 Contract Tests | 22 Playwright Scenarios | 5 Demo Runs | Clean Secret Scan**.
 * **Narration Hook:** *"Incident Commander AI turns a confusing production alert into a verified, human-approved fix and a complete audit trail—keeping the team in control every step of the way."*
 * **Core Message:** Robust local validation and structured architecture.

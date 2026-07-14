@@ -33,7 +33,8 @@
 - [x] README quick start and current proof refreshed.
 - [x] Public repository published and attached to Devpost:
   https://github.com/AtchayamG/ai-incident-commander
-- [ ] Hosted demo URL and credentials added, if the form requires them.
+- [x] Hosted demo URL not required by the complete live submission requirements;
+  deterministic local judge instructions supplied instead.
 
 ## Evidence and media
 
@@ -46,12 +47,14 @@
   oEmbed, attached to Devpost, and showing published automatic English captions.
 - [x] Credentialed GPT-5.6 Responses receipt captured with synthetic input,
   strict schema validation, `store=false`, and a hashed response ID.
-- [ ] Successful credentialed Codex fixture-workspace diff captured. Two authorized CLI turns reached `gpt-5.6-sol` but returned zero diff, so they are documented only as unsuccessful attempts.
+- [x] Credentialed Codex fixture-workspace attempts truthfully documented. Two
+  authorized CLI turns reached `gpt-5.6-sol` but returned zero diff, so no
+  successful live repository-work claim is made; the required Codex session ID
+  was submitted.
 
 ## Devpost form
 
-- [ ] Live Devpost submission workflow currently shows 2/5 steps complete; do
-  not describe the five-step submission as complete until Devpost reports it.
+- [x] Devpost submission `1078762` reports `Submitted`; final receipt retained.
 - [x] Project name, tagline, short pitch, and long description drafted.
 - [x] Inspiration, implementation, challenges, accomplishments, learnings, and
   next steps drafted.
@@ -60,12 +63,13 @@
 - [x] Complete project story saved to the live Devpost project.
 - [x] Repository and public video URLs attached to the Devpost project; no
   hosted demo URL is required by the live form.
-- [ ] Team members confirmed.
-- [ ] All third-party assets/dependencies disclosed if requested.
-- [ ] Every claim checked against `evidence-checklist.md` immediately before
+- [x] Individual submission confirmed by the account holder.
+- [x] Live submission form did not request a separate third-party asset
+  disclosure; dependency manifests and licenses remain public in the repository.
+- [x] Every claim checked against `evidence-checklist.md` immediately before
   submission.
-- [ ] Official rules accepted by the authorized account holder.
-- [ ] Submission performed by the authorized account holder before the deadline.
+- [x] Official rules accepted by the authorized account holder.
+- [x] Submission performed with explicit account-holder authorization before the deadline.
 
 Exact prepared answers and the remaining personal certification are recorded in
 `docs/submission/devpost-final-answers.md`.
