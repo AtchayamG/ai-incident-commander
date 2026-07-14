@@ -31,7 +31,8 @@
 - [x] Default PostgreSQL/Redis/API/web/worker stack builds and reports healthy;
   the complete two-approval browser path reaches `RESOLUTION_DRAFTED`.
 - [x] README quick start and current proof refreshed.
-- [ ] Public repository URL added after publication authorization.
+- [x] Public repository published and attached to Devpost:
+  https://github.com/AtchayamG/ai-incident-commander
 - [ ] Hosted demo URL and credentials added, if the form requires them.
 
 ## Evidence and media
@@ -55,7 +56,8 @@
 - [x] Final category answer prepared from the live form: Work & Productivity.
 - [x] Technologies/tags saved to the live Devpost project.
 - [x] Complete project story saved to the live Devpost project.
-- [ ] Repository, demo, and video URLs filled in.
+- [x] Repository and public video URLs attached to the Devpost project; no
+  hosted demo URL is required by the live form.
 - [ ] Team members confirmed.
 - [ ] All third-party assets/dependencies disclosed if requested.
 - [ ] Every claim checked against `evidence-checklist.md` immediately before
