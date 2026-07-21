@@ -103,8 +103,9 @@ SCENES = [
         ],
         "narration": (
             "The offline product path is backed by more than one hundred seventy-five backend tests, "
-            "strict typing, browser automation, five complete demo runs, and a clean secret scan. A "
-            "separate credentialed GPT-five-point-six structured-output smoke test also passed. The "
+            "strict typing, browser automation, five complete demo runs, and a clean secret scan. Codex "
+            "was used side by side to architect, implement, test, and verify this project. A separate "
+            "credentialed GPT-five-point-six structured-output smoke test also passed. The "
             "screens shown here remain honest fixture evidence. Incident Commander AI: faster diagnosis, "
             "deterministic verification, and human control at every consequential boundary."
         ),

@@ -1,6 +1,6 @@
 # Final Submission Receipt
 
-Verified: 2026-07-14 (IST)
+Verified: 2026-07-21 (IST)
 
 ## Devpost
 
@@ -16,11 +16,11 @@ Verified: 2026-07-14 (IST)
 ## Public artifacts
 
 - Repository: https://github.com/AtchayamG/ai-incident-commander
-- Video: https://youtu.be/-8zRF8RCuc8
+- Video: https://youtu.be/CCqM-leu_8Y
 - License: MIT
 - README and license unauthenticated checks: HTTP 200
 - Video public oEmbed check: resolved with the expected title and channel
-- Automatic English captions: published in YouTube Studio
+- Corrected creator English captions: published in YouTube Studio
 
 ## Final repository verification
 
@@ -35,6 +35,5 @@ Verified: 2026-07-14 (IST)
 ## Images
 
 The live submission requirements do not require a thumbnail or screenshot
-deliverable. Four verified product screenshots remain available under
-`docs/submission/screenshots/`; no extra account-side image upload was required
-for the accepted submission.
+deliverable. The final audit nevertheless published a custom project thumbnail
+and four verified product screenshots from `docs/submission/screenshots/`.
