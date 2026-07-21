@@ -10,7 +10,7 @@ Live project: https://devpost.com/software/incident-commander-ai
 |---|---|---|---|
 | 27945 | Submitter Type | Individual | Confirmed and submitted |
 | 27946 | Country of Residence | India | Confirmed and submitted |
-| 27947 | Category | Work & Productivity | Ready |
+| 27947 | Category | Developer Tools | Confirmed and submitted |
 | 27948 | Code repository | https://github.com/AtchayamG/ai-incident-commander | Attached and publicly verified |
 | 27950 | `/feedback` Session ID | `019f5282-7c6f-76d1-888e-ffb0c25de3c8` | Ready |
 

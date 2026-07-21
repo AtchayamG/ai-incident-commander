@@ -9,7 +9,7 @@ Verified: 2026-07-21 (IST)
 - Submission ID: `1078762`
 - Status: `Submitted`
 - Submitted at: `2026-07-14T01:52:10.965-04:00`
-- Category: Work & Productivity
+- Category: Developer Tools (verified in the live Devpost form on 2026-07-22)
 - Submitter: Individual, India (explicitly confirmed by the account holder)
 - Codex session ID: `019f5282-7c6f-76d1-888e-ffb0c25de3c8`
 
