@@ -6,7 +6,7 @@ Prepared: 2026-07-14 (IST)
 
 `docs/submission/incident-commander-demo.mp4`
 
-Verified duration: 2:12.411. Verified format: 1920x1080, 30 fps, H.264/AAC.
+Verified duration: 2:17.911. Verified format: 1920x1080, 30 fps, H.264/AAC.
 
 ## Title
 
@@ -48,10 +48,9 @@ OpenAI Build Week 2026
 
 ## Uploaded video
 
-- URL: https://youtu.be/-8zRF8RCuc8
-- Devpost project: attached on 2026-07-14
-- Current verification: Public playback metadata independently resolved through
-  YouTube oEmbed on 2026-07-14; YouTube Studio shows automatic English captions
-  published.
-- Caption source: YouTube automatic captions. The retained `.srt` remains an
-  optional correction source and is not required for Devpost.
+- URL: https://youtu.be/CCqM-leu_8Y
+- Devpost project: updated on 2026-07-21
+- Current verification: YouTube Studio confirmed public publication, a custom
+  thumbnail, 2:18 playback, and no copyright issues on 2026-07-21.
+- Caption source: the retained `.srt` was uploaded and published as the video's
+  English subtitle track on 2026-07-21; it explicitly names Codex and GPT-5.6.

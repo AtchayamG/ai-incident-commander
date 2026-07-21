@@ -9,7 +9,7 @@ Checked: 2026-07-13 at 8:52 a.m. PDT, shortly before the displayed 9:00 a.m. PDT
 - India is included in the displayed eligible-territory list.
 - OpenAI describes the challenge as building with Codex and GPT-5.6.
 - Published judging criteria are technological implementation (including depth of Codex use), design, potential impact, and quality of the idea.
-- Four prize tracks are visible: Apps for Your Life, Work & Productivity, Developer Tools, and Education. Incident Commander AI is best aligned with Work & Productivity, with Developer Tools as the secondary fit.
+- Four prize tracks are visible: Apps for Your Life, Work & Productivity, Developer Tools, and Education. Incident Commander AI is submitted to Developer Tools because the official definition explicitly includes DevOps, agentic workflows, and security.
 - OpenAI's Build Week page says submissions should include a project description, demo video, code repository, and any additional materials required by Devpost.
 
 ## Still unavailable at check time

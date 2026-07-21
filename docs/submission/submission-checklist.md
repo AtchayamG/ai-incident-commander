@@ -12,7 +12,7 @@
   plugin on 2026-07-14.
 - [x] Authenticated submission workflow opened; draft `1078762` created.
 - [x] Four prize tracks published and reviewed.
-- [x] Primary category selected: Work & Productivity.
+- [x] Primary category selected: Developer Tools.
 
 ## Product and repository
 
@@ -58,7 +58,7 @@
 - [x] Project name, tagline, short pitch, and long description drafted.
 - [x] Inspiration, implementation, challenges, accomplishments, learnings, and
   next steps drafted.
-- [x] Final category answer prepared from the live form: Work & Productivity.
+- [x] Final category answer verified in the live form: Developer Tools.
 - [x] Technologies/tags saved to the live Devpost project.
 - [x] Complete project story saved to the live Devpost project.
 - [x] Repository and public video URLs attached to the Devpost project; no

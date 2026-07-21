@@ -24,7 +24,8 @@ The local result is RESOLUTION_DRAFTED: two approvals, a simulated draft-PR
 artifact, audience-specific updates, and an evidence-linked postmortem.
 
 6
-00:01:47,470 --> 00:02:12,410
+00:01:47,470 --> 00:02:17,911
 The fixture workflow is backed by tests, browser automation, repeated demo
-runs, and a secret scan. A separate GPT-5.6 structured-output smoke test passed.
+runs, and a secret scan. Codex was used side by side to architect, implement,
+test, and verify the project. A separate GPT-5.6 structured-output smoke test passed.
 

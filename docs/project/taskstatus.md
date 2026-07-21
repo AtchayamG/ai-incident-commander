@@ -6,8 +6,8 @@
 - Next tasks: none required for the hackathon submission; retain the public artifacts through judging.
 - External blockers: none.
 - Public repository: `https://github.com/AtchayamG/ai-incident-commander` is public, tracks `origin/main`, exposes the README and MIT license without authentication, and is attached to Devpost.
-- Public video: `https://youtu.be/-8zRF8RCuc8` resolves publicly, is attached to Devpost, and has published automatic English captions.
-- Devpost live state: official rules reviewed; complete project story, technologies, Work & Productivity category, repository, video, judge instructions, and session ID submitted under project `1326935`.
+- Public video: `https://youtu.be/CCqM-leu_8Y` was published with a custom thumbnail and corrected English subtitles and is attached to Devpost; its narration explicitly covers both Codex and GPT-5.6.
+- Devpost live state: official rules reviewed; complete project story, technologies, Developer Tools category, repository, video, judge instructions, and session ID submitted under project `1326935`. The category was re-verified in the live form on 2026-07-22.
 - Final submission: Devpost reports `Submitted`; GitHub Actions run `29310029292` passes all six jobs on the final implementation commit.
 - Live-provider truth: one bounded GPT-5.6 Responses call passed with synthetic input and a hashed receipt. Two bounded Codex CLI turns reached `gpt-5.6-sol` but returned zero diff, so no successful live repository-work claim is made.
 - Quality gates: backend Ruff and strict mypy pass across 56 application source files; 185 backend tests, 20 web tests, 6 contract tests, 13 evaluation/grader tests, all 8 evaluation scenarios, the containerized Next.js production build, and 22 Chromium scenarios pass. Five complete golden demos, Gitleaks, pnpm audit, and Python project audit pass.

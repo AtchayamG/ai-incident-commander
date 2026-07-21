@@ -7,7 +7,7 @@ plugin. India is supported, subject to the entrant's personal eligibility and
 conflict-of-interest certifications. Recheck the live form before submission.
 
 Live Devpost project `1326935` was updated on 2026-07-14 with the complete
-story and technology stack. Primary category: **Work & Productivity**.
+story and technology stack. Primary category: **Developer Tools**.
 
 ## Project name
 

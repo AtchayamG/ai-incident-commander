@@ -22,6 +22,7 @@ node_modules/
 next-env.d.ts.bak
 output/
 apps/web/output/
+docs/submission/demo-video-assets/
 
 # OS / editor
 .DS_Store

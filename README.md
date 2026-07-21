@@ -8,7 +8,7 @@ Built side-by-side with Codex for OpenAI Build Week. The optional live investiga
 
 ## Public submission artifacts
 
-- Demo video: https://youtu.be/-8zRF8RCuc8
+- Demo video: https://youtu.be/CCqM-leu_8Y
 - Devpost project: https://devpost.com/software/incident-commander-ai
 - Source repository: https://github.com/AtchayamG/ai-incident-commander
 - Final submission receipt: [docs/submission/final-submission-receipt.md](docs/submission/final-submission-receipt.md)
